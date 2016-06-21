@@ -1,9 +1,9 @@
 description = "utilities for approval_processorMP.py"
 author = "Min-A Cho mina19@umd.edu"
 
-#----------------------------------------------
+#-----------------------------------------------------------------------
 # Import packages
-#----------------------------------------------
+#-----------------------------------------------------------------------
 #from ligo.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb, HTTPError
 import subprocess as sp
@@ -16,9 +16,9 @@ import random
 import time
 import datetime
 
-#------------------------------------------------------------------
+#-----------------------------------------------------------------------
 # Fetch childConfig-approval_processorMP.ini parameters
-#------------------------------------------------------------------
+#-----------------------------------------------------------------------
 import ConfigParser
 config = ConfigParser.SafeConfigParser()
 config.read('/home/guest/lvalert_listenMP/childConfig-approval_processorMP.ini')
@@ -46,9 +46,9 @@ idq_pipelines = idq_pipelines.split(',')
 
 skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 
-#-------------------------------------------------------
+#-----------------------------------------------------------------------
 # Set up logging
-#-------------------------------------------------------
+#-----------------------------------------------------------------------
 import logging
 logger = logging.getLogger('approval_processorMP')
 logging_filehandler = logging.FileHandler(config.get('general', 'approval_processorMP_logfile'))
@@ -56,23 +56,23 @@ logging_filehandler.setLevel(logging.INFO)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging_filehandler)
 
-#----------------------------------------------------------
+#-----------------------------------------------------------------------
 # Instantiate GraceDB client
-#----------------------------------------------------------
+#-----------------------------------------------------------------------
 g = GraceDb('{0}'.format(client))
 
-#--------------------------------------------------------------------------
-# Tasks when current_state of event is new_to_preliminary
-#--------------------------------------------------------------------------
+#-----------------------------------------------------------------------
+# Tasks when currentstate of event is new_to_preliminary
+#-----------------------------------------------------------------------
 new_to_preliminary = [
     'farCheck',
     'labelCheck',
     'injectionCheck'
     ]
 
-#--------------------------------------------------------------------------
-# Tasks when current_state of event is preliminary_to_initial
-#--------------------------------------------------------------------------
+#-----------------------------------------------------------------------
+# Tasks when currentstate of event is preliminary_to_initial
+#-----------------------------------------------------------------------
 preliminary_to_initial = [
     'farCheck',
     'labelCheck',
@@ -84,26 +84,26 @@ if humanscimons=='yes':
 if advocates=='yes':
     preliminary_to_initial.append('advocate_signoffCheck')
 
-#--------------------------------------------------------------------------
-# Tasks when current_state of event is initial_to_update
-#--------------------------------------------------------------------------
+#-----------------------------------------------------------------------
+# Tasks when currentstate of event is initial_to_update
+#-----------------------------------------------------------------------
 initial_to_update = [
     'farCheck',
     'labelCheck',
     'have_lvem_skymapCheck'
     ]
 
-#--------------------------------------
+#-----------------------------------------------------------------------
 # Utilities
-#--------------------------------------
+#-----------------------------------------------------------------------
 def convertTime():
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     return st
 
-#--------------------------------------
+#-----------------------------------------------------------------------
 # farCheck
-#--------------------------------------
+#-----------------------------------------------------------------------
 def get_farthresh(pipeline, search):
     try:
         return config.getfloat('farCheck', 'farthresh[{0}.{1}]'.format(pipeline, search))
@@ -133,9 +133,9 @@ def farCheck(event_dict):
             event_dict['farcheckresult'] = True
             return True
 
-#---------------------------------------
+#-----------------------------------------------------------------------
 # labelCheck
-#---------------------------------------
+#-----------------------------------------------------------------------
 def checkLabels(labels):
     if hardware_inj == 'yes':
         badlabels = ['DQV']
@@ -153,9 +153,9 @@ def labelCheck(event_dict):
     else:
         return True
 
-#---------------------------------------
+#-----------------------------------------------------------------------
 # injectionCheck
-#---------------------------------------
+#-----------------------------------------------------------------------
 def injectionCheck(event_dict):
     injectioncheckresult = event_dict['injectioncheckresult']
     if injectioncheckresult!=None:
@@ -188,9 +188,9 @@ def injectionCheck(event_dict):
             event_dict['injectioncheckresult'] = True
             return True
 
-#---------------------------------------
+#-----------------------------------------------------------------------
 # have_lvem_skymapCheck
-#---------------------------------------
+#-----------------------------------------------------------------------
 def have_lvem_skymapCheck(event_dict):
     graceid = event_dict['graceid']
     lvemskymaps = event_dict['lvemskymaps'].keys()
@@ -215,9 +215,9 @@ def current_lvem_skymap(event_dict):
     else:
         return lvemskymaps[-1]
 
-#----------------------------------------
+#-----------------------------------------------------------------------
 # idq_joint_fapCheck
-#----------------------------------------
+#-----------------------------------------------------------------------
 def get_idqthresh(pipeline, search):
     try:
         return config.getfloat('idq_joint_fapCheck', 'idqthresh[{0}.{1}]'.format(pipeline, search))
@@ -307,9 +307,9 @@ def idq_joint_fapCheck(event_dict):
                    # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey'] = 'yes'
 
-#----------------------------------------
+#-----------------------------------------------------------------------
 # operator_signoffCheck
-#----------------------------------------
+#-----------------------------------------------------------------------
 def record_signoff(event_dict, signoff_object):
     instrument = signoff_object['instrument']
     signofftype = signoff_object['signoff_type']
@@ -358,9 +358,9 @@ def operator_signoffCheck(event_dict):
                 return True
                 event_dict['operatorcheckresult'] = True
 
-#----------------------------------------
+#-----------------------------------------------------------------------
 # advocate_signoffCheck
-#----------------------------------------
+#-----------------------------------------------------------------------
 def advocate_signoffCheck(event_dict):
     advocatecheckresult = event_dict['advocatecheckresult']
     if advocatecheckresult!=None:
@@ -388,9 +388,9 @@ def advocate_signoffCheck(event_dict):
                 event_dict['advocatecheckresult'] = True
                 return True
         
-#----------------------------------------
+#-----------------------------------------------------------------------
 # process_alert
-#----------------------------------------
+#-----------------------------------------------------------------------
 def process_alert(event_dict, voevent_type):
     graceid = event_dict['graceid']
     injectionsfound = event_dict['injectionsfound']
@@ -440,9 +440,9 @@ def process_alert(event_dict, voevent_type):
     logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
-#---------------------------------------------
+#-----------------------------------------------------------------------
 # creating event dictionaries
-#---------------------------------------------
+#-----------------------------------------------------------------------
 class EventDict:
     EventDicts = {}
     def __init__(self, dictionary, graceid):
@@ -479,9 +479,9 @@ class EventDict:
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
         logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
-#-------------------------------------------------------------
-# ParseAlert
-#-------------------------------------------------------------
+#-----------------------------------------------------------------------
+# parseAlert
+#-----------------------------------------------------------------------
 def parseAlert(alert):
     # get the event dictionary for approval_processorMP's use
     if 'uid' in alert.keys():
