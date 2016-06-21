@@ -111,9 +111,9 @@ def get_farthresh(pipeline, search):
         return default_farthresh
 
 def farCheck(event_dict):
-    farcheckresult = event_dict['farcheckresult']
-    if farcheckresult!=None:
-        return farcheckresult
+    farCheckresult = event_dict['farCheckresult']
+    if farCheckresult!=None:
+        return farCheckresult
     else:
         far = event_dict['far']
         graceid = event_dict['graceid']
@@ -124,13 +124,13 @@ def farCheck(event_dict):
            # g.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh))
-            event_dict['farcheckresult'] = False
+            event_dict['farCheckresult'] = False
             return False
         elif far < farthresh:
            # g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Has low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
-            event_dict['farcheckresult'] = True
+            event_dict['farCheckresult'] = True
             return True
 
 #-----------------------------------------------------------------------
@@ -149,17 +149,19 @@ def labelCheck(event_dict):
     labels = event_dict['labels']
     if checkLabels(labels.keys()) > 0:
         logger.info('{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid))
+        event_dict['labelCheckresult'] = False
         return False
     else:
+        event_dict['labelCheckresult'] = True
         return True
 
 #-----------------------------------------------------------------------
 # injectionCheck
 #-----------------------------------------------------------------------
 def injectionCheck(event_dict):
-    injectioncheckresult = event_dict['injectioncheckresult']
-    if injectioncheckresult!=None:
-        return injectioncheckresult
+    injectionCheckresult = event_dict['injectionCheckresult']
+    if injectionCheckresult!=None:
+        return injectionCheckresult
     else:
         eventtime = event_dict['gpstime']
         graceid = event_dict['graceid']
@@ -173,19 +175,19 @@ def injectionCheck(event_dict):
                # g.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th))
-                event_dict['injectioncheckresult'] = False
+                event_dict['injectionCheckresult'] = False
                 return False
             else:
                # g.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th))
-                event_dict['injectioncheckresult'] = True
+                event_dict['injectionCheckresult'] = True
                 return True
         elif len(Injections)==0:
            # g.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
             event_dict['injectionlogkey'] = 'yes'
             logger.info('{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th))
-            event_dict['injectioncheckresult'] = True
+            event_dict['injectionCheckresult'] = True
             return True
 
 #-----------------------------------------------------------------------
@@ -196,16 +198,20 @@ def have_lvem_skymapCheck(event_dict):
     lvemskymaps = event_dict['lvemskymaps'].keys()
     if len(lvemskymaps)==0:
         logger.info('{0} -- {1} -- No skymap tagged lvem yet.'.format(convertTime(), graceid))
+        event_dict['have_lvem_skymapCheckresult'] = False
         return False
     elif len(lvemskymaps)==1:
         logger.info('{0} -- {1} -- Skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+        event_dict['have_lvem_skymapCheckresult'] = True
         return True
     elif len(lvemskymaps) > 1:
         if listofskymaps[-1]!=listofskymaps[-2]:
             logger.info('{0} -- {1} -- Skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            event_dict['have_lvem_skymapCheckresult'] = True
             return True
         else:
             logger.info('{0} -- {1} -- No new skymap tagged lvem available yet.'.format(convertTime(), graceid))
+            event_dict['have_lvem_skymapCheckresult'] = False
             return False
 
 def current_lvem_skymap(event_dict):
@@ -247,12 +253,12 @@ def compute_joint_fap_values(event_dict):
 
 def idq_joint_fapCheck(event_dict):
     group = event_dict['group']
-    idqcheckresult = event_dict['idqcheckresult']
-    if idqcheckresult!=None:
-        return idqcheckresult
+    idq_joint_fapCheckresult = event_dict['idq_joint_fapCheckresult']
+    if idq_joint_fapCheckresult!=None:
+        return idq_joint_fapCheckresult
     elif group in ignore_idq:
         logger.info('{0} -- {1} -- Not using idq checks for events with group(s) {2}.'.format(convertTime(), graceid, ignore_idq))
-        event_dict['idqcheckresult'] = True
+        event_dict['idq_joint_fapCheckresult'] = True
         return True
     else:
         pipeline = event_dict['pipeline']
@@ -273,7 +279,7 @@ def idq_joint_fapCheck(event_dict):
                    # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling with DQV.'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
-                event_dict['idqcheckresult'] = False
+                event_dict['idq_joint_fapCheckresult'] = False
                # g.writeLabel(graceid, 'DQV')
                 return False
         elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
@@ -293,14 +299,14 @@ def idq_joint_fapCheck(event_dict):
                 logger.info('{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline))
             if min(jointfapvalues.values()) > idqthresh:
                 logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
-                event_dict['idqcheckresult'] = True
+                event_dict['idq_joint_fapCheckresult'] = True
                 return True
                 if idqlogkey=='no':
                    # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey']='yes'
             else:
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling DQV.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
-                event_dict['idqcheckresult'] = False
+                event_dict['idq_joint_fapCheckresult'] = False
                # g.writeLabel(graceid, 'DQV')
                 return False
                 if idqlogkey=='no':
@@ -322,9 +328,9 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs.append(status)
 
 def operator_signoffCheck(event_dict):
-    operatorcheckresult = event_dict['operatorcheckresult']
-    if operatorcheckresult!=None:
-        return operatorcheckresult
+    operator_signoffCheckresult = event_dict['operator_signoffCheckresult']
+    if operator_signoffCheckresult!=None:
+        return operator_signoffCheckresult
     else:
         graceid = event_dict['graceid']
         instruments = event_dict['instruments']
@@ -338,7 +344,7 @@ def operator_signoffCheck(event_dict):
                     event_dict['operatorlogkey'] = 'yes'
                    # g.writeLabel(graceid, 'DQV')
                 return False
-                event_dict['operatorcheckresult'] = False
+                event_dict['operator_signoffCheckresult'] = False
             else:
                 logger.info('{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), graceid))
         else:
@@ -349,22 +355,22 @@ def operator_signoffCheck(event_dict):
                     event_dict['operatorlogkey'] = 'yes'
                    # g.writeLabel(graceid, 'DQV')
                 return False
-                event_dict['operatorcheckresult'] = False
+                event_dict['operator_signoffCheckresult'] = False
             else:
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid))
                    # g.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                 return True
-                event_dict['operatorcheckresult'] = True
+                event_dict['operator_signoffCheckresult'] = True
 
 #-----------------------------------------------------------------------
 # advocate_signoffCheck
 #-----------------------------------------------------------------------
 def advocate_signoffCheck(event_dict):
-    advocatecheckresult = event_dict['advocatecheckresult']
-    if advocatecheckresult!=None:
-        return advocatecheckresult
+    advocate_signoffCheckresult = event_dict['advocate_signoffCheckresult']
+    if advocate_signoffCheckresult!=None:
+        return advocate_signoffCheckresult
     else:
         advocatelogkey = event_dict['advocatelogkey']
         advocatesignoffs = event_dict['advocatesignoffs']
@@ -378,14 +384,14 @@ def advocate_signoffCheck(event_dict):
                    # g.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
                    # g.writeLabel(graceid, 'DQV')
-                event_dict['advocatecheckresult'] = False
+                event_dict['advocate_signoffCheckresult'] = False
                 return False
             else:
                 if advocatelogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid))
                    # g.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
-                event_dict['advocatecheckresult'] = True
+                event_dict['advocate_signoffCheckresult'] = True
                 return True
         
 #-----------------------------------------------------------------------
@@ -450,28 +456,30 @@ class EventDict:
         self.graceid = graceid
     def CreateDict(self):
         class_dict = {}
-        class_dict['advocatecheckresult'] = None
+        class_dict['advocate_signoffCheckresult'] = None
         class_dict['advocatelogkey'] = 'no'
         class_dict['advocatesignoffs'] = []
         class_dict['currentstate'] = 'new_to_preliminary'
         class_dict['far'] = self.dictionary['far']
-        class_dict['farcheckresult'] = None
+        class_dict['farCheckresult'] = None
         class_dict['farlogkey'] = 'no'
         class_dict['gpstime'] = self.dictionary['gpstime']
         class_dict['graceid'] = self.graceid
         class_dict['group'] = self.dictionary['group']
-        class_dict['idqcheckresult'] = None
+        class_dict['have_lvem_skymapCheckresult'] = None
+        class_dict['idq_joint_fapCheckresult'] = None
         class_dict['idqlogkey'] = 'no'
         class_dict['idqvalues'] = {}
-        class_dict['injectioncheckresult'] = None
+        class_dict['injectionCheckresult'] = None
         class_dict['injectionsfound'] = None
         class_dict['injectionlogkey'] = 'no'
         class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
         class_dict['jointfapvalues'] = {}
+        class_dict['labelCheckresult'] = None
         class_dict['labels'] = self.dictionary['labels']
         class_dict['lvemskymaps'] = {}
         class_dict['listofvoevents'] = []
-        class_dict['operatorcheckresult'] = None
+        class_dict['operator_signoffCheckresult'] = None
         class_dict['operatorlogkey'] = 'no'
         class_dict['operatorsignoffs'] = {}
         class_dict['pipeline'] = self.dictionary['pipeline']
@@ -498,8 +506,8 @@ def parseAlert(alert):
     currentstate = event_dict['currentstate']
     if currentstate=='new_to_preliminary':
         for Check in new_to_preliminary:
-            eval('{0}(event_dict)'.format(Check))
-
+            if eval('{0}(event_dict)'.format(Check))==True:
+                print True
 
 alert = {u'graceid': u'G184098', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
 
