@@ -95,7 +95,7 @@ def farCheck(event_dict):
             event_dict['farcheckresult'] = False
             return False
         elif far < farthresh:
-           # g.writeLog(graceid, 'AP: Candidate event has low enough FAR. {0} < {1}'.format(far, farthresh), tagname='em_follow')
+           # g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Has low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farcheckresult'] = True
@@ -413,11 +413,11 @@ def process_alert(event_dict, voevent_type):
 #---------------------------------------------
 class EventDict:
     EventDicts = {}
-    def __init__(self, dictionary):
+    def __init__(self, dictionary, graceid):
         self.dictionary = dictionary
+        self.graceid = graceid
     def CreateDict(self):
         class_dict = {}
-        graceid = self.dictionary['graceid']
         class_dict['advocatecheckresult'] = None
         class_dict['advocatelogkey'] = 'no'
         class_dict['advocatesignoffs'] = []
@@ -426,7 +426,7 @@ class EventDict:
         class_dict['farcheckresult'] = None
         class_dict['farlogkey'] = 'no'
         class_dict['gpstime'] = self.dictionary['gpstime']
-        class_dict['graceid'] = graceid
+        class_dict['graceid'] = self.graceid
         class_dict['group'] = self.dictionary['group']
         class_dict['idqcheckresult'] = None
         class_dict['idqlogkey'] = 'no'
@@ -444,9 +444,26 @@ class EventDict:
         class_dict['operatorsignoffs'] = {}
         class_dict['pipeline'] = self.dictionary['pipeline']
         class_dict['search'] = self.dictionary['search']
-        EventDict.EventDicts['{0}'.format(graceid)] = class_dict
+        EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
+        logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
-event_dict = {u'graceid': u'G184098', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
+#-------------------------------------------------------------
+# ParseAlert
+#-------------------------------------------------------------
+def parseAlert(alert):
+    # get the event dictionary for approval_processorMP's use
+    if 'uid' in alert.keys():
+        graceid = alert['uid']
+    elif 'graceid' in alert.keys():
+        graceid = alert['graceid']
+    if graceid in EventDict.EventDicts.keys():
+        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    else:
+        EventDict(alert, graceid).CreateDict()
+        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+
+
+alert = {u'graceid': u'G184098', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
 
 comment1 = 'minimum glitch-FAP for ovl at H1 within [1126259462.338, 1126259462.438] is 1.000e0'
 comment2 = 'minimum glitch-FAP for ovl at L1 within [1126259462.338, 1126259462.438] is 4.000e-2'
