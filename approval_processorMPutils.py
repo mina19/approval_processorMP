@@ -129,7 +129,7 @@ def farCheck(event_dict):
         elif far < farthresh:
            # g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
-            logger.info('{0} -- {1} -- Has low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
+            logger.info('{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farCheckresult'] = True
             return True
 
@@ -447,7 +447,7 @@ def process_alert(event_dict, voevent_type):
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
 #-----------------------------------------------------------------------
-# creating event dictionaries
+# Creating event dictionaries
 #-----------------------------------------------------------------------
 class EventDict:
     EventDicts = {}
@@ -504,7 +504,9 @@ def parseAlert(alert):
 
     # run checks specific to currentstate of the event candidate
     currentstate = event_dict['currentstate']
+
     if currentstate=='new_to_preliminary':
+        passedcheckcount = 0
         for Check in new_to_preliminary:
             eval('{0}(event_dict)'.format(Check))
             checkresult = event_dict[Check + 'result']
@@ -513,13 +515,22 @@ def parseAlert(alert):
                 print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: new_to_preliminary.'.format(convertTime(), graceid, Check))
-                logger.info('{0} -- {1} -- Changing currentstate to rejected.'.format(convertTime(), graceid))
+                logger.info('{0} -- {1} -- currentstate now rejected.'.format(convertTime(), graceid))
                 print 'Failed in the new_to_preliminary state.'
-                print 'Changing currentstate to rejected.'
+                print 'currentstate now rejected.'
                 event_dict['currentstate'] = 'rejected'
                 return
             elif checkresult==True:
                 print 'Do not need to add {0} to queue'.format(Check)
+                passedcheckcount += 1
+        if passedcheckcount==len(new_to_preliminary):
+            # Need to send preliminary VOEvent
+            logger.info('{0} -- {1} -- Passed all new_to_preliminary checks.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
+            event_dict['currentstate'] = 'preliminary_to_initial'
+            logger.info('{0} -- {1} -- currentstate now preliminary_to_initial.'.format(convertTime(), graceid))
+    if currentstate=='preliminary_to_initial':
+        return
 
 #-----------------------------------------------------------------------
 # Saving event dictionaries
