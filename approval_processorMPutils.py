@@ -61,6 +61,38 @@ logger.addHandler(logging_filehandler)
 #----------------------------------------------------------
 g = GraceDb('{0}'.format(client))
 
+#--------------------------------------------------------------------------
+# Tasks when current_state of event is new_to_preliminary
+#--------------------------------------------------------------------------
+new_to_preliminary = [
+    'farCheck',
+    'labelCheck',
+    'injectionCheck'
+    ]
+
+#--------------------------------------------------------------------------
+# Tasks when current_state of event is preliminary_to_initial
+#--------------------------------------------------------------------------
+preliminary_to_initial = [
+    'farCheck',
+    'labelCheck',
+    'have_lvem_skymapCheck'
+    'idq_joint_fapCheck'
+    ]
+if humanscimons=='yes':
+    preliminary_to_initial.append('operator_signoffCheck')
+if advocates=='yes':
+    preliminary_to_initial.append('advocate_signoffCheck')
+
+#--------------------------------------------------------------------------
+# Tasks when current_state of event is initial_to_update
+#--------------------------------------------------------------------------
+initial_to_update = [
+    'farCheck',
+    'labelCheck',
+    'have_lvem_skymapCheck'
+    ]
+
 #--------------------------------------
 # Utilities
 #--------------------------------------
@@ -461,6 +493,12 @@ def parseAlert(alert):
     else:
         EventDict(alert, graceid).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+
+    # run checks specific to currentstate of the event candidate
+    currentstate = event_dict['currentstate']
+    if currentstate=='new_to_preliminary':
+        for Check in new_to_preliminary:
+            eval('{0}(event_dict)'.format(Check))
 
 
 alert = {u'graceid': u'G184098', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
