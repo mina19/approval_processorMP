@@ -514,9 +514,9 @@ def parseAlert(alert):
                 logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
                 print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
-                logger.info('{0} -- {1} -- Failed {2} in currentstate: new_to_preliminary.'.format(convertTime(), graceid, Check))
-                logger.info('{0} -- {1} -- currentstate now rejected.'.format(convertTime(), graceid))
-                print 'Failed in the new_to_preliminary state.'
+                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
+                logger.info('{0} -- {1} -- {2} --> rejected.'.format(convertTime(), graceid, currentstate))
+                print 'Failed in the {0} state.'.format(currentstate)
                 print 'currentstate now rejected.'
                 event_dict['currentstate'] = 'rejected'
                 return
@@ -525,10 +525,10 @@ def parseAlert(alert):
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
             # Need to send preliminary VOEvent
-            logger.info('{0} -- {1} -- Passed all new_to_preliminary checks.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
-            logger.info('{0} -- {1} -- currentstate now preliminary_to_initial.'.format(convertTime(), graceid))
     if currentstate=='preliminary_to_initial':
         return
 
