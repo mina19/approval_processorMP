@@ -376,12 +376,14 @@ def current_lvem_skymap(event_dict):
     if len(lvemskymaps)==0:
         return None
     else:
-        return sorted(lvemskymaps)[-1]
+        skymap = sorted(lvemskymaps)[-1]
+        skymap = re.findall(r'-(\S+)', skymap)[0]
+        return skymap
 
 def record_skymap(event_dict, skymap, submitter):
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     currentnumber = len(lvemskymaps) + 1
-    skymapkey = '{0}'.format(currentnumber) + skymap
+    skymapkey = '{0}'.format(currentnumber) + '-'+ skymap
     event_dict['lvemskymaps'][skymapkey] = submitter
 
 #-----------------------------------------------------------------------
