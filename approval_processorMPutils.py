@@ -206,7 +206,7 @@ def have_lvem_skymapCheck(event_dict):
             return True
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
-            logger.info('{0} -- {1} -- No initial skymap tagged lvem available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            logger.info('{0} -- {1} -- No initial skymap tagged lvem available.'.format(convertTime(), graceid))
             return None
 
     elif (currentstate=='initial_to_update' or currentstate=='complete'):
@@ -217,11 +217,11 @@ def have_lvem_skymapCheck(event_dict):
                 return True
             else:
                 event_dict['have_lvem_skymapCheckresult'] = None
-                logger.info('{0} -- {1} -- No update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+                logger.info('{0} -- {1} -- No update skymap tagged lvem available.'.format(convertTime(), graceid))
                 return None
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
-            logger.info('{0} -- {1} -- No update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            logger.info('{0} -- {1} -- No update skymap tagged lvem available.'.format(convertTime(), graceid))
             return None
 
 def current_lvem_skymap(event_dict):
