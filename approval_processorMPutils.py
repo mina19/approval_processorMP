@@ -15,6 +15,7 @@ import json
 import random
 import time
 import datetime
+import pickle
 
 #-----------------------------------------------------------------------
 # Fetch childConfig-approval_processorMP.ini parameters
@@ -576,9 +577,7 @@ def parseAlert(alert):
 #-----------------------------------------------------------------------
 def saveEventDicts():
     EventDicts = EventDict.EventDicts
-    import pickle
     pickle.dump(EventDicts, open('{0}/public_html/EventDicts.p'.format(homedir), 'wb'))
-
     f = open('{0}/public_html/EventDicts.txt'.format(homedir), 'w')
     Dicts = sorted(EventDicts.keys())
     for dict in Dicts:
@@ -588,6 +587,12 @@ def saveEventDicts():
             f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
         f.write('\n')
     f.close()
+
+#-----------------------------------------------------------------------
+# Loading event dictionaries
+#-----------------------------------------------------------------------
+def loadEventDicts():
+    EventDict.EventDicts = pickle.load(open('{0}/public_html/EventDicts.p'.format(homedir), 'rb'))
 
 
 
