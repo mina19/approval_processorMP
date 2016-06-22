@@ -128,7 +128,6 @@ class EventDict:
         class_dict['labelCheckresult'] = None
         class_dict['labels'] = self.dictionary['labels']
         class_dict['lastsentskymap'] = None
-        class_dict['listofvoevents'] = []
         class_dict['lvemskymaps'] = {}
         class_dict['operator_signoffCheckresult'] = None
         class_dict['operatorlogkey'] = 'no'
@@ -138,6 +137,8 @@ class EventDict:
             class_dict['search'] = self.dictionary['search']
         else:
             class_dict['search'] = ''
+        class_dict['voeventerrors'] = []
+        class_dict['voevents'] = []
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
         logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
@@ -595,11 +596,15 @@ def process_alert(event_dict, voevent_type):
         output, error = proc.communicate(voevent)
     if proc.returncode==0:
         message = '{0} VOEvent sent to GCN.'.format(voevent_type)
-        event_dict['listofvoevents'].append(voevent_type)
+        event_dict['voevents'].append(voevent_type)
     else:
         message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
         g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
-        os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
+        if voevent_type in event_dict['voeventerrors']:
+            pass
+        else:
+            os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
+            event_dict['voeventerrors'].append(voevent_type)
     logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
