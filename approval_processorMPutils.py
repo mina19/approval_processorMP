@@ -204,10 +204,9 @@ def parseAlert(alert):
                 print 'Do not need to add {0} to queue'.format(Check)
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
-           # need to send preliminary VOEvent
-            process_alert(event_dict, 'preliminary')
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
+            process_alert(event_dict, 'preliminary')
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
 
@@ -232,10 +231,9 @@ def parseAlert(alert):
                 print 'Do not need to add {0} to queue'.format(Check)
                 passedcheckcount += 1
         if passedcheckcount==len(preliminary_to_initial):
-            # need to send initial VOEvent
-            process_alert(event_dict, 'initial')
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
+            process_alert(event_dict, 'initial')
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
@@ -595,13 +593,13 @@ def process_alert(event_dict, voevent_type):
         cmd = 'comet-sendvo -p 5340 -f /tmp/voevent_{0}_{1}.tmp'.format(graceid, number)
         proc = sp.Popen(cmd, shell = True, stdout = sp.PIPE, stderr = sp.PIPE)
         output, error = proc.communicate(voevent)
-        logger.info('{0} -- {1} -- output = {2}'.format(convertTime(), graceid, output))
-        logger.info('{0} -- {1} -- error = {2}'.format(convertTime(), graceid, error))
     if proc.returncode==0:
         message = '{0} VOEvent sent to GCN.'.format(voevent_type)
+        event_dict['listofvoevents'].append(voevent_type)
     else:
         message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
         g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
+        os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
     logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
