@@ -182,11 +182,18 @@ def parseAlert(alert):
         EventDict(alert, graceid).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
 
+    # get alert specifics
+    alert_type = alert['alert_type']
+    description = alert['description']
+    filename = alert['file']
+
+    # actions for each alert_type
+
     # run checks specific to currentstate of the event candidate
     currentstate = event_dict['currentstate']
+    passedcheckcount = 0
 
     if currentstate=='new_to_preliminary':
-        passedcheckcount = 0
         for Check in new_to_preliminary:
             eval('{0}(event_dict)'.format(Check))
             checkresult = event_dict[Check + 'result']
@@ -212,7 +219,6 @@ def parseAlert(alert):
             event_dict['currentstate'] = 'preliminary_to_initial'
 
     elif currentstate=='preliminary_to_initial':
-        passedcheckcount = 0
         for Check in preliminary_to_initial:
             eval('{0}(event_dict)'.format(Check))
             checkresult = event_dict[Check + 'result']
@@ -238,7 +244,7 @@ def parseAlert(alert):
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
-    if currentstate=='initial_to_update':
+    elif currentstate=='initial_to_update':
         return
 
 #-----------------------------------------------------------------------
@@ -624,7 +630,7 @@ def process_alert(event_dict, voevent_type):
             if voevent_type in voeventerrors:
                 pass
             else:
-                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
+                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' mina19@umd.edu'.format(message, graceid, voevent_type))
                 voeventerrors.append(voevent_type)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
