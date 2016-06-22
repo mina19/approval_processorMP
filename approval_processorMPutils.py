@@ -568,6 +568,13 @@ def advocate_signoffCheck(event_dict):
 #-----------------------------------------------------------------------
 def process_alert(event_dict, voevent_type):
     graceid = event_dict['graceid']
+    voeventerrors = event_dict['voeventerrors']
+    voevents = event_dict['voevents']
+    if (voevent_type in voevents):
+        return
+    else:
+        pass
+
     injectionsfound = event_dict['injectionsfound']
     if force_all_internal=='yes':
         internal = 1
@@ -608,17 +615,19 @@ def process_alert(event_dict, voevent_type):
         output, error = proc.communicate(voevent)
         if proc.returncode==0:
             message = '{0} VOEvent sent to GCN.'.format(voevent_type)
-            event_dict['voevents'].append(voevent_type)
+            voevents.append(voevent_type)
+            if voevent_type in voeventerrors:
+                voeventerrors.remove(voevent_type)
         else:
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
             g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
-            if voevent_type in event_dict['voeventerrors']:
+            if voevent_type in voeventerrors:
                 pass
             else:
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
-                event_dict['voeventerrors'].append(voevent_type)
+                voeventerrors.append(voevent_type)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
-    os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
+        os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
 #-----------------------------------------------------------------------
 # Stuff for testing purposes
