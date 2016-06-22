@@ -51,7 +51,8 @@ skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 #-----------------------------------------------------------------------
 import logging
 logger = logging.getLogger('approval_processorMP')
-logging_filehandler = logging.FileHandler(config.get('general', 'approval_processorMP_logfile'))
+logfile = config.get('general', 'approval_processorMP_logfile')
+logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(os.path.expanduser('~'), logfile))
 logging_filehandler.setLevel(logging.INFO)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging_filehandler)
@@ -515,7 +516,7 @@ def parseAlert(alert):
                 print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
-                logger.info('{0} -- {1} -- {2} --> rejected.'.format(convertTime(), graceid, currentstate))
+                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 print 'Failed in the {0} state.'.format(currentstate)
                 print 'currentstate now rejected.'
                 event_dict['currentstate'] = 'rejected'
@@ -527,7 +528,7 @@ def parseAlert(alert):
             # Need to send preliminary VOEvent
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
-            logger.info('{0} -- {1} -- {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
+            logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
     if currentstate=='preliminary_to_initial':
         return
@@ -536,7 +537,7 @@ def parseAlert(alert):
 # Saving event dictionaries
 #-----------------------------------------------------------------------
 def saveEventDicts():
-    f = open('{0}/EventDict.EventDicts.txt'.format(os.getcwd()), 'w')
+    f = open('{0}/public_html/EventDict.EventDicts.txt'.format(os.path.expanduser('~')), 'w')
     EventDicts = EventDict.EventDicts
     Dicts = sorted(EventDicts.keys())
     for dict in Dicts:
