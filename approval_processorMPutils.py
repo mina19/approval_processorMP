@@ -344,7 +344,7 @@ def injectionCheck(event_dict):
 def have_lvem_skymapCheck(event_dict):
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
-    lvemskymaps = event_dict['lvemskymaps'].keys()
+    lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
 
     if currentstate=='preliminary_to_initial':
         if len(lvemskymaps)>=1:
@@ -372,11 +372,11 @@ def have_lvem_skymapCheck(event_dict):
             return None
 
 def current_lvem_skymap(event_dict):
-    lvemskymaps = event_dict['lvemskymaps'].keys()
+    lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     if len(lvemskymaps)==0:
         return None
     else:
-        return lvemskymaps[-1]
+        return sorted(lvemskymaps)[-1]
 
 def record_skymap(event_dict, skymap, submitter):
     currentnumber = len(lvemskymaps) + 1
