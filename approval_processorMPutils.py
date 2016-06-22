@@ -77,7 +77,7 @@ new_to_preliminary = [
 preliminary_to_initial = [
     'farCheck',
     'labelCheck',
-    'have_lvem_skymapCheck'
+    'have_lvem_skymapCheck',
     'idq_joint_fapCheck'
     ]
 if humanscimons=='yes':
