@@ -378,6 +378,11 @@ def current_lvem_skymap(event_dict):
     else:
         return lvemskymaps[-1]
 
+def record_skymap(event_dict, skymap, submitter):
+    currentnumber = len(lvemskymaps) + 1
+    skymapkey = '{0}'.format(currentnumber) + skymap
+    event_dict['lvemskymaps'][skymapkey] = submitter
+
 #-----------------------------------------------------------------------
 # idq_joint_fapCheck
 #-----------------------------------------------------------------------
