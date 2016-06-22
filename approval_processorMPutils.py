@@ -379,6 +379,7 @@ def current_lvem_skymap(event_dict):
         return sorted(lvemskymaps)[-1]
 
 def record_skymap(event_dict, skymap, submitter):
+    lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     currentnumber = len(lvemskymaps) + 1
     skymapkey = '{0}'.format(currentnumber) + skymap
     event_dict['lvemskymaps'][skymapkey] = submitter
