@@ -308,20 +308,20 @@ def idq_joint_fapCheck(event_dict):
                 jointfapvalues[idqpipeline] = jointfap
                 logger.info('{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline))
             if min(jointfapvalues.values()) > idqthresh:
-                logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
-                event_dict['idq_joint_fapCheckresult'] = True
-                return True
                 if idqlogkey=='no':
                    # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey']='yes'
+                logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
+                event_dict['idq_joint_fapCheckresult'] = True
+                return True
             else:
+                if idqlogkey=='no':
+                   # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                    event_dict['idqlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling DQV.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
                # g.writeLabel(graceid, 'DQV')
                 return False
-                if idqlogkey=='no':
-                   # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
-                    event_dict['idqlogkey'] = 'yes'
 
 #-----------------------------------------------------------------------
 # operator_signoffCheck
@@ -353,8 +353,8 @@ def operator_signoffCheck(event_dict):
                    # g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                    # g.writeLabel(graceid, 'DQV')
-                return False
                 event_dict['operator_signoffCheckresult'] = False
+                return False
             else:
                 logger.info('{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), graceid))
         else:
@@ -364,15 +364,15 @@ def operator_signoffCheck(event_dict):
                    # g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                    # g.writeLabel(graceid, 'DQV')
-                return False
                 event_dict['operator_signoffCheckresult'] = False
+                return False
             else:
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid))
                    # g.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                return True
                 event_dict['operator_signoffCheckresult'] = True
+                return True
 
 #-----------------------------------------------------------------------
 # advocate_signoffCheck
