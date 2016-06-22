@@ -530,7 +530,33 @@ def parseAlert(alert):
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
-    if currentstate=='preliminary_to_initial':
+
+    elif currentstate=='preliminary_to_initial':
+        passedcheckcount = 0
+        for Check in preliminary_to_initial:
+            eval('{0}(event_dict)'.format(Check))
+            checkresult = event_dict[Check + 'result']
+            if checkresult==None:
+                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
+                print 'Added {0} to queueByGraceID'.format(Check)
+            elif checkresult==False:
+                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
+                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
+                print 'Failed in the {0} state.'.format(currentstate)
+                print 'currentstate now rejected.'
+                event_dict['currentstate'] = 'rejected'
+                return
+            elif checkresult==True:
+                print 'Do not need to add {0} to queue'.format(Check)
+                passedcheckcount += 1
+        if passedcheckcount==len(preliminary_to_initial):
+            # Need to send initial VOEvent
+            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
+            logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
+            event_dict['currentstate'] = 'initial_to_update'
+
+    if currentstate=='initial_to_update':
         return
 
 #-----------------------------------------------------------------------
