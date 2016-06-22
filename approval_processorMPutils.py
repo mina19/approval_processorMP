@@ -52,7 +52,8 @@ skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 import logging
 logger = logging.getLogger('approval_processorMP')
 logfile = config.get('general', 'approval_processorMP_logfile')
-logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(os.path.expanduser('~'), logfile))
+homedir = os.path.expanduser('~')
+logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
 logging_filehandler.setLevel(logging.INFO)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging_filehandler)
@@ -574,8 +575,11 @@ def parseAlert(alert):
 # Saving event dictionaries
 #-----------------------------------------------------------------------
 def saveEventDicts():
-    f = open('{0}/public_html/EventDict.EventDicts.txt'.format(os.path.expanduser('~')), 'w')
     EventDicts = EventDict.EventDicts
+    import pickle
+    pickle.dump(EventDicts, open('{0}/public_html/EventDicts.p'.format(homedir), 'wb'))
+
+    f = open('{0}/public_html/EventDicts.txt'.format(homedir), 'w')
     Dicts = sorted(EventDicts.keys())
     for dict in Dicts:
         f.write('{0}\n'.format(dict))
