@@ -583,7 +583,7 @@ def process_alert(event_dict, voevent_type):
     logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
     voevent = None
     try:
-       # r = g.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
+        r = g.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
         voevent = r.json()['text']
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
@@ -601,7 +601,7 @@ def process_alert(event_dict, voevent_type):
         message = '{0} VOEvent sent to GCN.'.format(voevent_type)
     else:
         message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
-       # g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
+        g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
     logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
