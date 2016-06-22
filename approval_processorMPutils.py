@@ -97,6 +97,144 @@ initial_to_update = [
     ]
 
 #-----------------------------------------------------------------------
+# Creating event dictionaries
+#-----------------------------------------------------------------------
+class EventDict:
+    EventDicts = {}
+    def __init__(self, dictionary, graceid):
+        self.dictionary = dictionary
+        self.graceid = graceid
+    def CreateDict(self):
+        class_dict = {}
+        class_dict['advocate_signoffCheckresult'] = None
+        class_dict['advocatelogkey'] = 'no'
+        class_dict['advocatesignoffs'] = []
+        class_dict['currentstate'] = 'new_to_preliminary'
+        class_dict['far'] = self.dictionary['far']
+        class_dict['farCheckresult'] = None
+        class_dict['farlogkey'] = 'no'
+        class_dict['gpstime'] = self.dictionary['gpstime']
+        class_dict['graceid'] = self.graceid
+        class_dict['group'] = self.dictionary['group']
+        class_dict['have_lvem_skymapCheckresult'] = None
+        class_dict['idq_joint_fapCheckresult'] = None
+        class_dict['idqlogkey'] = 'no'
+        class_dict['idqvalues'] = {}
+        class_dict['injectionCheckresult'] = None
+        class_dict['injectionsfound'] = None
+        class_dict['injectionlogkey'] = 'no'
+        class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
+        class_dict['jointfapvalues'] = {}
+        class_dict['labelCheckresult'] = None
+        class_dict['labels'] = self.dictionary['labels']
+        class_dict['lastsentskymap'] = None
+        class_dict['listofvoevents'] = []
+        class_dict['lvemskymaps'] = {}
+        class_dict['operator_signoffCheckresult'] = None
+        class_dict['operatorlogkey'] = 'no'
+        class_dict['operatorsignoffs'] = {}
+        class_dict['pipeline'] = self.dictionary['pipeline']
+        class_dict['search'] = self.dictionary['search']
+        EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
+        logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
+
+#-----------------------------------------------------------------------
+# Saving event dictionaries
+#-----------------------------------------------------------------------
+def saveEventDicts():
+    EventDicts = EventDict.EventDicts
+    pickle.dump(EventDicts, open('{0}/public_html/EventDicts.p'.format(homedir), 'wb'))
+    f = open('{0}/public_html/EventDicts.txt'.format(homedir), 'w')
+    Dicts = sorted(EventDicts.keys())
+    for dict in Dicts:
+        f.write('{0}\n'.format(dict))
+        keys = sorted(EventDicts[dict].keys())
+        for key in keys:
+            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
+        f.write('\n')
+    f.close()
+
+#-----------------------------------------------------------------------
+# Loading event dictionaries
+#-----------------------------------------------------------------------
+def loadEventDicts():
+    try:
+        EventDict.EventDicts = pickle.load(open('{0}/public_html/EventDicts.p'.format(homedir), 'rb'))
+    except:
+        pass
+
+#-----------------------------------------------------------------------
+# parseAlert
+#-----------------------------------------------------------------------
+def parseAlert(alert):
+    # get the event dictionary for approval_processorMP's use
+    if 'uid' in alert.keys():
+        graceid = alert['uid']
+    elif 'graceid' in alert.keys():
+        graceid = alert['graceid']
+    if graceid in EventDict.EventDicts.keys():
+        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    else:
+        EventDict(alert, graceid).CreateDict()
+        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+
+    # run checks specific to currentstate of the event candidate
+    currentstate = event_dict['currentstate']
+
+    if currentstate=='new_to_preliminary':
+        passedcheckcount = 0
+        for Check in new_to_preliminary:
+            eval('{0}(event_dict)'.format(Check))
+            checkresult = event_dict[Check + 'result']
+            if checkresult==None:
+                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
+                print 'Added {0} to queueByGraceID'.format(Check)
+            elif checkresult==False:
+                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
+                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
+                print 'Failed in the {0} state.'.format(currentstate)
+                print 'currentstate now rejected.'
+                event_dict['currentstate'] = 'rejected'
+                return
+            elif checkresult==True:
+                print 'Do not need to add {0} to queue'.format(Check)
+                passedcheckcount += 1
+        if passedcheckcount==len(new_to_preliminary):
+            # Need to send preliminary VOEvent
+            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
+            logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
+            event_dict['currentstate'] = 'preliminary_to_initial'
+
+    elif currentstate=='preliminary_to_initial':
+        passedcheckcount = 0
+        for Check in preliminary_to_initial:
+            eval('{0}(event_dict)'.format(Check))
+            checkresult = event_dict[Check + 'result']
+            if checkresult==None:
+                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
+                print 'Added {0} to queueByGraceID'.format(Check)
+            elif checkresult==False:
+                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
+                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
+                print 'Failed in the {0} state.'.format(currentstate)
+                print 'currentstate now rejected.'
+                event_dict['currentstate'] = 'rejected'
+                return
+            elif checkresult==True:
+                print 'Do not need to add {0} to queue'.format(Check)
+                passedcheckcount += 1
+        if passedcheckcount==len(preliminary_to_initial):
+            # Need to send initial VOEvent
+            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
+            logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
+            logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
+            event_dict['currentstate'] = 'initial_to_update'
+
+    if currentstate=='initial_to_update':
+        return
+
+#-----------------------------------------------------------------------
 # Utilities
 #-----------------------------------------------------------------------
 def convertTime():
@@ -460,145 +598,8 @@ def process_alert(event_dict, voevent_type):
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
 #-----------------------------------------------------------------------
-# Creating event dictionaries
+# Stuff for testing purposes
 #-----------------------------------------------------------------------
-class EventDict:
-    EventDicts = {}
-    def __init__(self, dictionary, graceid):
-        self.dictionary = dictionary
-        self.graceid = graceid
-    def CreateDict(self):
-        class_dict = {}
-        class_dict['advocate_signoffCheckresult'] = None
-        class_dict['advocatelogkey'] = 'no'
-        class_dict['advocatesignoffs'] = []
-        class_dict['currentstate'] = 'new_to_preliminary'
-        class_dict['far'] = self.dictionary['far']
-        class_dict['farCheckresult'] = None
-        class_dict['farlogkey'] = 'no'
-        class_dict['gpstime'] = self.dictionary['gpstime']
-        class_dict['graceid'] = self.graceid
-        class_dict['group'] = self.dictionary['group']
-        class_dict['have_lvem_skymapCheckresult'] = None
-        class_dict['idq_joint_fapCheckresult'] = None
-        class_dict['idqlogkey'] = 'no'
-        class_dict['idqvalues'] = {}
-        class_dict['injectionCheckresult'] = None
-        class_dict['injectionsfound'] = None
-        class_dict['injectionlogkey'] = 'no'
-        class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
-        class_dict['jointfapvalues'] = {}
-        class_dict['labelCheckresult'] = None
-        class_dict['labels'] = self.dictionary['labels']
-        class_dict['lastsentskymap'] = None
-        class_dict['listofvoevents'] = []
-        class_dict['lvemskymaps'] = {}
-        class_dict['operator_signoffCheckresult'] = None
-        class_dict['operatorlogkey'] = 'no'
-        class_dict['operatorsignoffs'] = {}
-        class_dict['pipeline'] = self.dictionary['pipeline']
-        class_dict['search'] = self.dictionary['search']
-        EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
-        logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
-
-#-----------------------------------------------------------------------
-# parseAlert
-#-----------------------------------------------------------------------
-def parseAlert(alert):
-    # get the event dictionary for approval_processorMP's use
-    if 'uid' in alert.keys():
-        graceid = alert['uid']
-    elif 'graceid' in alert.keys():
-        graceid = alert['graceid']
-    if graceid in EventDict.EventDicts.keys():
-        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
-    else:
-        EventDict(alert, graceid).CreateDict()
-        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
-
-    # run checks specific to currentstate of the event candidate
-    currentstate = event_dict['currentstate']
-
-    if currentstate=='new_to_preliminary':
-        passedcheckcount = 0
-        for Check in new_to_preliminary:
-            eval('{0}(event_dict)'.format(Check))
-            checkresult = event_dict[Check + 'result']
-            if checkresult==None:
-                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
-                print 'Added {0} to queueByGraceID'.format(Check)
-            elif checkresult==False:
-                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
-                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                print 'Failed in the {0} state.'.format(currentstate)
-                print 'currentstate now rejected.'
-                event_dict['currentstate'] = 'rejected'
-                return
-            elif checkresult==True:
-                print 'Do not need to add {0} to queue'.format(Check)
-                passedcheckcount += 1
-        if passedcheckcount==len(new_to_preliminary):
-            # Need to send preliminary VOEvent
-            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
-            logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
-            logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
-            event_dict['currentstate'] = 'preliminary_to_initial'
-
-    elif currentstate=='preliminary_to_initial':
-        passedcheckcount = 0
-        for Check in preliminary_to_initial:
-            eval('{0}(event_dict)'.format(Check))
-            checkresult = event_dict[Check + 'result']
-            if checkresult==None:
-                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
-                print 'Added {0} to queueByGraceID'.format(Check)
-            elif checkresult==False:
-                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
-                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                print 'Failed in the {0} state.'.format(currentstate)
-                print 'currentstate now rejected.'
-                event_dict['currentstate'] = 'rejected'
-                return
-            elif checkresult==True:
-                print 'Do not need to add {0} to queue'.format(Check)
-                passedcheckcount += 1
-        if passedcheckcount==len(preliminary_to_initial):
-            # Need to send initial VOEvent
-            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
-            logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
-            logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
-            event_dict['currentstate'] = 'initial_to_update'
-
-    if currentstate=='initial_to_update':
-        return
-
-#-----------------------------------------------------------------------
-# Saving event dictionaries
-#-----------------------------------------------------------------------
-def saveEventDicts():
-    EventDicts = EventDict.EventDicts
-    pickle.dump(EventDicts, open('{0}/public_html/EventDicts.p'.format(homedir), 'wb'))
-    f = open('{0}/public_html/EventDicts.txt'.format(homedir), 'w')
-    Dicts = sorted(EventDicts.keys())
-    for dict in Dicts:
-        f.write('{0}\n'.format(dict))
-        keys = sorted(EventDicts[dict].keys())
-        for key in keys:
-            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
-        f.write('\n')
-    f.close()
-
-#-----------------------------------------------------------------------
-# Loading event dictionaries
-#-----------------------------------------------------------------------
-def loadEventDicts():
-    try:
-        EventDict.EventDicts = pickle.load(open('{0}/public_html/EventDicts.p'.format(homedir), 'rb'))
-    except:
-        pass
-
-
-
 
 alert = {u'graceid': u'G184098', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
 
