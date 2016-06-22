@@ -594,18 +594,18 @@ def process_alert(event_dict, voevent_type):
         cmd = 'comet-sendvo -p 5340 -f /tmp/voevent_{0}_{1}.tmp'.format(graceid, number)
         proc = sp.Popen(cmd, shell = True, stdout = sp.PIPE, stderr = sp.PIPE)
         output, error = proc.communicate(voevent)
-    if proc.returncode==0:
-        message = '{0} VOEvent sent to GCN.'.format(voevent_type)
-        event_dict['voevents'].append(voevent_type)
-    else:
-        message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
-        g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
-        if voevent_type in event_dict['voeventerrors']:
-            pass
+        if proc.returncode==0:
+            message = '{0} VOEvent sent to GCN.'.format(voevent_type)
+            event_dict['voevents'].append(voevent_type)
         else:
-            os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
-            event_dict['voeventerrors'].append(voevent_type)
-    logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
+            message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
+            g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
+            if voevent_type in event_dict['voeventerrors']:
+                pass
+            else:
+                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent for {2}\' mina19@umd.edu'.format(message, voevent_type, graceid))
+                event_dict['voeventerrors'].append(voevent_type)
+        logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
     os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
 #-----------------------------------------------------------------------
