@@ -349,7 +349,9 @@ def have_lvem_skymapCheck(event_dict):
     if currentstate=='preliminary_to_initial':
         if len(lvemskymaps)>=1:
             event_dict['have_lvem_skymapCheckresult'] = True
-            logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            skymap = sorted(lvemskymaps)[-1]
+            skymap = re.findall(r'-(\S+)', skymap)[0]
+            logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
             return True
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
@@ -360,7 +362,9 @@ def have_lvem_skymapCheck(event_dict):
         if len(lvemskymaps)>=2:
             if lvemskymap[-1]!=event_dict['lastsentskymap']:
                 event_dict['have_lvem_skymapCheckresult'] = True
-                logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+                skymap = sorted(lvemskymaps)[-1]
+                skymap = re.findall(r'-(\S+)', skymap)[0]
+                logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
                 return True
             else:
                 event_dict['have_lvem_skymapCheckresult'] = None
