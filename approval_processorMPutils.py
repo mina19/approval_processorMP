@@ -196,24 +196,33 @@ def injectionCheck(event_dict):
 #-----------------------------------------------------------------------
 def have_lvem_skymapCheck(event_dict):
     graceid = event_dict['graceid']
+    currentstate = event_dict['currentstate']
     lvemskymaps = event_dict['lvemskymaps'].keys()
-    if len(lvemskymaps)==0:
-        logger.info('{0} -- {1} -- No skymap tagged lvem yet.'.format(convertTime(), graceid))
-        event_dict['have_lvem_skymapCheckresult'] = False
-        return False
-    elif len(lvemskymaps)==1:
-        logger.info('{0} -- {1} -- Skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
-        event_dict['have_lvem_skymapCheckresult'] = True
-        return True
-    elif len(lvemskymaps) > 1:
-        if listofskymaps[-1]!=listofskymaps[-2]:
-            logger.info('{0} -- {1} -- Skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+
+    if currentstate=='preliminary_to_initial':
+        if len(lvemskymaps)>=1:
             event_dict['have_lvem_skymapCheckresult'] = True
+            logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
             return True
         else:
-            logger.info('{0} -- {1} -- No new skymap tagged lvem available yet.'.format(convertTime(), graceid))
-            event_dict['have_lvem_skymapCheckresult'] = False
-            return False
+            event_dict['have_lvem_skymapCheckresult'] = None
+            logger.info('{0} -- {1} -- No initial skymap tagged lvem available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            return None
+
+    elif (currentstate=='initial_to_update' or currentstate=='complete'):
+        if len(lvemskymaps)>=2:
+            if lvemskymap[-1]!=event_dict['lastsentskymap']:
+                event_dict['have_lvem_skymapCheckresult'] = True
+                logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+                return True
+            else:
+                event_dict['have_lvem_skymapCheckresult'] = None
+                logger.info('{0} -- {1} -- No update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+                return None
+        else:
+            event_dict['have_lvem_skymapCheckresult'] = None
+            logger.info('{0} -- {1} -- No update skymap tagged lvem {2} available.'.format(convertTime(), graceid, lvemskymaps[-1]))
+            return None
 
 def current_lvem_skymap(event_dict):
     lvemskymaps = event_dict['lvemskymaps'].keys()
@@ -411,6 +420,7 @@ def process_alert(event_dict, voevent_type):
     else:
         injection = injectionsfound
     skymap_filename = current_lvem_skymap(event_dict)
+    event_dict['lastsentskymap'] = skymap_filename
     if skymap_filename==None:
         skymap_type = None
         skymap_image_filename = None
@@ -478,8 +488,9 @@ class EventDict:
         class_dict['jointfapvalues'] = {}
         class_dict['labelCheckresult'] = None
         class_dict['labels'] = self.dictionary['labels']
-        class_dict['lvemskymaps'] = {}
+        class_dict['lastsentskymap'] = None
         class_dict['listofvoevents'] = []
+        class_dict['lvemskymaps'] = {}
         class_dict['operator_signoffCheckresult'] = None
         class_dict['operatorlogkey'] = 'no'
         class_dict['operatorsignoffs'] = {}
