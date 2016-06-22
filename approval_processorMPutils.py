@@ -595,7 +595,7 @@ def loadEventDicts():
     try:
         EventDict.EventDicts = pickle.load(open('{0}/public_html/EventDicts.p'.format(homedir), 'rb'))
     except:
-        EventDict.EventDicts = file('{0}/public_html/EventDicts.p'.format(homedir), 'w')
+        pass
 
 
 
