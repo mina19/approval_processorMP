@@ -134,7 +134,10 @@ class EventDict:
         class_dict['operatorlogkey'] = 'no'
         class_dict['operatorsignoffs'] = {}
         class_dict['pipeline'] = self.dictionary['pipeline']
-        class_dict['search'] = self.dictionary['search']
+        if 'search' in self.dictionary.keys():
+            class_dict['search'] = self.dictionary['search']
+        else:
+            class_dict['search'] = ''
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
         logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
