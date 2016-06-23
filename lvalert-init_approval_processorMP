@@ -1,4 +1,4 @@
 #!/bin/bash
 echo -n 'Enter password > '
 read password
-valert_listen -a min-a.cho -b password -c /home/guest/approval_processorMP/lvalert_listenMP.ini
+lvalert_listen -a min-a.cho -b password -c /home/min-a.cho/approval_processorMP/lvalert_listenMP.ini
