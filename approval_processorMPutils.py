@@ -38,6 +38,7 @@ humanscimons = config.get('operator_signoffCheck', 'humanscimons')
 
 advocates = config.get('advocate_signoffCheck', 'advocates')
 advocate_text = config.get('advocate_signoffCheck', 'advocate_text')
+advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
 ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
 default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
@@ -182,10 +183,11 @@ def parseAlert(alert):
         EventDict(alert, graceid).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
 
-    # get alert specifics
+    # get alert specifics and event_dict information
     alert_type = alert['alert_type']
     description = alert['description']
     filename = alert['file']
+    currentstate = event_dict['currentstate']
 
     # actions for each alert_type
     if alert_type=='label':
@@ -218,8 +220,9 @@ def parseAlert(alert):
                     pass
                 process_alert(event_dict, 'retraction')
 
+    # 
+
     # run checks specific to currentstate of the event candidate
-    currentstate = event_dict['currentstate']
     passedcheckcount = 0
 
     if currentstate=='new_to_preliminary':
@@ -246,6 +249,19 @@ def parseAlert(alert):
             process_alert(event_dict, 'preliminary')
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
+            # notify the operators
+            instruments = event_dict['instruments']
+            for instrument in instruments:
+                logger.info('{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument))
+                g.writeLabel(graceid, '{0}OPS'.format(instrument))
+            # notify the advocates
+            g.writeLabel(graceid, 'ADVREQ')
+            os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
+            # expose event to LV-EM
+            url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
+            for perm in ['view', 'change']:
+                url = url_perm_base + perm
+                g.put(url)
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
@@ -657,7 +673,7 @@ def process_alert(event_dict, voevent_type):
             if voevent_type in voeventerrors:
                 pass
             else:
-                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' mina19@umd.edu'.format(message, graceid, voevent_type))
+                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, advocate_email))
                 voeventerrors.append(voevent_type)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
