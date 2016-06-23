@@ -126,7 +126,7 @@ class EventDict:
         class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
         class_dict['jointfapvalues'] = {}
         class_dict['labelCheckresult'] = None
-        class_dict['labels'] = self.dictionary['labels']
+        class_dict['labels'] = self.dictionary['labels'].keys()
         class_dict['lastsentskymap'] = None
         class_dict['lvemskymaps'] = {}
         class_dict['operator_signoffCheckresult'] = None
@@ -301,7 +301,7 @@ def checkLabels(labels):
 def labelCheck(event_dict):
     graceid = event_dict['graceid']
     labels = event_dict['labels']
-    if checkLabels(labels.keys()) > 0:
+    if checkLabels(labels) > 0:
         logger.info('{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid))
         event_dict['labelCheckresult'] = False
         return False
