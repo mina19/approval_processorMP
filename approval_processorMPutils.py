@@ -183,40 +183,40 @@ def parseAlert(alert):
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
 
     # get alert specifics
-    #alert_type = alert['alert_type']
-    #description = alert['description']
-    #filename = alert['file']
+    alert_type = alert['alert_type']
+    description = alert['description']
+    filename = alert['file']
 
     # actions for each alert_type
-    #if alert_type=='label':
-        #if description=='PE_READY':
-            #logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
-            #process_alert(event_dict, 'update')
-            #logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
-            #event_dict['currentstate'] = 'complete'
+    if alert_type=='label':
+        if description=='PE_READY':
+            logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
+            process_alert(event_dict, 'update')
+            logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
+            event_dict['currentstate'] = 'complete'
 
-        #elif description=='EM_READY':
-            #logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
-            #process_alert(event_dict, 'initial')
-            #logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
-            #event_dict['currentstate'] = 'initial_to_update'
+        elif description=='EM_READY':
+            logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
+            process_alert(event_dict, 'initial')
+            logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
+            event_dict['currentstate'] = 'initial_to_update'
 
-        #elif (checkLabels(hardware_inj, description.split()) > 0):
-            #voevents = sorted(event_dict['voevents'])
-            #if len(voevents) > 0:
-                #if 'retraction' in voevents:
-                    #return
+        elif (checkLabels(hardware_inj, description.split()) > 0):
+            voevents = sorted(event_dict['voevents'])
+            if len(voevents) > 0:
+                if 'retraction' in voevents:
+                    return
                 # there are existing VOEvents we've sent, but no retraction alert
                 # check whether to keep internal = 1 or 0 for retraction alert
-                #if (force_all_internal!='yes') and (event_dict['pipeline'] in preliminary_internal):
-                    #last_voevent = voevents[-1]
-                    #if 'preliminary' in last_voevent:
-                        #internal = 1
-                    #else:
-                        #internal = 0
-                #else:
-                    #pass
-                #process_alert(event_dict, 'retraction')
+                if (force_all_internal!='yes') and (event_dict['pipeline'] in preliminary_internal):
+                    last_voevent = voevents[-1]
+                    if 'preliminary' in last_voevent:
+                        internal = 1
+                    else:
+                        internal = 0
+                else:
+                    pass
+                process_alert(event_dict, 'retraction')
 
     # run checks specific to currentstate of the event candidate
     currentstate = event_dict['currentstate']
