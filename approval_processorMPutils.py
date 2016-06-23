@@ -262,7 +262,7 @@ def parseAlert(alert):
             url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
             for perm in ['view', 'change']:
                 url = url_perm_base + perm
-                g.put(url)
+                #g.put(url)
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
