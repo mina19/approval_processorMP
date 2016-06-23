@@ -25,6 +25,7 @@ config = ConfigParser.SafeConfigParser()
 config.read('{0}/childConfig-approval_processorMP.ini'.format(os.getcwd()))
 
 client = config.get('general', 'client')
+voeventerror_email = config.get('general', 'voeventerror_email')
 force_all_internal = config.get('general', 'force_all_internal')
 preliminary_internal = config.get('general', 'preliminary_internal')
 
@@ -673,7 +674,7 @@ def process_alert(event_dict, voevent_type):
             if voevent_type in voeventerrors:
                 pass
             else:
-                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, advocate_email))
+                os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 voeventerrors.append(voevent_type)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
