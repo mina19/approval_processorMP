@@ -183,6 +183,7 @@ def parseAlert(alert):
     else:
         EventDict(alert, graceid).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    saveEventDicts()
 
     # get alert specifics and event_dict information
     alert_type = alert['alert_type']
