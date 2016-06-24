@@ -244,6 +244,7 @@ def parseAlert(alert):
                 logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
                 print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
+                # because in 'new_to_preliminary' state, no need to apply DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 print 'Failed in the {0} state.'.format(currentstate)
@@ -675,9 +676,11 @@ def process_alert(event_dict, voevent_type):
                     internal = 0
             else:
                 pass
-        skymap_filename = None
-        skymap_type = None
-        skymap_image_filename = None
+            skymap_filename = None
+            skymap_type = None
+            skymap_image_filename = None
+        else: # we have not sent voevents before, no need for retraction
+            return
 
     if (voevent_type=='initial' or voevent_type=='update'):
         skymap_filename = current_lvem_skymap(event_dict)
