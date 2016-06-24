@@ -718,4 +718,16 @@ def process_alert(event_dict, voevent_type):
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 voeventerrors.append(thisvoevent)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
-        os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
+        os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, numberi))
+
+    # get rid of this part later, only for debugging
+    f = open('{0}/public_html/EventDictwithVOEvent.txt'.format(homedir), 'w')
+    Dicts = sorted(EventDicts.keys())
+    for dict in Dicts:
+        f.write('{0}\n'.format(dict))
+        keys = sorted(EventDicts[dict].keys())
+        for key in keys:
+            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
+        f.write('\n')
+    f.close()
+
