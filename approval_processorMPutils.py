@@ -204,7 +204,7 @@ def parseAlert(alert):
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
-        elif (checkLabels(hardware_inj, description.split()) > 0):
+        elif (checkLabels(description.split()) > 0):
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
                 if 'retraction' in voevents[-1]:
@@ -616,7 +616,7 @@ def process_alert(event_dict, voevent_type):
     voevents = sorted(event_dict['voevents'])
 
     # check if we just sent this voevent
-    if (voevent_type in voevents[-1]):
+    if (len(voevents) > 0) and (voevent_type in voevents[-1]):
         return
     else:
         pass
