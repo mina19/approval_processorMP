@@ -666,17 +666,21 @@ def process_alert(event_dict, voevent_type):
         output, error = proc.communicate(voevent)
         if proc.returncode==0:
             message = '{0} VOEvent sent to GCN.'.format(voevent_type)
-            voevents.append(voevent_type)
-            if voevent_type in voeventerrors:
-                voeventerrors.remove(voevent_type)
+            voevents.append('{0}'.format(len(voevents))+'-'+voevent_type)
+            for key in voeventerrors:
+                if voevent_type in key:
+                    voeventerrors.remove(key)
         else:
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
             g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
-            if voevent_type in voeventerrors:
+            listofvoeventerrors = ''
+            for i in range(0, len(list)):
+                listofvoeventerrors += '{0} '.format(list[i])
+            if voevent_type in listofvoeventerrors:
                 pass
             else:
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
-                voeventerrors.append(voevent_type)
+                voeventerrors.append('{0}'.format(len(voeventerrors))+'-'+voevent_type)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
