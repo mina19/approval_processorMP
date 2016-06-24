@@ -228,6 +228,9 @@ def parseAlert(alert):
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction')
 
+    #if alert_type=='new':
+    # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
+
     #if alert_type=='update':
 
     #if alert_type=='signoff':
