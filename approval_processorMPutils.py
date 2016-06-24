@@ -265,6 +265,7 @@ def parseAlert(alert):
                 logger.info('{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument))
                 g.writeLabel(graceid, '{0}OPS'.format(instrument))
             # notify the advocates
+            #logger.info('{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument))
             #g.writeLabel(graceid, 'ADVREQ')
             #os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
             # expose event to LV-EM
