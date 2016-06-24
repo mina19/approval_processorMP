@@ -706,9 +706,9 @@ def process_alert(event_dict, voevent_type):
         voevent = r.json()['text']
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
-        if e!=None:
-            voeventerrors.append(thisvoevent)
-            saveEventDictwithVOEvent()
+    if e!=None:
+        voeventerrors.append(thisvoevent)
+        saveEventDictwithVOEvent()
     number = str(random.random())
     if voevent:
         tmpfile = open('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number), 'w')
