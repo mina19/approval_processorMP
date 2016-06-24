@@ -619,36 +619,74 @@ def advocate_signoffCheck(event_dict):
 #-----------------------------------------------------------------------
 def process_alert(event_dict, voevent_type):
     graceid = event_dict['graceid']
-    voeventerrors = event_dict['voeventerrors']
-    voevents = event_dict['voevents']
-    if (voevent_type in voevents):
+    pipeline = event_dict['pipeline']
+    voeventerrors = sorted(event_dict['voeventerrors'])
+    voevents = sorted(event_dict['voevents'])
+
+    # check if we just sent this voevent
+    if (voevent_type in voevents[-1]):
         return
     else:
         pass
 
-    injectionsfound = event_dict['injectionsfound']
+    # setting default internal value settings for alerts
     if force_all_internal=='yes':
         internal = 1
     else:
         internal = 0
+
+    if voevent_type=='preliminary':
+        if force_all_internal=='yes':
+            internal = 1
+        else:
+            if pipeline in preliminary_internal:
+                internal = 1
+            else:
+                internal = 0
+        skymap_filename = None
+        skymap_type = None
+        skymap_image_filename = None
+
+    if voevent_type=='retraction':
+        # check if we've sent alerts for this event
+        if len(voevents) > 0:
+            # check if we sent a retraction alert before:
+            for voevent in voevents:
+                if voevent_type in voevent:
+                    return
+            # there are existing alerts but we haven't sent a retraction so let's do that
+            if (force_all_internal!='yes') and (pipeline in preliminary_internal):
+                lastvoeventsent = voevents[-1]
+                if 'preliminary' in lastvoeventsent:
+                    internal = 1
+                else:
+                    internal = 0
+            else:
+                pass
+        skymap_filename = None
+        skymap_type = None
+        skymap_image_filename = None
+
+    if (voevent_type=='initial' or voevent_type=='update'):
+        skymap_filename = current_lvem_skymap(event_dict)
+        if skymap_filename==None:
+            skymap_type = None
+            skymap_image_filename = None
+        else:
+            skymapname = re.findall(r'(\S+).fits', skymap_filename)[0]
+            group = event_dict['group']
+            search = event_dict['search']
+            skymap_type = skymapname + '-' + group + search
+            skymap_image_filename = skymapname + '.png'
+            #submitter = event_dict['lvemskymaps'][skymap_filename]
+
+    injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
         injectionCheck(event_dict)
         injection = event_dict['injectionsfound']
     else:
         injection = injectionsfound
-    skymap_filename = current_lvem_skymap(event_dict)
-    event_dict['lastsentskymap'] = skymap_filename
-    if skymap_filename==None:
-        skymap_type = None
-        skymap_image_filename = None
-        submitter = None
-    else:
-        skymapname = re.findall(r'(\S+).fits', skymap_filename)[0]
-        group = event_dict['group']
-        search = event_dict['search']
-        skymap_type = skymapname + '-' + group + search
-        skymap_image_filename = skymapname + '.png'
-       # submitter = event_dict['lvemskymaps'][skymap_filename]
+
     logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
     voevent = None
     try:
@@ -664,12 +702,17 @@ def process_alert(event_dict, voevent_type):
         cmd = 'comet-sendvo -p 5340 -f /tmp/voevent_{0}_{1}.tmp'.format(graceid, number)
         proc = sp.Popen(cmd, shell = True, stdout = sp.PIPE, stderr = sp.PIPE)
         output, error = proc.communicate(voevent)
+        thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents), internal, injection) + voevent_type
         if proc.returncode==0:
             message = '{0} VOEvent sent to GCN.'.format(voevent_type)
-            voevents.append('{0}'.format(len(voevents))+'-'+voevent_type)
+            voevents.append(thisvoevent)
             for key in voeventerrors:
                 if voevent_type in key:
                     voeventerrors.remove(key)
+            if (voevent_type=='initial' or voevent_type=='update'):
+                event_dict['lastsentskymap'] = skymap_filename
+            else:
+                pass
         else:
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
             g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
@@ -680,21 +723,6 @@ def process_alert(event_dict, voevent_type):
                 pass
             else:
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
-                voeventerrors.append('{0}'.format(len(voeventerrors))+'-'+voevent_type)
+                voeventerrors.append(thisvoevent)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
-
-#-----------------------------------------------------------------------
-# Stuff for testing purposes
-#-----------------------------------------------------------------------
-
-alert = {u'graceid': u'G239671', u'gpstime': 1126259462.391, u'pipeline': u'CWB', u'group': u'Burst', u'links': {u'neighbors': u'https://gracedb.ligo.org/api/events/G184098/neighbors/', u'files': u'https://gracedb.ligo.org/api/events/G184098/files/', u'log': u'https://gracedb.ligo.org/api/events/G184098/log/', u'tags': u'https://gracedb.ligo.org/api/events/G184098/tag/', u'self': u'https://gracedb.ligo.org/api/events/G184098', u'labels': u'https://gracedb.ligo.org/api/events/G184098/labels/', u'filemeta': u'https://gracedb.ligo.org/api/events/G184098/filemeta/', u'emobservations': u'https://gracedb.ligo.org/api/events/G184098/emobservation/'}, u'created': u'2015-09-14 09:53:51 UTC', u'far': 1.17786e-08, u'instruments': u'H1,L1', u'labels': {u'H1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/H1OK', u'L1OK': u'https://gracedb.ligo.org/api/events/G184098/labels/L1OK'}, u'extra_attributes': {u'MultiBurst': {u'central_freq': 123.828491, u'false_alarm_rate': None, u'confidence': None, u'start_time_ns': 750000000, u'start_time': 1126259461, u'ligo_angle_sig': None, u'bandwidth': 51.838589, u'snr': 23.4520787991171, u'ligo_angle': None, u'amplitude': 14.099283, u'ligo_axis_ra': 130.921906, u'duration': 0.024773, u'ligo_axis_dec': 4.480799, u'ifos': u'', u'peak_time': None, u'peak_time_ns': None}}, u'nevents': None, u'search': u'AllSky', u'submitter': u'waveburst', u'likelihood': 550.0, u'far_is_upper_limit': False}
-
-comment1 = 'minimum glitch-FAP for ovl at H1 within [1126259462.338, 1126259462.438] is 1.000e0'
-comment2 = 'minimum glitch-FAP for ovl at L1 within [1126259462.338, 1126259462.438] is 4.000e-2'
-signoff_object1 = {'instrument': 'H1', 'status': 'OK', 'signoff_type': 'OP'}
-signoff_object2 = {'instrument': 'L1', 'status': 'OK', 'signoff_type': 'OP'}
-signoff_object3 = {'instrument': 'H1', 'status': 'NO', 'signoff_type': 'OP'}
-signoff_object4 = {'instrument': '', 'status': 'OK', 'signoff_type': 'ADV'}
-signoff_object5 = {'instrument': '', 'status': 'NO', 'signoff_type': 'ADV'}
-
