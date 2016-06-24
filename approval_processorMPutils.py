@@ -404,9 +404,8 @@ def injectionCheck(event_dict):
 #-----------------------------------------------------------------------
 def have_lvem_skymapCheck(event_dict):
     # this function should only return True or None, never False
-    # if return True, we have a new skymap
+    # if return True, we have a new lvem skymap
     # otherwise, add this Check to queueByGraceID
-    # XXX later make sure these are lvem tagged skymaps
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
@@ -450,6 +449,8 @@ def current_lvem_skymap(event_dict):
         return skymap
 
 def record_skymap(event_dict, skymap, submitter):
+    # this should only record skymaps tagged lvem
+    # XXX currently does not do that - fix after testing
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     currentnumber = len(lvemskymaps) + 1
     skymapkey = '{0}'.format(currentnumber) + '-'+ skymap
