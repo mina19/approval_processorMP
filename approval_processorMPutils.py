@@ -709,7 +709,7 @@ def process_alert(event_dict, voevent_type):
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
             g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
             listofvoeventerrors = ''
-            for i in range(0, len(list)):
+            for i in range(0, len(voeventerrors)):
                 listofvoeventerrors += '{0} '.format(list[i])
             if voevent_type in listofvoeventerrors:
                 pass
