@@ -171,6 +171,21 @@ def loadEventDicts():
         pass
 
 #-----------------------------------------------------------------------
+# get rid of this part later, only for debugging
+#-----------------------------------------------------------------------
+def saveEventDictwithVOEvent():
+    f = open('{0}/public_html/EventDictwithVOEvent.txt'.format(homedir), 'w')
+    EventDicts = EventDict.EventDicts
+    Dicts = sorted(EventDicts.keys())
+    for dict in Dicts:
+        f.write('{0}\n'.format(dict))
+        keys = sorted(EventDicts[dict].keys())
+        for key in keys:
+            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
+        f.write('\n')
+    f.close()
+
+#-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(alert):
@@ -689,6 +704,7 @@ def process_alert(event_dict, voevent_type):
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
         voeventerrors.append(thisvoevent)
+        saveEventDictwithVOEvent()
     number = str(random.random())
     if voevent:
         tmpfile = open('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number), 'w')
@@ -721,16 +737,4 @@ def process_alert(event_dict, voevent_type):
                 voeventerrors.append(thisvoevent)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
-
-    # get rid of this part later, only for debugging
-    f = open('{0}/public_html/EventDictwithVOEvent.txt'.format(homedir), 'w')
-    EventDicts = EventDict.EventDicts
-    Dicts = sorted(EventDicts.keys())
-    for dict in Dicts:
-        f.write('{0}\n'.format(dict))
-        keys = sorted(EventDicts[dict].keys())
-        for key in keys:
-            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
-        f.write('\n')
-    f.close()
 
