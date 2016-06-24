@@ -629,11 +629,11 @@ def advocate_signoffCheck(event_dict):
 def process_alert(event_dict, voevent_type):
     graceid = event_dict['graceid']
     pipeline = event_dict['pipeline']
-    voeventerrors = sorted(event_dict['voeventerrors'])
-    voevents = sorted(event_dict['voevents'])
+    voeventerrors = event_dict['voeventerrors']
+    voevents = event_dict['voevents']
 
     # check if we just sent this voevent
-    if (len(voevents) > 0) and (voevent_type in voevents[-1]):
+    if (len(voevents) > 0) and (voevent_type in sorted(voevents)[-1]):
         return
     else:
         pass
