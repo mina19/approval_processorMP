@@ -259,6 +259,8 @@ def parseAlert(alert):
             process_alert(event_dict, 'preliminary')
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
+            # erase this line later
+            saveEventDicts()
             # notify the operators
             instruments = event_dict['instruments']
             for instrument in instruments:
