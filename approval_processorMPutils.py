@@ -174,14 +174,13 @@ def loadEventDicts():
 #-----------------------------------------------------------------------
 def parseAlert(alert):
     # get the event dictionary for approval_processorMP's use
-    if 'uid' in alert.keys():
-        graceid = alert['uid']
-    elif 'graceid' in alert.keys():
-        graceid = alert['graceid']
+    graceid = alert['uid']
     if graceid in EventDict.EventDicts.keys():
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
     else:
-        EventDict(alert, graceid).CreateDict()
+        # query gracedb to get information
+        event_dict = g.events(graceid).next()
+        EventDict(event_dict, graceid).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
     saveEventDicts()
 
@@ -208,18 +207,9 @@ def parseAlert(alert):
         elif (checkLabels(hardware_inj, description.split()) > 0):
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
-                if 'retraction' in voevents:
+                if 'retraction' in voevents[-1]:
                     return
                 # there are existing VOEvents we've sent, but no retraction alert
-                # check whether to keep internal = 1 or 0 for retraction alert
-                if (force_all_internal!='yes') and (event_dict['pipeline'] in preliminary_internal):
-                    last_voevent = voevents[-1]
-                    if 'preliminary' in last_voevent:
-                        internal = 1
-                    else:
-                        internal = 0
-                else:
-                    pass
                 process_alert(event_dict, 'retraction')
 
     # 
