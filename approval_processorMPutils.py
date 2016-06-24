@@ -259,8 +259,6 @@ def parseAlert(alert):
             process_alert(event_dict, 'preliminary')
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
-            # erase this line later
-            saveEventDicts()
             # notify the operators
             instruments = event_dict['instruments']
             for instrument in instruments:
@@ -285,12 +283,13 @@ def parseAlert(alert):
                 logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
                 print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
-               # need to send retraction VOEvent or set DQV label
+               # need to set DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
+                event_dict['currentstate'] = 'rejected'
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 print 'Failed in the {0} state.'.format(currentstate)
                 print 'currentstate now rejected.'
-                event_dict['currentstate'] = 'rejected'
+                logger.info('{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid))
                 return
             elif checkresult==True:
                 print 'Do not need to add {0} to queue'.format(Check)
@@ -404,6 +403,10 @@ def injectionCheck(event_dict):
 # have_lvem_skymapCheck
 #-----------------------------------------------------------------------
 def have_lvem_skymapCheck(event_dict):
+    # this function should only return True or None, never False
+    # if return True, we have a new skymap
+    # otherwise, add this Check to queueByGraceID
+    # XXX later make sure these are lvem tagged skymaps
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
