@@ -329,13 +329,13 @@ def farCheck(event_dict):
         search = event_dict['search']
         farthresh = get_farthresh(pipeline, search)
         if far >= farthresh:
-           # g.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
+            g.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farCheckresult'] = False
             return False
         elif far < farthresh:
-           # g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
+            g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farCheckresult'] = True
@@ -380,19 +380,19 @@ def injectionCheck(event_dict):
         event_dict['injectionsfound'] = len(Injections)
         if len(Injections) > 0:
             if hardware_inj=='no':
-               # g.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
+                g.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th))
                 event_dict['injectionCheckresult'] = False
                 return False
             else:
-               # g.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
+                g.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th))
                 event_dict['injectionCheckresult'] = True
                 return True
         elif len(Injections)==0:
-           # g.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
+            g.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
             event_dict['injectionlogkey'] = 'yes'
             logger.info('{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th))
             event_dict['injectionCheckresult'] = True
@@ -505,11 +505,11 @@ def idq_joint_fapCheck(event_dict):
             logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
             if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
                 if idqlogkey=='no':
-                   # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
+                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling with DQV.'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-               # g.writeLabel(graceid, 'DQV')
+                g.writeLabel(graceid, 'DQV')
                 return False
         elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
             logger.info('{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid))
@@ -528,18 +528,18 @@ def idq_joint_fapCheck(event_dict):
                 logger.info('{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline))
             if min(jointfapvalues.values()) > idqthresh:
                 if idqlogkey=='no':
-                   # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = True
                 return True
             else:
                 if idqlogkey=='no':
-                   # g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling DQV.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-               # g.writeLabel(graceid, 'DQV')
+                g.writeLabel(graceid, 'DQV')
                 return False
 
 #-----------------------------------------------------------------------
@@ -569,9 +569,9 @@ def operator_signoffCheck(event_dict):
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event failed operator signoff check. Labeling DQV.'.format(convertTime(), graceid))
-                   # g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                   # g.writeLabel(graceid, 'DQV')
+                    g.writeLabel(graceid, 'DQV')
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
@@ -580,15 +580,15 @@ def operator_signoffCheck(event_dict):
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event failed operator signoff check. Labeling DQV.'.format(convertTime(), graceid))
-                   # g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                   # g.writeLabel(graceid, 'DQV')
+                    g.writeLabel(graceid, 'DQV')
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid))
-                   # g.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                 event_dict['operator_signoffCheckresult'] = True
                 return True
@@ -610,15 +610,15 @@ def advocate_signoffCheck(event_dict):
             if 'NO' in advocatesignoffs:
                 if advocatelogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event failed advocate signoff check. Labeling DQV.'.format(convertTime(), graceid))
-                   # g.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
-                   # g.writeLabel(graceid, 'DQV')
+                    g.writeLabel(graceid, 'DQV')
                 event_dict['advocate_signoffCheckresult'] = False
                 return False
             else:
                 if advocatelogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid))
-                   # g.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
+                    g.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
                 event_dict['advocate_signoffCheckresult'] = True
                 return True
@@ -659,7 +659,7 @@ def process_alert(event_dict, voevent_type):
     if voevent_type=='retraction':
         # check if we've sent alerts for this event
         if len(voevents) > 0:
-            # check if we sent a retraction alert before:
+            # check if we sent a retraction alert before
             for voevent in voevents:
                 if voevent_type in voevent:
                     return
