@@ -514,7 +514,7 @@ def idq_joint_fapCheck(event_dict):
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling with DQV.'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-                g.writeLabel(graceid, 'DQV')
+                # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
         elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
             logger.info('{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid))
@@ -544,7 +544,7 @@ def idq_joint_fapCheck(event_dict):
                     event_dict['idqlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling DQV.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-                g.writeLabel(graceid, 'DQV')
+                # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
 
 #-----------------------------------------------------------------------
@@ -573,10 +573,9 @@ def operator_signoffCheck(event_dict):
         if len(operatorsignoffs) < len(instruments):
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
-                    logger.info('{0} -- {1} -- Candidate event failed operator signoff check. Labeling DQV.'.format(convertTime(), graceid))
                     g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                    g.writeLabel(graceid, 'DQV')
+                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
@@ -584,10 +583,9 @@ def operator_signoffCheck(event_dict):
         else:
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
-                    logger.info('{0} -- {1} -- Candidate event failed operator signoff check. Labeling DQV.'.format(convertTime(), graceid))
                     g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                    g.writeLabel(graceid, 'DQV')
+                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
