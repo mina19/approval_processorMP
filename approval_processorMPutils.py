@@ -512,7 +512,7 @@ def idq_joint_fapCheck(event_dict):
                 if idqlogkey=='no':
                     g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
                     event_dict['idqlogkey']='yes'
-                logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling with DQV.'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
+                logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
                 # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
@@ -542,7 +542,7 @@ def idq_joint_fapCheck(event_dict):
                 if idqlogkey=='no':
                     g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey'] = 'yes'
-                logger.info('{0} -- {1} -- Failed iDQ check: {2} < {3}. Labeling DQV.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
+                logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
                 # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
@@ -612,10 +612,9 @@ def advocate_signoffCheck(event_dict):
         elif len(advocatesignoffs) > 0:
             if 'NO' in advocatesignoffs:
                 if advocatelogkey=='no':
-                    logger.info('{0} -- {1} -- Candidate event failed advocate signoff check. Labeling DQV.'.format(convertTime(), graceid))
                     g.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
-                    g.writeLabel(graceid, 'DQV')
+                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['advocate_signoffCheckresult'] = False
                 return False
             else:
