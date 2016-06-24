@@ -706,9 +706,7 @@ def process_alert(event_dict, voevent_type):
         voevent = r.json()['text']
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
-    if e!=None:
-        voeventerrors.append(thisvoevent)
-        saveEventDictwithVOEvent()
+
     number = str(random.random())
     if voevent:
         tmpfile = open('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number), 'w')
@@ -733,12 +731,13 @@ def process_alert(event_dict, voevent_type):
             g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
             listofvoeventerrors = ''
             for i in range(0, len(voeventerrors)):
-                listofvoeventerrors += '{0} '.format(list[i])
+                listofvoeventerrors += '{0} '.format(voeventerrors[i])
             if voevent_type in listofvoeventerrors:
                 pass
             else:
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 voeventerrors.append(thisvoevent)
+                saveEventDictwithVOEvent()
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
