@@ -212,7 +212,9 @@ def parseAlert(alert):
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction')
 
-    # 
+    #if alert_type=='update':
+
+    #if alert_type=='signoff':
 
     # run checks specific to currentstate of the event candidate
     passedcheckcount = 0
