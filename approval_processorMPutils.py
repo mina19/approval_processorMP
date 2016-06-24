@@ -722,6 +722,7 @@ def process_alert(event_dict, voevent_type):
 
     # get rid of this part later, only for debugging
     f = open('{0}/public_html/EventDictwithVOEvent.txt'.format(homedir), 'w')
+    EventDicts = EventDict.EventDicts
     Dicts = sorted(EventDicts.keys())
     for dict in Dicts:
         f.write('{0}\n'.format(dict))
