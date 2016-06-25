@@ -204,7 +204,6 @@ def parseAlert(alert):
     alert_type = alert['alert_type']
     description = alert['description']
     filename = alert['file']
-    alert_object = alert['object']
     currentstate = event_dict['currentstate']
 
     # actions for each alert_type
@@ -237,14 +236,14 @@ def parseAlert(alert):
     if alert_type=='update':
         # first the case that we have a new lvem skymap
         if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
-            if 'lvem' in alert_object['tag_names']:
-                submitter = alert_object['issuer']['display_name']
+            if 'lvem' in alert['object']['tag_names']:
+                submitter = alert['object']['issuer']['display_name']
                 record_skymap(event_dict, filename, submitter)
             else:
                 return
         # interested in iDQ information
         else:
-            comment = alert_object['comment']
+            comment = alert['object']['comment']
             if not re.match('minimum glitch-FAP', comment):
                 return
             record_idqvalues(event_dict, comment)
