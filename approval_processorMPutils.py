@@ -243,10 +243,11 @@ def parseAlert(alert):
                 return
         # interested in iDQ information
         else:
-            comment = alert['object']['comment']
-            if not re.match('minimum glitch-FAP', comment):
-                return
-            record_idqvalues(event_dict, comment)
+            if 'comment' in alert['object'].keys():
+                comment = alert['object']['comment']
+                if not re.match('minimum glitch-FAP', comment):
+                    return
+                record_idqvalues(event_dict, comment)
 
     #if alert_type=='signoff':
 
