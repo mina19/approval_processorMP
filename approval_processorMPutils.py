@@ -208,6 +208,7 @@ def parseAlert(alert):
 
     # actions for each alert_type
     if alert_type=='label':
+        record_label(event_dict, description)
         if description=='PE_READY':
             logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
             process_alert(event_dict, 'update')
@@ -367,6 +368,10 @@ def labelCheck(event_dict):
     else:
         event_dict['labelCheckresult'] = True
         return True
+
+def record_label(event_dict, label):
+    labels = event_dict['labels']
+    labels.append(label)
 
 #-----------------------------------------------------------------------
 # injectionCheck
