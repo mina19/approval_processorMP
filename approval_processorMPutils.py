@@ -204,6 +204,7 @@ def parseAlert(alert):
     alert_type = alert['alert_type']
     description = alert['description']
     filename = alert['file']
+    alert_object = alert['object']
     currentstate = event_dict['currentstate']
 
     # actions for each alert_type
@@ -228,11 +229,25 @@ def parseAlert(alert):
                     return
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction')
+        return
 
     #if alert_type=='new':
     # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
 
-    #if alert_type=='update':
+    if alert_type=='update':
+        # first the case that we have a new lvem skymap
+        if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
+            if 'lvem' in alert_object['tag_names']:
+                submitter = alert_object['issuer']['display_name']
+                record_skymap(event_dict, filename, submitter)
+            else:
+                return
+        # interested in iDQ information
+        else:
+            comment = alert_object['comment']
+            if not re.match('minimum glitch-FAP', comment):
+                return
+            record_idqvalues(event_dict, comment)
 
     #if alert_type=='signoff':
 
@@ -458,12 +473,13 @@ def current_lvem_skymap(event_dict):
         return skymap
 
 def record_skymap(event_dict, skymap, submitter):
-    # this should only record skymaps tagged lvem
-    # XXX currently does not do that - fix after testing
+    # this only records skymaps with the lvem tag
+    graceid = event_dict['graceid']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     currentnumber = len(lvemskymaps) + 1
     skymapkey = '{0}'.format(currentnumber) + '-'+ skymap
     event_dict['lvemskymaps'][skymapkey] = submitter
+    logger.info('{0} -- {1} -- Got the lvem skymap {2}.'.format(convertTime(), graceid, skymap))
 
 #-----------------------------------------------------------------------
 # idq_joint_fapCheck
