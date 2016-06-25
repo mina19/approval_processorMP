@@ -240,7 +240,7 @@ def parseAlert(alert):
                 submitter = alert['object']['issuer']['display_name']
                 record_skymap(event_dict, filename, submitter)
             else:
-                return
+                return #XXX change this to pass after testing
         # interested in iDQ information
         else:
             if 'comment' in alert['object'].keys():
@@ -249,7 +249,9 @@ def parseAlert(alert):
                     return
                 record_idqvalues(event_dict, comment)
 
-    #if alert_type=='signoff':
+    if alert_type=='signoff':
+        signoff_object = alert['object']
+        record_signoff(event_dict, signoff_object)
 
     # run checks specific to currentstate of the event candidate
     passedcheckcount = 0
