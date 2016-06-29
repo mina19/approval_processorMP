@@ -526,7 +526,7 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
             logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
             if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
                 if idqlogkey=='no':
-                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
+                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
@@ -549,7 +549,7 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
                 logger.info('{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline))
             if min(jointfapvalues.values()) > idqthresh:
                 if idqlogkey=='no':
-                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = True
