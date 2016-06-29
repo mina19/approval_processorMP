@@ -211,14 +211,14 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
-        elif (checkLabels(description.split()) > 0):
+        elif (checkLabels(description.split(), config) > 0):
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
                 if 'retraction' in voevents[-1]:
                     return 0
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction', g, config, logger)
-        return
+        return 0
 
     if alert_type=='update':
         # first the case that we have a new lvem skymap
@@ -279,6 +279,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             for perm in ['view', 'change']:
                 url = url_perm_base + perm
                 #g.put(url)
+        return 0
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
@@ -300,11 +301,13 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid))
             g.writeLabel(graceid, 'EM_READY')
+        return 0
 
     elif currentstate=='initial_to_update':
         return 0
     
-    return 0
+    else: 
+        return 0
 
 #-----------------------------------------------------------------------
 # Utilities
