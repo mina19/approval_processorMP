@@ -100,7 +100,6 @@ def loadEventDicts():
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(queue, queuByGraceID, alert, t0, config):
-    # load any pre-existing EventDicts
     loadEventDicts()
 
     # instantiate GraceDB client from the childConfig
@@ -256,6 +255,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 event_dict['currentstate'] = 'rejected'
+                saveEventDicts()
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -279,6 +279,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             for perm in ['view', 'change']:
                 url = url_perm_base + perm
                 #g.put(url)
+        saveEventDicts()
         return 0
 
     elif currentstate=='preliminary_to_initial':
@@ -294,6 +295,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 event_dict['currentstate'] = 'rejected'
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 logger.info('{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid))
+                saveEventDicts()
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -301,6 +303,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid))
             g.writeLabel(graceid, 'EM_READY')
+        saveEventDicts()
         return 0
 
     elif currentstate=='initial_to_update':
