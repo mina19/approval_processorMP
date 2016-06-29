@@ -25,14 +25,17 @@ import logging
 #-----------------------------------------------------------------------
 class EventDict:
     EventDicts = {}
-    def __init__(self, dictionary, graceid):
+    def __init__(self, dictionary, graceid, configdict, logger):
         self.dictionary = dictionary
         self.graceid = graceid
+        self.configdict = configdict
+        self.logger = logger
     def CreateDict(self):
         class_dict = {}
         class_dict['advocate_signoffCheckresult'] = None
         class_dict['advocatelogkey'] = 'no'
         class_dict['advocatesignoffs'] = []
+        class_dict['configuration'] = self.configdict
         class_dict['currentstate'] = 'new_to_preliminary'
         class_dict['far'] = self.dictionary['far']
         class_dict['farCheckresult'] = None
@@ -64,13 +67,14 @@ class EventDict:
         class_dict['voeventerrors'] = []
         class_dict['voevents'] = []
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
-        logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
+        self.logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
 #-----------------------------------------------------------------------
 # Saving event dictionaries
 #-----------------------------------------------------------------------
 def saveEventDicts():
     EventDicts = EventDict.EventDicts
+    homedir = os.path.expanduser('~')
     pickle.dump(EventDicts, open('{0}/public_html/EventDicts.p'.format(homedir), 'wb'))
     f = open('{0}/public_html/EventDicts.txt'.format(homedir), 'w')
     Dicts = sorted(EventDicts.keys())
@@ -86,53 +90,51 @@ def saveEventDicts():
 # Loading event dictionaries
 #-----------------------------------------------------------------------
 def loadEventDicts():
+    homedir = os.path.expanduser('~')
     try:
         EventDict.EventDicts = pickle.load(open('{0}/public_html/EventDicts.p'.format(homedir), 'rb'))
     except:
         pass
 
 #-----------------------------------------------------------------------
-# get rid of this part later, only for debugging
-#-----------------------------------------------------------------------
-def saveEventDictwithVOEvent():
-    f = open('{0}/public_html/EventDictwithVOEvent.txt'.format(homedir), 'w')
-    EventDicts = EventDict.EventDicts
-    Dicts = sorted(EventDicts.keys())
-    for dict in Dicts:
-        f.write('{0}\n'.format(dict))
-        keys = sorted(EventDicts[dict].keys())
-        for key in keys:
-            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
-        f.write('\n')
-    f.close()
-
-#-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(queue, queuByGraceID, alert, t0, config):
-    # fetch childConfig-approval_processorMP.ini parameters
-    config = ConfigParser.SafeConfigParser()
-    config.read('childConfig')
+    # load any pre-existing EventDicts
+    loadEventDicts()
 
+    # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
+    g = GraceDb('{0}'.format(client))
+
+    # get other childConfig settings; save in configdict
+    configdict = {}
     voeventerror_email = config.get('general', 'voeventerror_email')
     force_all_internal = config.get('general', 'force_all_internal')
+    configdict['force_all_internal'] = force_all_internal
     preliminary_internal = config.get('general', 'preliminary_internal')
+    configdict['preliminary_internal'] = preliminary_internal
 
     hardware_inj = config.get('labelCheck', 'hardware_inj')
+    configdict['hardware_inj'] = hardware_inj
 
     default_farthresh = config.getfloat('farCheck', 'default_farthresh')
+    configdict['default_farthresh'] = default_farthresh
 
     time_duration = config.getfloat('injectionCheck', 'time_duration')
 
     humanscimons = config.get('operator_signoffCheck', 'humanscimons')
+    configdict['humanscimons'] = humanscimons
 
     advocates = config.get('advocate_signoffCheck', 'advocates')
+    configdict['advocates'] = advocates
     advocate_text = config.get('advocate_signoffCheck', 'advocate_text')
     advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
     ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
+    configdict['ignore_idq'] = ignore_idq
     default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
+    configdict['default_idqthresh'] = default_idqthresh
     idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
     idq_pipelines = idq_pipelines.replace(' ','')
     idq_pipelines = idq_pipelines.split(',')
@@ -148,8 +150,25 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     logger.setLevel(logging.INFO)
     logger.addHandler(logging_filehandler)
 
-    # instantiate GraceDB client
-    g = GraceDb('{0}'.format(client))
+    # get alert specifics and event_dict information
+    graceid = alert['uid']
+    alert_type = alert['alert_type']
+    description = alert['description']
+    filename = alert['file']
+    
+    if alert_type=='new':
+    # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
+        EventDict(alert, graceid, configdict, logger).CreateDict()
+        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    else:
+        if graceid in EventDict.EventDicts.keys():
+            event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+        else:
+            # query gracedb to get information
+            event_dict = g.events(graceid).next()
+            EventDict(event_dict, graceid, configdict, logger).CreateDict()
+            event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    saveEventDicts()
 
     # tasks when currentstate of event is new_to_preliminary
     new_to_preliminary = [
@@ -177,35 +196,18 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         'have_lvem_skymapCheck'
         ]
 
-    # get the event dictionary for approval_processorMP's use
-    graceid = alert['uid']
-    if graceid in EventDict.EventDicts.keys():
-        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
-    else:
-        # query gracedb to get information
-        event_dict = g.events(graceid).next()
-        EventDict(event_dict, graceid).CreateDict()
-        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
-    saveEventDicts()
-
-    # get alert specifics and event_dict information
-    alert_type = alert['alert_type']
-    description = alert['description']
-    filename = alert['file']
-    currentstate = event_dict['currentstate']
-
     # actions for each alert_type
     if alert_type=='label':
         record_label(event_dict, description)
         if description=='PE_READY':
             logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'update')
+            process_alert(event_dict, 'update', logger)
             logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'complete'
 
         elif description=='EM_READY':
             logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'initial')
+            process_alert(event_dict, 'initial', logger)
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
@@ -215,27 +217,24 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 if 'retraction' in voevents[-1]:
                     return
                 # there are existing VOEvents we've sent, but no retraction alert
-                process_alert(event_dict, 'retraction')
+                process_alert(event_dict, 'retraction', logger)
         return
-
-    #if alert_type=='new':
-    # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
 
     if alert_type=='update':
         # first the case that we have a new lvem skymap
         if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
             if 'lvem' in alert['object']['tag_names']:
                 submitter = alert['object']['issuer']['display_name']
-                record_skymap(event_dict, filename, submitter)
+                record_skymap(event_dict, filename, submitter, logger)
             else:
-                return #XXX change this to pass after testing
+                pass
         # interested in iDQ information
         else:
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
                 if not re.match('minimum glitch-FAP', comment):
                     return
-                record_idqvalues(event_dict, comment)
+                record_idqvalues(event_dict, comment, logger)
 
     if alert_type=='signoff':
         signoff_object = alert['object']
@@ -243,30 +242,27 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     # run checks specific to currentstate of the event candidate
     passedcheckcount = 0
+    currentstate = event_dict['currentstate']
 
     if currentstate=='new_to_preliminary':
         for Check in new_to_preliminary:
-            eval('{0}(event_dict)'.format(Check))
+            eval('{0}(event_dict, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
                # need to add Check to queueByGraceID
                 logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
-                print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                print 'Failed in the {0} state.'.format(currentstate)
-                print 'currentstate now rejected.'
                 event_dict['currentstate'] = 'rejected'
                 return
             elif checkresult==True:
-                print 'Do not need to add {0} to queue'.format(Check)
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'preliminary')
+            process_alert(event_dict, 'preliminary', logger)
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
             # notify the operators
@@ -286,23 +282,19 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
-            eval('{0}(event_dict)'.format(Check))
+            eval('{0}(event_dict, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
                # need to add Check to queueByGraceID
                 logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
-                print 'Added {0} to queueByGraceID'.format(Check)
             elif checkresult==False:
                # need to set DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
                 event_dict['currentstate'] = 'rejected'
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                print 'Failed in the {0} state.'.format(currentstate)
-                print 'currentstate now rejected.'
                 logger.info('{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid))
                 return
             elif checkresult==True:
-                print 'Do not need to add {0} to queue'.format(Check)
                 passedcheckcount += 1
         if passedcheckcount==len(preliminary_to_initial):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
@@ -323,13 +315,13 @@ def convertTime():
 #-----------------------------------------------------------------------
 # farCheck
 #-----------------------------------------------------------------------
-def get_farthresh(pipeline, search):
+def get_farthresh(pipeline, search, config):
     try:
         return config.getfloat('farCheck', 'farthresh[{0}.{1}]'.format(pipeline, search))
     except:
-        return default_farthresh
+        return config.getfloat('farCheck', 'default_farthresh')
 
-def farCheck(event_dict):
+def farCheck(event_dict, config, logger):
     farCheckresult = event_dict['farCheckresult']
     if farCheckresult!=None:
         return farCheckresult
@@ -338,7 +330,7 @@ def farCheck(event_dict):
         graceid = event_dict['graceid']
         pipeline = event_dict['pipeline']
         search = event_dict['search']
-        farthresh = get_farthresh(pipeline, search)
+        farthresh = get_farthresh(pipeline, search, config)
         if far >= farthresh:
             g.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
@@ -355,7 +347,8 @@ def farCheck(event_dict):
 #-----------------------------------------------------------------------
 # labelCheck
 #-----------------------------------------------------------------------
-def checkLabels(labels):
+def checkLabels(labels, config):
+    hardware_inj = config.get('labelCheck', 'hardware_inj')
     if hardware_inj == 'yes':
         badlabels = ['DQV']
     else:
@@ -363,10 +356,10 @@ def checkLabels(labels):
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
-def labelCheck(event_dict):
+def labelCheck(event_dict, config, logger):
     graceid = event_dict['graceid']
     labels = event_dict['labels']
-    if checkLabels(labels) > 0:
+    if checkLabels(labels, config) > 0:
         logger.info('{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid))
         event_dict['labelCheckresult'] = False
         return False
@@ -381,13 +374,14 @@ def record_label(event_dict, label):
 #-----------------------------------------------------------------------
 # injectionCheck
 #-----------------------------------------------------------------------
-def injectionCheck(event_dict):
+def injectionCheck(event_dict, config, logger):
     injectionCheckresult = event_dict['injectionCheckresult']
     if injectionCheckresult!=None:
         return injectionCheckresult
     else:
         eventtime = event_dict['gpstime']
         graceid = event_dict['graceid']
+        time_duration = config.getfloat('injectionCheck', 'time_duration')
         from raven.search import query
         th = time_duration
         tl = -th
@@ -416,7 +410,7 @@ def injectionCheck(event_dict):
 #-----------------------------------------------------------------------
 # have_lvem_skymapCheck
 #-----------------------------------------------------------------------
-def have_lvem_skymapCheck(event_dict):
+def have_lvem_skymapCheck(event_dict, config, logger):
     # this function should only return True or None, never False
     # if return True, we have a new lvem skymap
     # otherwise, add this Check to queueByGraceID
@@ -462,7 +456,7 @@ def current_lvem_skymap(event_dict):
         skymap = re.findall(r'-(\S+)', skymap)[0]
         return skymap
 
-def record_skymap(event_dict, skymap, submitter):
+def record_skymap(event_dict, skymap, submitter, logger):
     # this only records skymaps with the lvem tag
     graceid = event_dict['graceid']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
@@ -474,13 +468,13 @@ def record_skymap(event_dict, skymap, submitter):
 #-----------------------------------------------------------------------
 # idq_joint_fapCheck
 #-----------------------------------------------------------------------
-def get_idqthresh(pipeline, search):
+def get_idqthresh(pipeline, search, config):
     try:
         return config.getfloat('idq_joint_fapCheck', 'idqthresh[{0}.{1}]'.format(pipeline, search))
     except:
-        return default_idqthresh
+        return config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
 
-def record_idqvalues(event_dict, comment):
+def record_idqvalues(event_dict, comment, logger):
     graceid = event_dict['graceid']
     idqinfo = re.findall('minimum glitch-FAP for (.*) at (.*) with', comment)
     idqpipeline = idqinfo[0][0]
@@ -501,8 +495,9 @@ def compute_joint_fap_values(event_dict):
                 pipeline_values.append(idqvalues[key])
         jointfapvalues[idqpipeline] = functools.reduce(operator.mul, pipeline_values, 1)
 
-def idq_joint_fapCheck(event_dict):
+def idq_joint_fapCheck(event_dict, config, logger):
     group = event_dict['group']
+    ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
     idq_joint_fapCheckresult = event_dict['idq_joint_fapCheckresult']
     if idq_joint_fapCheckresult!=None:
         return idq_joint_fapCheckresult
@@ -513,13 +508,16 @@ def idq_joint_fapCheck(event_dict):
     else:
         pipeline = event_dict['pipeline']
         search = event_dict['search']
-        idqthresh = get_idqthresh(pipeline, search)
+        idqthresh = get_idqthresh(pipeline, search, config)
         compute_joint_fap_values(event_dict)
         graceid = event_dict['graceid']
         idqvalues = event_dict['idqvalues']
         idqlogkey = event_dict['idqlogkey']
         instruments = event_dict['instruments']
         jointfapvalues = event_dict['jointfapvalues']
+        idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
+        idq_pipelines = idq_pipelines.replace(' ', '')
+        idq_pipelines = idq_pipelines.split(',')
         if len(idqvalues)==0:
             logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
         elif (0 < len(idqvalues) < (len(idq_pipelines)*len(instruments))):
@@ -577,7 +575,7 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
-def operator_signoffCheck(event_dict):
+def operator_signoffCheck(event_dict, config, logger):
     operator_signoffCheckresult = event_dict['operator_signoffCheckresult']
     if operator_signoffCheckresult!=None:
         return operator_signoffCheckresult
@@ -615,7 +613,7 @@ def operator_signoffCheck(event_dict):
 #-----------------------------------------------------------------------
 # advocate_signoffCheck
 #-----------------------------------------------------------------------
-def advocate_signoffCheck(event_dict):
+def advocate_signoffCheck(event_dict, config, logger):
     advocate_signoffCheckresult = event_dict['advocate_signoffCheckresult']
     if advocate_signoffCheckresult!=None:
         return advocate_signoffCheckresult
@@ -644,7 +642,7 @@ def advocate_signoffCheck(event_dict):
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
-def process_alert(event_dict, voevent_type):
+def process_alert(event_dict, voevent_type, logger):
     graceid = event_dict['graceid']
     pipeline = event_dict['pipeline']
     voeventerrors = event_dict['voeventerrors']
@@ -719,8 +717,7 @@ def process_alert(event_dict, voevent_type):
     logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
     voevent = None
     thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents), internal, injection) + voevent_type
-    # erase this later
-    print thisvoevent
+
     try:
         r = g.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
         voevent = r.json()['text']
@@ -735,7 +732,6 @@ def process_alert(event_dict, voevent_type):
         cmd = 'comet-sendvo -p 5340 -f /tmp/voevent_{0}_{1}.tmp'.format(graceid, number)
         proc = sp.Popen(cmd, shell = True, stdout = sp.PIPE, stderr = sp.PIPE)
         output, error = proc.communicate(voevent)
-        thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents), internal, injection) + voevent_type
         if proc.returncode==0:
             message = '{0} VOEvent sent to GCN.'.format(voevent_type)
             voevents.append(thisvoevent)
@@ -757,7 +753,6 @@ def process_alert(event_dict, voevent_type):
             else:
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 voeventerrors.append(thisvoevent)
-                saveEventDictwithVOEvent()
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
