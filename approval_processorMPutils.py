@@ -17,87 +17,8 @@ import time
 import datetime
 import pickle
 import urllib
-
-#-----------------------------------------------------------------------
-# Fetch childConfig-approval_processorMP.ini parameters
-#-----------------------------------------------------------------------
 import ConfigParser
-config = ConfigParser.SafeConfigParser()
-config.read('{0}/childConfig-approval_processorMP.ini'.format(os.getcwd()))
-
-client = config.get('general', 'client')
-voeventerror_email = config.get('general', 'voeventerror_email')
-force_all_internal = config.get('general', 'force_all_internal')
-preliminary_internal = config.get('general', 'preliminary_internal')
-
-hardware_inj = config.get('labelCheck', 'hardware_inj')
-
-default_farthresh = config.getfloat('farCheck', 'default_farthresh')
-
-time_duration = config.getfloat('injectionCheck', 'time_duration')
-
-humanscimons = config.get('operator_signoffCheck', 'humanscimons')
-
-advocates = config.get('advocate_signoffCheck', 'advocates')
-advocate_text = config.get('advocate_signoffCheck', 'advocate_text')
-advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
-
-ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
-default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
-idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
-idq_pipelines = idq_pipelines.replace(' ','')
-idq_pipelines = idq_pipelines.split(',')
-
-skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
-
-#-----------------------------------------------------------------------
-# Set up logging
-#-----------------------------------------------------------------------
 import logging
-logger = logging.getLogger('approval_processorMP')
-logfile = config.get('general', 'approval_processorMP_logfile')
-homedir = os.path.expanduser('~')
-logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
-logging_filehandler.setLevel(logging.INFO)
-logger.setLevel(logging.INFO)
-logger.addHandler(logging_filehandler)
-
-#-----------------------------------------------------------------------
-# Instantiate GraceDB client
-#-----------------------------------------------------------------------
-g = GraceDb('{0}'.format(client))
-
-#-----------------------------------------------------------------------
-# Tasks when currentstate of event is new_to_preliminary
-#-----------------------------------------------------------------------
-new_to_preliminary = [
-    'farCheck',
-    'labelCheck',
-    'injectionCheck'
-    ]
-
-#-----------------------------------------------------------------------
-# Tasks when currentstate of event is preliminary_to_initial
-#-----------------------------------------------------------------------
-preliminary_to_initial = [
-    'farCheck',
-    'labelCheck',
-    'have_lvem_skymapCheck',
-    'idq_joint_fapCheck'
-    ]
-if humanscimons=='yes':
-    preliminary_to_initial.append('operator_signoffCheck')
-if advocates=='yes':
-    preliminary_to_initial.append('advocate_signoffCheck')
-
-#-----------------------------------------------------------------------
-# Tasks when currentstate of event is initial_to_update
-#-----------------------------------------------------------------------
-initial_to_update = [
-    'farCheck',
-    'labelCheck',
-    'have_lvem_skymapCheck'
-    ]
 
 #-----------------------------------------------------------------------
 # Creating event dictionaries
@@ -189,6 +110,72 @@ def saveEventDictwithVOEvent():
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(alert):
+    # fetch childConfig-approval_processorMP.ini parameters
+    config = ConfigParser.SafeConfigParser()
+
+    client = config.get('general', 'client')
+    voeventerror_email = config.get('general', 'voeventerror_email')
+    force_all_internal = config.get('general', 'force_all_internal')
+    preliminary_internal = config.get('general', 'preliminary_internal')
+
+    hardware_inj = config.get('labelCheck', 'hardware_inj')
+
+    default_farthresh = config.getfloat('farCheck', 'default_farthresh')
+
+    time_duration = config.getfloat('injectionCheck', 'time_duration')
+
+    humanscimons = config.get('operator_signoffCheck', 'humanscimons')
+
+    advocates = config.get('advocate_signoffCheck', 'advocates')
+    advocate_text = config.get('advocate_signoffCheck', 'advocate_text')
+    advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
+
+    ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
+    default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
+    idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
+    idq_pipelines = idq_pipelines.replace(' ','')
+    idq_pipelines = idq_pipelines.split(',')
+
+    skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
+
+    # set up logging
+    logger = logging.getLogger('approval_processorMP')
+    logfile = config.get('general', 'approval_processorMP_logfile')
+    homedir = os.path.expanduser('~')
+    logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
+    logging_filehandler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging_filehandler)
+
+    # instantiate GraceDB client
+    g = GraceDb('{0}'.format(client))
+
+    # tasks when currentstate of event is new_to_preliminary
+    new_to_preliminary = [
+        'farCheck',
+        'labelCheck',
+        'injectionCheck'
+        ]
+
+    # tasks when currentstate of event is preliminary_to_initial
+    preliminary_to_initial = [
+        'farCheck',
+        'labelCheck',
+        'have_lvem_skymapCheck',
+        'idq_joint_fapCheck'
+        ]
+    if humanscimons=='yes':
+        preliminary_to_initial.append('operator_signoffCheck')
+    if advocates=='yes':
+        preliminary_to_initial.append('advocate_signoffCheck')
+
+    # tasks when currentstate of event is initial_to_update
+    initial_to_update = [
+        'farCheck',
+        'labelCheck',
+        'have_lvem_skymapCheck'
+        ]
+
     # get the event dictionary for approval_processorMP's use
     graceid = alert['uid']
     if graceid in EventDict.EventDicts.keys():

@@ -1,4 +1,4 @@
 #!/bin/bash
 echo -n 'Enter password > '
 read password
-lvalert_listen -a min-a.cho -b $password -s lvalert.cgca.uwm.edu -c /home/min-a.cho/approval_processorMP/lvalert_listenMP.ini
+lvalert_listenMP -a min-a.cho -b $password -s lvalert.cgca.uwm.edu -c /home/min-a.cho/lvalert-dev/approval_processorMP/lvalert_listenMP.ini
