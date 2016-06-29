@@ -40,7 +40,7 @@ class EventDict:
         class_dict['far'] = self.dictionary['far']
         class_dict['farCheckresult'] = None
         class_dict['farlogkey'] = 'no'
-        class_dict['gpstime'] = self.dictionary['gpstime']
+        class_dict['gpstime'] = float(self.dictionary['gpstime'])
         class_dict['graceid'] = self.graceid
         class_dict['group'] = self.dictionary['group']
         class_dict['have_lvem_skymapCheckresult'] = None
@@ -201,13 +201,13 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         record_label(event_dict, description)
         if description=='PE_READY':
             logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'update', g, logger)
+            process_alert(event_dict, 'update', g, config, logger)
             logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'complete'
 
         elif description=='EM_READY':
             logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'initial', g, logger)
+            process_alert(event_dict, 'initial', g, config, logger)
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
@@ -217,7 +217,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 if 'retraction' in voevents[-1]:
                     return 0
                 # there are existing VOEvents we've sent, but no retraction alert
-                process_alert(event_dict, 'retraction', g, logger)
+                process_alert(event_dict, 'retraction', g, config, logger)
         return
 
     if alert_type=='update':
@@ -262,7 +262,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         if passedcheckcount==len(new_to_preliminary):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'preliminary', logger)
+            process_alert(event_dict, 'preliminary', g, config, logger)
             logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'preliminary_to_initial'
             # notify the operators
@@ -381,7 +381,7 @@ def injectionCheck(event_dict, client, config, logger):
     if injectionCheckresult!=None:
         return injectionCheckresult
     else:
-        eventtime = event_dict['gpstime']
+        eventtime = float(event_dict['gpstime'])
         graceid = event_dict['graceid']
         time_duration = config.getfloat('injectionCheck', 'time_duration')
         from raven.search import query
@@ -389,6 +389,7 @@ def injectionCheck(event_dict, client, config, logger):
         tl = -th
         Injections = query('HardwareInjection', eventtime, tl, th)
         event_dict['injectionsfound'] = len(Injections)
+        hardware_inj = config.get('labelCheck', 'hardware_inj')
         if len(Injections) > 0:
             if hardware_inj=='no':
                 client.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
@@ -644,7 +645,7 @@ def advocate_signoffCheck(event_dict, client, config, logger):
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
-def process_alert(event_dict, voevent_type, client, logger):
+def process_alert(event_dict, voevent_type, client, config, logger):
     graceid = event_dict['graceid']
     pipeline = event_dict['pipeline']
     voeventerrors = event_dict['voeventerrors']
@@ -657,6 +658,7 @@ def process_alert(event_dict, voevent_type, client, logger):
         pass
 
     # setting default internal value settings for alerts
+    force_all_internal = config.get('general', 'force_all_internal')
     if force_all_internal=='yes':
         internal = 1
     else:
@@ -711,7 +713,7 @@ def process_alert(event_dict, voevent_type, client, logger):
 
     injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
-        injectionCheck(event_dict)
+        injectionCheck(event_dict, client, config, logger)
         injection = event_dict['injectionsfound']
     else:
         injection = injectionsfound
@@ -753,6 +755,7 @@ def process_alert(event_dict, voevent_type, client, logger):
             if voevent_type in listofvoeventerrors:
                 pass
             else:
+                voeventerror_email = config.get('general', 'voeventerror_email')
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 voeventerrors.append(thisvoevent)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
