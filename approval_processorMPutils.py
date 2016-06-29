@@ -109,7 +109,7 @@ def saveEventDictwithVOEvent():
 #-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
-def parseAlert(alert):
+def parseAlert(queue, queuByGraceID, alert, t0, config):
     # fetch childConfig-approval_processorMP.ini parameters
     config = ConfigParser.SafeConfigParser()
 
