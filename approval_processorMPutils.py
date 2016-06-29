@@ -158,7 +158,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     
     if alert_type=='new':
     # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
-        EventDict(alert, graceid, configdict, logger).CreateDict()
+        EventDict(alert['object'], graceid, configdict, logger).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
     else:
         if graceid in EventDict.EventDicts.keys():
@@ -201,13 +201,13 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         record_label(event_dict, description)
         if description=='PE_READY':
             logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'update', logger)
+            process_alert(event_dict, 'update', g, logger)
             logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'complete'
 
         elif description=='EM_READY':
             logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'initial', logger)
+            process_alert(event_dict, 'initial', g, logger)
             logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
             event_dict['currentstate'] = 'initial_to_update'
 
@@ -215,9 +215,9 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
                 if 'retraction' in voevents[-1]:
-                    return
+                    return 0
                 # there are existing VOEvents we've sent, but no retraction alert
-                process_alert(event_dict, 'retraction', logger)
+                process_alert(event_dict, 'retraction', g, logger)
         return
 
     if alert_type=='update':
@@ -233,7 +233,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
                 if not re.match('minimum glitch-FAP', comment):
-                    return
+                    return 0
                 record_idqvalues(event_dict, comment, logger)
 
     if alert_type=='signoff':
@@ -246,7 +246,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     if currentstate=='new_to_preliminary':
         for Check in new_to_preliminary:
-            eval('{0}(event_dict, config, logger)'.format(Check))
+            eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
                # need to add Check to queueByGraceID
@@ -256,7 +256,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 event_dict['currentstate'] = 'rejected'
-                return
+                return 0
             elif checkresult==True:
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
@@ -282,7 +282,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
-            eval('{0}(event_dict, config, logger)'.format(Check))
+            eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
                # need to add Check to queueByGraceID
@@ -293,7 +293,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 event_dict['currentstate'] = 'rejected'
                 logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
                 logger.info('{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid))
-                return
+                return 0
             elif checkresult==True:
                 passedcheckcount += 1
         if passedcheckcount==len(preliminary_to_initial):
@@ -302,7 +302,9 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             g.writeLabel(graceid, 'EM_READY')
 
     elif currentstate=='initial_to_update':
-        return
+        return 0
+    
+    return 0
 
 #-----------------------------------------------------------------------
 # Utilities
@@ -321,7 +323,7 @@ def get_farthresh(pipeline, search, config):
     except:
         return config.getfloat('farCheck', 'default_farthresh')
 
-def farCheck(event_dict, config, logger):
+def farCheck(event_dict, client, config, logger):
     farCheckresult = event_dict['farCheckresult']
     if farCheckresult!=None:
         return farCheckresult
@@ -332,13 +334,13 @@ def farCheck(event_dict, config, logger):
         search = event_dict['search']
         farthresh = get_farthresh(pipeline, search, config)
         if far >= farthresh:
-            g.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
+            client.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farCheckresult'] = False
             return False
         elif far < farthresh:
-            g.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
+            client.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
             logger.info('{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
             event_dict['farCheckresult'] = True
@@ -356,7 +358,7 @@ def checkLabels(labels, config):
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
-def labelCheck(event_dict, config, logger):
+def labelCheck(event_dict, client, config, logger):
     graceid = event_dict['graceid']
     labels = event_dict['labels']
     if checkLabels(labels, config) > 0:
@@ -374,7 +376,7 @@ def record_label(event_dict, label):
 #-----------------------------------------------------------------------
 # injectionCheck
 #-----------------------------------------------------------------------
-def injectionCheck(event_dict, config, logger):
+def injectionCheck(event_dict, client, config, logger):
     injectionCheckresult = event_dict['injectionCheckresult']
     if injectionCheckresult!=None:
         return injectionCheckresult
@@ -389,19 +391,19 @@ def injectionCheck(event_dict, config, logger):
         event_dict['injectionsfound'] = len(Injections)
         if len(Injections) > 0:
             if hardware_inj=='no':
-                g.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
+                client.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th))
                 event_dict['injectionCheckresult'] = False
                 return False
             else:
-                g.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
+                client.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th))
                 event_dict['injectionCheckresult'] = True
                 return True
         elif len(Injections)==0:
-            g.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
+            client.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
             event_dict['injectionlogkey'] = 'yes'
             logger.info('{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th))
             event_dict['injectionCheckresult'] = True
@@ -410,7 +412,7 @@ def injectionCheck(event_dict, config, logger):
 #-----------------------------------------------------------------------
 # have_lvem_skymapCheck
 #-----------------------------------------------------------------------
-def have_lvem_skymapCheck(event_dict, config, logger):
+def have_lvem_skymapCheck(event_dict, client, config, logger):
     # this function should only return True or None, never False
     # if return True, we have a new lvem skymap
     # otherwise, add this Check to queueByGraceID
@@ -495,7 +497,7 @@ def compute_joint_fap_values(event_dict):
                 pipeline_values.append(idqvalues[key])
         jointfapvalues[idqpipeline] = functools.reduce(operator.mul, pipeline_values, 1)
 
-def idq_joint_fapCheck(event_dict, config, logger):
+def idq_joint_fapCheck(event_dict, client, config, logger):
     group = event_dict['group']
     ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
     idq_joint_fapCheckresult = event_dict['idq_joint_fapCheckresult']
@@ -528,7 +530,7 @@ def idq_joint_fapCheck(event_dict, config, logger):
                     event_dict['idqlogkey']='yes'
                 logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-                # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
         elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
             logger.info('{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid))
@@ -554,11 +556,11 @@ def idq_joint_fapCheck(event_dict, config, logger):
                 return True
             else:
                 if idqlogkey=='no':
-                    g.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey'] = 'yes'
                 logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
                 event_dict['idq_joint_fapCheckresult'] = False
-                # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
 
 #-----------------------------------------------------------------------
@@ -575,7 +577,7 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
-def operator_signoffCheck(event_dict, config, logger):
+def operator_signoffCheck(event_dict, client, config, logger):
     operator_signoffCheckresult = event_dict['operator_signoffCheckresult']
     if operator_signoffCheckresult!=None:
         return operator_signoffCheckresult
@@ -587,9 +589,9 @@ def operator_signoffCheck(event_dict, config, logger):
         if len(operatorsignoffs) < len(instruments):
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
-                    g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
@@ -597,15 +599,15 @@ def operator_signoffCheck(event_dict, config, logger):
         else:
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
-                    g.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
                 if operatorlogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid))
-                    g.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                 event_dict['operator_signoffCheckresult'] = True
                 return True
@@ -613,7 +615,7 @@ def operator_signoffCheck(event_dict, config, logger):
 #-----------------------------------------------------------------------
 # advocate_signoffCheck
 #-----------------------------------------------------------------------
-def advocate_signoffCheck(event_dict, config, logger):
+def advocate_signoffCheck(event_dict, client, config, logger):
     advocate_signoffCheckresult = event_dict['advocate_signoffCheckresult']
     if advocate_signoffCheckresult!=None:
         return advocate_signoffCheckresult
@@ -626,15 +628,15 @@ def advocate_signoffCheck(event_dict, config, logger):
         elif len(advocatesignoffs) > 0:
             if 'NO' in advocatesignoffs:
                 if advocatelogkey=='no':
-                    g.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
-                    # g.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['advocate_signoffCheckresult'] = False
                 return False
             else:
                 if advocatelogkey=='no':
                     logger.info('{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid))
-                    g.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
+                    client.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
                 event_dict['advocate_signoffCheckresult'] = True
                 return True
@@ -642,7 +644,7 @@ def advocate_signoffCheck(event_dict, config, logger):
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
-def process_alert(event_dict, voevent_type, logger):
+def process_alert(event_dict, voevent_type, client, logger):
     graceid = event_dict['graceid']
     pipeline = event_dict['pipeline']
     voeventerrors = event_dict['voeventerrors']
@@ -719,7 +721,7 @@ def process_alert(event_dict, voevent_type, logger):
     thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents), internal, injection) + voevent_type
 
     try:
-        r = g.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
+        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
         voevent = r.json()['text']
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
@@ -744,7 +746,7 @@ def process_alert(event_dict, voevent_type, logger):
                 pass
         else:
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
-            g.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
+            client.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
             listofvoeventerrors = ''
             for i in range(0, len(voeventerrors)):
                 listofvoeventerrors += '{0} '.format(voeventerrors[i])
