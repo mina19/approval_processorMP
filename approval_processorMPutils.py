@@ -112,6 +112,7 @@ def saveEventDictwithVOEvent():
 def parseAlert(queue, queuByGraceID, alert, t0, config):
     # fetch childConfig-approval_processorMP.ini parameters
     config = ConfigParser.SafeConfigParser()
+    config.read('childConfig')
 
     client = config.get('general', 'client')
     voeventerror_email = config.get('general', 'voeventerror_email')
