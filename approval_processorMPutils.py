@@ -46,7 +46,6 @@ class EventDict:
         class_dict['idq_joint_fapCheckresult'] = None
         class_dict['idqlogkey'] = 'no'
         class_dict['idqvalues'] = {}
-        class_dict['initialskymaplogkey'] = 'no'
         class_dict['injectionCheckresult'] = None
         class_dict['injectionsfound'] = None
         class_dict['injectionlogkey'] = 'no'
@@ -65,7 +64,6 @@ class EventDict:
             class_dict['search'] = self.dictionary['search']
         else:
             class_dict['search'] = ''
-        class_dict['updateskymaplogkey'] = 'no'
         class_dict['voeventerrors'] = []
         class_dict['voevents'] = []
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
@@ -141,13 +139,18 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 
     # set up logging
-    logger = logging.getLogger('approval_processorMP')
-    logfile = config.get('general', 'approval_processorMP_logfile')
-    homedir = os.path.expanduser('~')
-    logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
-    logging_filehandler.setLevel(logging.INFO)
-    logger.setLevel(logging.INFO)
-    logger.addHandler(logging_filehandler)
+    global logger
+    try:
+        logger
+    except NameError:
+        logger = logging.getLogger('approval_processorMP')
+        logfile = config.get('general', 'approval_processorMP_logfile')
+        homedir = os.path.expanduser('~')
+        logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
+        logging_filehandler.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
+        logger.addHandler(logging_filehandler)
+        logger.info(alert)
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
@@ -212,29 +215,29 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
+                process_alert(event_dict, 'update', g, config, logger)
             else:
                 pass
-            process_alert(event_dict, 'update', g, config, logger)
             message = '{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
+                event_dict['currentstate'] = 'complete'
             else:
                 pass
-            event_dict['currentstate'] = 'complete'
 
         elif description=='EM_READY':
             message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
+                process_alert(event_dict, 'initial', g, config, logger)
             else:
                 pass
-            process_alert(event_dict, 'initial', g, config, logger)
             message = '{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
+                event_dict['currentstate'] = 'initial_to_update'
             else:
                 pass
-            event_dict['currentstate'] = 'initial_to_update'
 
         elif (checkLabels(description.split(), config) > 0):
             voevents = sorted(event_dict['voevents'])
@@ -277,33 +280,61 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 return 0
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
-                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
-                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                event_dict['currentstate'] = 'rejected'
+                message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
+                message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['currentstate'] = 'rejected'
+                else:
+                    pass
                 saveEventDicts()
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
-            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
-            logger.info('{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid))
-            process_alert(event_dict, 'preliminary', g, config, logger)
-            logger.info('{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate))
-            event_dict['currentstate'] = 'preliminary_to_initial'
+            message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
+            message = '{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                process_alert(event_dict, 'preliminary', g, config, logger)
+            else:
+                pass
+            message = '{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                event_dict['currentstate'] = 'preliminary_to_initial'
+            else:
+                pass
             # notify the operators
             instruments = event_dict['instruments']
             for instrument in instruments:
-                logger.info('{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument))
-                g.writeLabel(graceid, '{0}OPS'.format(instrument))
+                message = '{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    g.writeLabel(graceid, '{0}OPS'.format(instrument))
+                else:
+                    pass
             # notify the advocates
-            #logger.info('{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument))
-            #g.writeLabel(graceid, 'ADVREQ')
-            #os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
-            # expose event to LV-EM
-            url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
-            for perm in ['view', 'change']:
-                url = url_perm_base + perm
-                #g.put(url)
+            #message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
+            #if loggerCheck(event_dict, message)==False:
+                #logger.info(message)
+                #g.writeLabel(graceid, 'ADVREQ')
+                #os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
+                # expose event to LV-EM
+                url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
+                for perm in ['view', 'change']:
+                    url = url_perm_base + perm
+                    #g.put(url)
+            #else:
+                #pass
             saveEventDicts()
             return 0
 
@@ -315,18 +346,39 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 return 0
             elif checkresult==False:
                # need to set DQV label
-                logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
-                event_dict['currentstate'] = 'rejected'
-                logger.info('{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate))
-                logger.info('{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid))
+                message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
+                message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['currentstate'] = 'rejected'
+                else:
+                    pass
+                message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    g.writeLabel(graceid, 'DQV')
+                else:
+                    pass
                 saveEventDicts()
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
         if passedcheckcount==len(preliminary_to_initial):
-            logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
-            logger.info('{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid))
-            g.writeLabel(graceid, 'EM_READY')
+            message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
+            message = '{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                g.writeLabel(graceid, 'EM_READY')
+            else:
+                pass
             saveEventDicts()
             return 0
 
@@ -346,6 +398,8 @@ def convertTime():
 
 def loggerCheck(event_dict, message):
     loggermessages = event_dict['loggermessages']
+    graceid = event_dict['graceid']
+    message = re.findall(r'-- {0} -- (.*)'.format(graceid), message)[0]
     if message in loggermessages:
         return True
     else:
@@ -374,14 +428,22 @@ def farCheck(event_dict, client, config, logger):
         if far >= farthresh:
             client.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
-            logger.info('{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh))
-            event_dict['farCheckresult'] = False
+            message = '{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                event_dict['farCheckresult'] = False
+            else:
+                pass
             return False
         elif far < farthresh:
             client.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
             event_dict['farlogkey'] = 'yes'
-            logger.info('{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh))
-            event_dict['farCheckresult'] = True
+            message = '{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                event_dict['farCheckresult'] = True
+            else:
+                pass
             return True
 
 #-----------------------------------------------------------------------
@@ -400,8 +462,12 @@ def labelCheck(event_dict, client, config, logger):
     graceid = event_dict['graceid']
     labels = event_dict['labels']
     if checkLabels(labels, config) > 0:
-        logger.info('{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid))
-        event_dict['labelCheckresult'] = False
+        message = '{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+            event_dict['labelCheckresult'] = false
+        else:
+            pass
         return False
     else:
         event_dict['labelCheckresult'] = True
@@ -432,20 +498,32 @@ def injectionCheck(event_dict, client, config, logger):
             if hardware_inj=='no':
                 client.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
-                logger.info('{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th))
-                event_dict['injectionCheckresult'] = False
+                message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['injectionCheckresult'] = False
+                else:
+                    pass
                 return False
             else:
                 client.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
                 event_dict['injectionlogkey'] = 'yes'
-                logger.info('{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th))
-                event_dict['injectionCheckresult'] = True
+                message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['injectionCheckresult'] = True
+                else:
+                    pass
                 return True
         elif len(Injections)==0:
             client.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
             event_dict['injectionlogkey'] = 'yes'
-            logger.info('{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th))
-            event_dict['injectionCheckresult'] = True
+            message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                event_dict['injectionCheckresult'] = True
+            else:
+                pass
             return True
 
 #-----------------------------------------------------------------------
@@ -457,8 +535,6 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
     # otherwise, add this Check to queueByGraceID
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
-    initialskymaplogkey = event_dict['initialskymaplogkey']
-    updateskymaplogkey = event_dict['updateskymaplogkey']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
 
     if currentstate=='preliminary_to_initial':
@@ -466,9 +542,11 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
             event_dict['have_lvem_skymapCheckresult'] = True
             skymap = sorted(lvemskymaps)[-1]
             skymap = re.findall(r'-(\S+)', skymap)[0]
-            if initialskymaplogkey=='no':
-                logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
-                event_dict['initialskymaplogkey'] = 'yes'
+            message = '{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             return True
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
@@ -480,9 +558,11 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
                 event_dict['have_lvem_skymapCheckresult'] = True
                 skymap = sorted(lvemskymaps)[-1]
                 skymap = re.findall(r'-(\S+)', skymap)[0]
-                if updateskymaplogkey=='no':
-                    logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
-                    event_dict['updateskymaplogkey'] = 'yes'
+                message = '{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
                 return True
             else:
                 event_dict['have_lvem_skymapCheckresult'] = None
@@ -506,9 +586,20 @@ def record_skymap(event_dict, skymap, submitter, logger):
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     currentnumber = len(lvemskymaps) + 1
     skymapkey = '{0}'.format(currentnumber) + '-'+ skymap
-    event_dict['lvemskymaps'][skymapkey] = submitter
-    if skymap not in lvemskymaps:
-        logger.info('{0} -- {1} -- Got the lvem skymap {2}.'.format(convertTime(), graceid, skymap))
+    # check if we already have the skymap
+    count = 0
+    for map in lvemskymaps:
+        if skymap in map:
+            count += 1
+        else:
+            count +=0
+    if count==0:
+        event_dict['lvemskymaps'][skymapkey] = submitter
+        message = '{0} -- {1} -- Got the lvem skymap {2}.'.format(convertTime(), graceid, skymap)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
 
 #-----------------------------------------------------------------------
 # idq_joint_fapCheck
@@ -528,7 +619,11 @@ def record_idqvalues(event_dict, comment, logger):
     minfap = float(minfap[0])
     detectorstring = '{0}.{1}'.format(idqpipeline, idqdetector)
     event_dict['idqvalues'][detectorstring] = minfap    
-    logger.info('{0} -- {1} -- Got the minfap for {2} using {3} is {4}.'.format(convertTime(), graceid, idqdetector, idqpipeline, minfap))
+    message = '{0} -- {1} -- Got the minfap for {2} using {3} is {4}.'.format(convertTime(), graceid, idqdetector, idqpipeline, minfap)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
 
 def compute_joint_fap_values(event_dict, config):
     idqvalues = event_dict['idqvalues']
@@ -567,22 +662,42 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
         idq_pipelines = idq_pipelines.replace(' ', '')
         idq_pipelines = idq_pipelines.split(',')
         if len(idqvalues)==0:
-            # logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             return None
         elif (0 < len(idqvalues) < (len(idq_pipelines)*len(instruments))):
-            # logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
                 if idqlogkey=='no':
                     client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
                     event_dict['idqlogkey']='yes'
-                logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh))
-                event_dict['idq_joint_fapCheckresult'] = False
-                # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['idq_joint_fapCheckresult'] = False
+                else:
+                    pass
+                #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
         elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
-            logger.info('{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
         else:
-            logger.info('{0} -- {1} -- Ready to run iDQ checks.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Ready to run iDQ checks.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             # 'glitch-FAP' is the probabilty that the classifier thinks there was a glitch and there was not a glitch
             # 'glitch-FAP' -> 0 means high confidence that there is a glitch
             # 'glitch-FAP' -> 1 means low confidence that there is a glitch
@@ -593,21 +708,33 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
                     detectorstring = '{0}.{1}'.format(idqpipeline, idqdetector)
                     jointfap = jointfap*idqvalues[detectorstring]
                 jointfapvalues[idqpipeline] = jointfap
-                logger.info('{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline))
+                message = '{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
             if min(jointfapvalues.values()) > idqthresh:
                 if idqlogkey=='no':
                     client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey']='yes'
-                logger.info('{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
-                event_dict['idq_joint_fapCheckresult'] = True
+                message = '{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['idq_joint_fapCheckresult'] = True
+                else:
+                    pass
                 return True
             else:
                 if idqlogkey=='no':
                     client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
                     event_dict['idqlogkey'] = 'yes'
-                logger.info('{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh))
-                event_dict['idq_joint_fapCheckresult'] = False
-                # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['idq_joint_fapCheckresult'] = False
+                else:
+                    pass
+                #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 return False
 
 #-----------------------------------------------------------------------
@@ -642,18 +769,26 @@ def operator_signoffCheck(event_dict, client, config, logger):
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
-                logger.info('{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), graceid))
+                message = '{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), graceid)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
         else:
             if 'NO' in operatorsignoffs.values():
                 if operatorlogkey=='no':
                     client.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
-                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['operator_signoffCheckresult'] = False
                 return False
             else:
                 if operatorlogkey=='no':
-                    logger.info('{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid))
+                    message = '{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid)
+                    if loggerCheck(event_dict, message)==False:
+                        logger.info(message)
+                    else:
+                        pass
                     client.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
                     event_dict['operatorlogkey'] = 'yes'
                 event_dict['operator_signoffCheckresult'] = True
@@ -671,18 +806,26 @@ def advocate_signoffCheck(event_dict, client, config, logger):
         advocatesignoffs = event_dict['advocatesignoffs']
         graceid = event_dict['graceid']
         if len(advocatesignoffs)==0:
-            logger.info('{0} -- {1} -- Advocates have not signed off yet.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Advocates have not signed off yet.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
         elif len(advocatesignoffs) > 0:
             if 'NO' in advocatesignoffs:
                 if advocatelogkey=='no':
                     client.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
-                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
                 event_dict['advocate_signoffCheckresult'] = False
                 return False
             else:
                 if advocatelogkey=='no':
-                    logger.info('{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid))
+                    message = '{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid)
+                    if loggerCheck(event_dict, message)==False:
+                        logger.info(message)
+                    else:
+                        pass
                     client.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                     event_dict['advocatelogkey'] = 'yes'
                 event_dict['advocate_signoffCheckresult'] = True
@@ -766,7 +909,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 
     logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
     voevent = None
-    thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents), internal, injection) + voevent_type
+    thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents) + 1, internal, injection) + voevent_type
 
     try:
         r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
