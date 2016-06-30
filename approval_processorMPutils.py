@@ -100,8 +100,6 @@ def loadEventDicts():
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(queue, queuByGraceID, alert, t0, config):
-    loadEventDicts()
-
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
     g = GraceDb('{0}'.format(client))
@@ -494,9 +492,12 @@ def record_idqvalues(event_dict, comment, logger):
     event_dict['idqvalues'][detectorstring] = minfap    
     logger.info('{0} -- {1} -- Got the minfap for {2} using {3} is {4}.'.format(convertTime(), graceid, idqdetector, idqpipeline, minfap))
 
-def compute_joint_fap_values(event_dict):
+def compute_joint_fap_values(event_dict, config):
     idqvalues = event_dict['idqvalues']
     jointfapvalues = event_dict['jointfapvalues']
+    idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
+    idq_pipelines = idq_pipelines.replace(' ', '')
+    idq_pipelines = idq_pipelines.split(',')
     for idqpipeline in idq_pipelines:
         pipeline_values = []
         for key in idqvalues.keys():
@@ -518,7 +519,7 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
         pipeline = event_dict['pipeline']
         search = event_dict['search']
         idqthresh = get_idqthresh(pipeline, search, config)
-        compute_joint_fap_values(event_dict)
+        compute_joint_fap_values(event_dict, config)
         graceid = event_dict['graceid']
         idqvalues = event_dict['idqvalues']
         idqlogkey = event_dict['idqlogkey']
