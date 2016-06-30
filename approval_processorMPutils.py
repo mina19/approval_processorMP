@@ -25,11 +25,10 @@ import logging
 #-----------------------------------------------------------------------
 class EventDict:
     EventDicts = {}
-    def __init__(self, dictionary, graceid, configdict, logger):
+    def __init__(self, dictionary, graceid, configdict):
         self.dictionary = dictionary
         self.graceid = graceid
         self.configdict = configdict
-        self.logger = logger
     def CreateDict(self):
         class_dict = {}
         class_dict['advocate_signoffCheckresult'] = None
@@ -47,6 +46,7 @@ class EventDict:
         class_dict['idq_joint_fapCheckresult'] = None
         class_dict['idqlogkey'] = 'no'
         class_dict['idqvalues'] = {}
+        class_dict['initialskymaplogkey'] = 'no'
         class_dict['injectionCheckresult'] = None
         class_dict['injectionsfound'] = None
         class_dict['injectionlogkey'] = 'no'
@@ -55,6 +55,7 @@ class EventDict:
         class_dict['labelCheckresult'] = None
         class_dict['labels'] = self.dictionary['labels'].keys()
         class_dict['lastsentskymap'] = None
+        class_dict['loggermessages'] = []
         class_dict['lvemskymaps'] = {}
         class_dict['operator_signoffCheckresult'] = None
         class_dict['operatorlogkey'] = 'no'
@@ -64,10 +65,10 @@ class EventDict:
             class_dict['search'] = self.dictionary['search']
         else:
             class_dict['search'] = ''
+        class_dict['updateskymaplogkey'] = 'no'
         class_dict['voeventerrors'] = []
         class_dict['voevents'] = []
         EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
-        self.logger.info('{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), self.graceid))
 
 #-----------------------------------------------------------------------
 # Saving event dictionaries
@@ -82,7 +83,8 @@ def saveEventDicts():
         f.write('{0}\n'.format(dict))
         keys = sorted(EventDicts[dict].keys())
         for key in keys:
-            f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
+            if key!='loggermessages':
+                f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
         f.write('\n')
     f.close()
 
@@ -155,16 +157,26 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     
     if alert_type=='new':
     # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
-        EventDict(alert['object'], graceid, configdict, logger).CreateDict()
+        EventDict(alert['object'], graceid, configdict).CreateDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+        message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
     else:
         if graceid in EventDict.EventDicts.keys():
             event_dict = EventDict.EventDicts['{0}'.format(graceid)]
         else:
             # query gracedb to get information
             event_dict = g.events(graceid).next()
-            EventDict(event_dict, graceid, configdict, logger).CreateDict()
+            EventDict(event_dict, graceid, configdict).CreateDict()
             event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+            message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
     saveEventDicts()
 
     # tasks when currentstate of event is new_to_preliminary
@@ -197,15 +209,31 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     if alert_type=='label':
         record_label(event_dict, description)
         if description=='PE_READY':
-            logger.info('{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             process_alert(event_dict, 'update', g, config, logger)
-            logger.info('{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate))
+            message = '{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             event_dict['currentstate'] = 'complete'
 
         elif description=='EM_READY':
-            logger.info('{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid))
+            message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             process_alert(event_dict, 'initial', g, config, logger)
-            logger.info('{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate))
+            message = '{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
             event_dict['currentstate'] = 'initial_to_update'
 
         elif (checkLabels(description.split(), config) > 0):
@@ -246,8 +274,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-               # need to add Check to queueByGraceID
-                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
+                return 0
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
@@ -277,16 +304,15 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             for perm in ['view', 'change']:
                 url = url_perm_base + perm
                 #g.put(url)
-        saveEventDicts()
-        return 0
+            saveEventDicts()
+            return 0
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-               # need to add Check to queueByGraceID
-                logger.info('{0} -- {1} -- Added {2} to queueByGraceID.'.format(convertTime(), graceid, Check))
+                return 0
             elif checkresult==False:
                # need to set DQV label
                 logger.info('{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate))
@@ -301,8 +327,8 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             logger.info('{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate))
             logger.info('{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid))
             g.writeLabel(graceid, 'EM_READY')
-        saveEventDicts()
-        return 0
+            saveEventDicts()
+            return 0
 
     elif currentstate=='initial_to_update':
         return 0
@@ -318,6 +344,14 @@ def convertTime():
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     return st
 
+def loggerCheck(event_dict, message):
+    loggermessages = event_dict['loggermessages']
+    if message in loggermessages:
+        return True
+    else:
+        event_dict['loggermessages'].append(message)
+        return False
+    
 #-----------------------------------------------------------------------
 # farCheck
 #-----------------------------------------------------------------------
@@ -423,6 +457,8 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
     # otherwise, add this Check to queueByGraceID
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
+    initialskymaplogkey = event_dict['initialskymaplogkey']
+    updateskymaplogkey = event_dict['updateskymaplogkey']
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
 
     if currentstate=='preliminary_to_initial':
@@ -430,11 +466,12 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
             event_dict['have_lvem_skymapCheckresult'] = True
             skymap = sorted(lvemskymaps)[-1]
             skymap = re.findall(r'-(\S+)', skymap)[0]
-            logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
+            if initialskymaplogkey=='no':
+                logger.info('{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
+                event_dict['initialskymaplogkey'] = 'yes'
             return True
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
-            logger.info('{0} -- {1} -- No initial skymap tagged lvem available.'.format(convertTime(), graceid))
             return None
 
     elif (currentstate=='initial_to_update' or currentstate=='complete'):
@@ -443,15 +480,15 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
                 event_dict['have_lvem_skymapCheckresult'] = True
                 skymap = sorted(lvemskymaps)[-1]
                 skymap = re.findall(r'-(\S+)', skymap)[0]
-                logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
+                if updateskymaplogkey=='no':
+                    logger.info('{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap))
+                    event_dict['updateskymaplogkey'] = 'yes'
                 return True
             else:
                 event_dict['have_lvem_skymapCheckresult'] = None
-                logger.info('{0} -- {1} -- No update skymap tagged lvem available.'.format(convertTime(), graceid))
                 return None
         else:
             event_dict['have_lvem_skymapCheckresult'] = None
-            logger.info('{0} -- {1} -- No update skymap tagged lvem available.'.format(convertTime(), graceid))
             return None
 
 def current_lvem_skymap(event_dict):
@@ -470,7 +507,8 @@ def record_skymap(event_dict, skymap, submitter, logger):
     currentnumber = len(lvemskymaps) + 1
     skymapkey = '{0}'.format(currentnumber) + '-'+ skymap
     event_dict['lvemskymaps'][skymapkey] = submitter
-    logger.info('{0} -- {1} -- Got the lvem skymap {2}.'.format(convertTime(), graceid, skymap))
+    if skymap not in lvemskymaps:
+        logger.info('{0} -- {1} -- Got the lvem skymap {2}.'.format(convertTime(), graceid, skymap))
 
 #-----------------------------------------------------------------------
 # idq_joint_fapCheck
@@ -512,7 +550,7 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
     if idq_joint_fapCheckresult!=None:
         return idq_joint_fapCheckresult
     elif group in ignore_idq:
-        logger.info('{0} -- {1} -- Not using idq checks for events with group(s) {2}.'.format(convertTime(), graceid, ignore_idq))
+        # logger.info('{0} -- {1} -- Not using idq checks for events with group(s) {2}.'.format(convertTime(), graceid, ignore_idq))
         event_dict['idq_joint_fapCheckresult'] = True
         return True
     else:
@@ -529,9 +567,10 @@ def idq_joint_fapCheck(event_dict, client, config, logger):
         idq_pipelines = idq_pipelines.replace(' ', '')
         idq_pipelines = idq_pipelines.split(',')
         if len(idqvalues)==0:
-            logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
+            # logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
+            return None
         elif (0 < len(idqvalues) < (len(idq_pipelines)*len(instruments))):
-            logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
+            # logger.info('{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid))
             if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
                 if idqlogkey=='no':
                     client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
