@@ -211,6 +211,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     # actions for each alert_type
     if alert_type=='label':
         record_label(event_dict, description)
+        saveEventDicts()
         if description=='PE_READY':
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
@@ -465,7 +466,7 @@ def labelCheck(event_dict, client, config, logger):
         message = '{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid)
         if loggerCheck(event_dict, message)==False:
             logger.info(message)
-            event_dict['labelCheckresult'] = false
+            event_dict['labelCheckresult'] = False
         else:
             pass
         return False
