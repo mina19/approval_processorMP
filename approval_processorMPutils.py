@@ -150,7 +150,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         logging_filehandler.setLevel(logging.INFO)
         logger.setLevel(logging.INFO)
         logger.addHandler(logging_filehandler)
-        logger.info('{0} ************ approval_processorMP.log RESTARTED ************'.format(convertTime()))
+        logger.info('{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
@@ -223,6 +223,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'complete'
+                saveEventDicts()
             else:
                 pass
 
@@ -237,10 +238,13 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'initial_to_update'
+                saveEventDicts()
             else:
                 pass
 
         elif (checkLabels(description.split(), config) > 0):
+            event_dict['currentstate'] = 'rejected'
+            saveEventDicts()
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
                 if 'retraction' in voevents[-1]:
