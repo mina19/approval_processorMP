@@ -150,7 +150,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         logging_filehandler.setLevel(logging.INFO)
         logger.setLevel(logging.INFO)
         logger.addHandler(logging_filehandler)
-        logger.info(alert)
+        logger.info('{0} ************ approval_processorMP.log RESTARTED ************'.format(convertTime()))
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
