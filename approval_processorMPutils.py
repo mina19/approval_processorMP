@@ -150,7 +150,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         logging_filehandler.setLevel(logging.INFO)
         logger.setLevel(logging.INFO)
         logger.addHandler(logging_filehandler)
-        logger.info('{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
+        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
@@ -209,6 +209,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         ]
 
     # actions for each alert_type
+    currentstate = event_dict['currentstate']
     if alert_type=='label':
         record_label(event_dict, description)
         saveEventDicts()
@@ -223,7 +224,6 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'complete'
-                saveEventDicts()
             else:
                 pass
 
@@ -238,19 +238,18 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'initial_to_update'
-                saveEventDicts()
             else:
                 pass
 
         elif (checkLabels(description.split(), config) > 0):
             event_dict['currentstate'] = 'rejected'
-            saveEventDicts()
             voevents = sorted(event_dict['voevents'])
             if len(voevents) > 0:
                 if 'retraction' in voevents[-1]:
                     return 0
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction', g, config, logger)
+        saveEventDicts()
         return 0
 
     if alert_type=='update':
@@ -275,7 +274,6 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     # run checks specific to currentstate of the event candidate
     passedcheckcount = 0
-    currentstate = event_dict['currentstate']
 
     if currentstate=='new_to_preliminary':
         for Check in new_to_preliminary:
@@ -606,7 +604,7 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
 
     elif (currentstate=='initial_to_update' or currentstate=='complete'):
         if len(lvemskymaps)>=2:
-            if lvemskymap[-1]!=event_dict['lastsentskymap']:
+            if lvemskymaps[-1]!=event_dict['lastsentskymap']:
                 event_dict['have_lvem_skymapCheckresult'] = True
                 skymap = sorted(lvemskymaps)[-1]
                 skymap = re.findall(r'-(\S+)', skymap)[0]
