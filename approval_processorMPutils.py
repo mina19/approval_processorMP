@@ -1001,3 +1001,45 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
 
+#-----------------------------------------------------------------------
+# in the case we need to re-send alerts from outside the running
+# approval_processorMP instance
+#-----------------------------------------------------------------------
+def resend_alert():
+    # set up client
+    config = ConfigParser.SafeConfigParser()
+    config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include dash at end*\n')))
+    client = config.get('general', 'client')
+    print 'got client: {0}'.format(client)
+    g = GraceDb('{0}'.format(client))
+
+    # set up logger
+    logger = logging.getLogger('approval_processorMP')
+    logfile = config.get('general', 'approval_processorMP_logfile')
+    homedir = os.path.expanduser('~')
+    logging_filehandler = logging.FileHandler('{0}/public_html{1}'.format(homedir, logfile))
+    logging_filehandler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging_filehandler)
+
+    # prompt for graceid
+    graceid = str(raw_input('graceid:\n'))
+
+    # prompt for voevent_type
+    voevent_type = str(raw_input('voevent_type: (options are preliminary, initial, update, retraction)\n'))
+
+    # load event dictionaries, get dictionary, send alert
+    loadEventDicts()
+    event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+    process_alert(event_dict, voevent_type, g, config, logger)
+
+    # save event dictionaries
+    saveEventDicts()
+    print 'saved event dicts'
+
+    # prompt for exit
+    exit_option = raw_input('exit: (options are yes or no)\n')
+    if exit_option=='yes':
+        exit()
+    elif exit_option=='no':
+        pass
