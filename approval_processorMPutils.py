@@ -264,9 +264,14 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         else:
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
-                if not re.match('minimum glitch-FAP', comment):
+                if re.match('minimum glitch-FAP', comment):
+                    record_idqvalues(event_dict, comment, logger)
+                elif re.match('resent VOEvent', comment):
+                    response = re.findall(r'resent VOEvent (.*) in (.*)', comment)
+                    event_dict[response[0][1]].append(response[0][0])
+                    saveEventDicts()
+                else:
                     return 0
-                record_idqvalues(event_dict, comment, logger)
 
     if alert_type=='signoff':
         signoff_object = alert['object']
@@ -429,7 +434,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             saveEventDicts()
             return 0
     
-    else: 
+    else:
         return 0
 
 #-----------------------------------------------------------------------
@@ -985,9 +990,14 @@ def process_alert(event_dict, voevent_type, client, config, logger):
                 event_dict['lastsentskymap'] = skymap_filename
             else:
                 pass
+            logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
+            os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
+            return 'voevents, {0}'.format(thisvoevent)
         else:
             message = 'Error sending {0} VOEvent! {1}.'.format(voevent_type, error)
             client.writeLog(graceid, 'AP: Could not send VOEvent type {0}.'.format(voevent_type), tagname = 'em_follow')
+            logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
+            os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
             listofvoeventerrors = ''
             for i in range(0, len(voeventerrors)):
                 listofvoeventerrors += '{0} '.format(voeventerrors[i])
@@ -998,8 +1008,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
                 thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voeventerrors) + 1, internal, injection) + voevent_type
                 voeventerrors.append(thisvoevent)
-        logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
-        os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
+                return 'voeventerrors, {0}'.format(thisvoevent)
 
 #-----------------------------------------------------------------------
 # in the case we need to re-send alerts from outside the running
@@ -1031,12 +1040,15 @@ def resend_alert():
     # load event dictionaries, get dictionary, send alert
     loadEventDicts()
     event_dict = EventDict.EventDicts['{0}'.format(graceid)]
-    process_alert(event_dict, voevent_type, g, config, logger)
+    response = process_alert(event_dict, voevent_type, g, config, logger)
+    # to edit event_dict in parseAlert later
+    response = re.findall(r'(.*), (.*)', response)
 
     # save event dictionaries
     saveEventDicts()
+    sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
     print 'saved event dicts'
-
+    print 'voeventerrors: {0}'.format(event_dict['voeventerrors'])
     # prompt for exit
     exit_option = raw_input('exit: (options are yes or no)\n')
     if exit_option=='yes':
