@@ -388,7 +388,48 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             return 0
 
     elif currentstate=='initial_to_update':
-        return 0
+        for Check in initial_to_update:
+            eval('{0}(event_dict, g, config, logger)'.format(Check))
+            checkresult = event_dict[Check + 'result']
+            if checkresult==None:
+                return 0
+            elif checkresult==False:
+               # need to set DQV label
+                message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                else:
+                    pass
+                message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    event_dict['currentstate'] = 'rejected'
+                else:
+                    pass
+                message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
+                if loggerCheck(event_dict, message)==False:
+                    logger.info(message)
+                    g.writeLabel(graceid, 'DQV')
+                else:
+                    pass
+                saveEventDicts()
+                return 0
+            elif checkresult==True:
+                passedcheckcount += 1
+        if passedcheckcount==len(initial_to_update):
+            message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+            else:
+                pass
+            message = '{0} -- {1} -- Labeling PE_READY.'.format(convertTime(), graceid)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                g.writeLabel(graceid, 'PE_READY')
+            else:
+                pass
+            saveEventDicts()
+            return 0
     
     else: 
         return 0
@@ -480,7 +521,13 @@ def labelCheck(event_dict, client, config, logger):
 
 def record_label(event_dict, label):
     labels = event_dict['labels']
+    graceid = event_dict['graceid']
     labels.append(label)
+    message = '{0} -- {1} -- Got {2} label.'.format(convertTime(), graceid, label)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
 
 #-----------------------------------------------------------------------
 # injectionCheck
