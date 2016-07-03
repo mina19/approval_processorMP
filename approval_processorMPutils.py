@@ -585,7 +585,7 @@ def have_lvem_skymapCheck(event_dict, client, config, logger):
     # otherwise, add this Check to queueByGraceID
     graceid = event_dict['graceid']
     currentstate = event_dict['currentstate']
-    lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
+    lvemskymaps = event_dict['lvemskymaps'].keys()
 
     if currentstate=='preliminary_to_initial':
         if len(lvemskymaps)>=1:
@@ -996,6 +996,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             else:
                 voeventerror_email = config.get('general', 'voeventerror_email')
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
+                thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voeventerrors) + 1, internal, injection) + voevent_type
                 voeventerrors.append(thisvoevent)
         logger.info('{0} -- {1} -- {2}'.format(convertTime(), graceid, message))
         os.remove('/tmp/voevent_{0}_{1}.tmp'.format(graceid, number))
