@@ -1,0 +1,2 @@
+/home/gracedb.processor/users/mcho/comet/cometenv/bin/python /home/gracedb.processor/users/mcho/comet/cometenv/bin/twistd --logfile=/home/gracedb.processor/users/mcho/comet/logs/twistd.log --pidfile=/home/gracedb.processor/users/mcho/logs/twistd.pid comet --receive --receive-port=5340 --whitelist=127.0.0.1/32 --broadcast --broadcast-port=5341 --local-ivo=ivo://gwnet/gcn_sender
+
