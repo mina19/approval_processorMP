@@ -21,7 +21,7 @@ import ConfigParser
 import logging
 
 # Activate a virtualenv in order to be able to use Comet.
-VIRTUALENV_ACTIVATOR = "/home/gracedb.processor/users/mcho/comet/cometenv/bin/activate_this.py"
+VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py"
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #-----------------------------------------------------------------------
