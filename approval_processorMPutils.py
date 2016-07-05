@@ -21,7 +21,7 @@ import ConfigParser
 import logging
 
 # Activate a virtualenv in order to be able to use Comet.
-VIRTUALENV_ACTIVATOR = "/home/gracedb.processor/users/bstephens/cometenv/bin/activate_this.py"
+VIRTUALENV_ACTIVATOR = "/home/gracedb.processor/users/mcho/comet/cometenv/bin/activate_this.py"
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #-----------------------------------------------------------------------
@@ -335,18 +335,18 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 else:
                     pass
             # notify the advocates
-            #message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
-            #if loggerCheck(event_dict, message)==False:
-                #logger.info(message)
-                #g.writeLabel(graceid, 'ADVREQ')
-                #os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
+            message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
+            if loggerCheck(event_dict, message)==False:
+                logger.info(message)
+                g.writeLabel(graceid, 'ADVREQ')
+                os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
                 # expose event to LV-EM
                 url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
                 for perm in ['view', 'change']:
                     url = url_perm_base + perm
                     #g.put(url)
-            #else:
-                #pass
+            else:
+                pass
             saveEventDicts()
             return 0
 
