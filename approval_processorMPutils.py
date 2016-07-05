@@ -186,6 +186,15 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                 pass
     saveEventDicts()
 
+    # if the graceid starts with 'M' for MDCs or 'S' for Simulation, ignore
+    if re.match('M', graceid) or re.match('S', graceid):
+        message = '{0} -- {1} -- Mock data challenge or simulation. Ignoring.'.format(convertTime(), graceid)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
+        return 0
+
     # tasks when currentstate of event is new_to_preliminary
     new_to_preliminary = [
         'farCheck',
