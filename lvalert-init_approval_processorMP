@@ -1,4 +1,3 @@
 #!/bin/bash
-echo -n 'Enter password > '
-read password
-lvalert_listenMP -a gdb_processor -b $password -s lvalert.cgca.uwm.edu -c /home/gracedb.processor/lvalert-dev/approval_processorMP/lvalert_listenMP.ini
+
+lvalert_listenMP -a gdb_processor -b $1 -s lvalert.cgca.uwm.edu -c /home/gracedb.processor/lvalert-dev/approval_processorMP/lvalert_listenMP.ini
