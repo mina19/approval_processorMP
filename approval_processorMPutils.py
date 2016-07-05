@@ -78,8 +78,8 @@ class EventDict:
 def saveEventDicts():
     EventDicts = EventDict.EventDicts
     homedir = os.path.expanduser('~')
-    pickle.dump(EventDicts, open('{0}/public_html/monitor/approval_processorMP/EventDicts.p'.format(homedir), 'wb'))
-    f = open('{0}/public_html/monitor/approval_processorMP/EventDicts.txt'.format(homedir), 'w')
+    pickle.dump(EventDicts, open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir), 'wb'))
+    f = open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.txt'.format(homedir), 'w')
     Dicts = sorted(EventDicts.keys())
     for dict in Dicts:
         f.write('{0}\n'.format(dict))
@@ -96,7 +96,7 @@ def saveEventDicts():
 def loadEventDicts():
     homedir = os.path.expanduser('~')
     try:
-        EventDict.EventDicts = pickle.load(open('{0}/public_html/monitor/approval_processorMP/EventDicts.p'.format(homedir), 'rb'))
+        EventDict.EventDicts = pickle.load(open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir), 'rb'))
     except:
         pass
 
@@ -150,7 +150,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         logger = logging.getLogger('approval_processorMP')
         logfile = config.get('general', 'approval_processorMP_logfile')
         homedir = os.path.expanduser('~')
-        logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP{1}'.format(homedir, logfile))
+        logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
         logging_filehandler.setLevel(logging.INFO)
         logger.setLevel(logging.INFO)
         logger.addHandler(logging_filehandler)
@@ -1030,7 +1030,7 @@ def resend_alert():
     logger = logging.getLogger('approval_processorMP')
     logfile = config.get('general', 'approval_processorMP_logfile')
     homedir = os.path.expanduser('~')
-    logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP{1}'.format(homedir, logfile))
+    logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
     logging_filehandler.setLevel(logging.INFO)
     logger.setLevel(logging.INFO)
     logger.addHandler(logging_filehandler)
