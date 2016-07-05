@@ -1010,9 +1010,9 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             else:
                 voeventerror_email = config.get('general', 'voeventerror_email')
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
-                thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voeventerrors) + 1, internal, injection) + voevent_type
-                voeventerrors.append(thisvoevent)
-                return 'voeventerrors, {0}'.format(thisvoevent)
+            thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voeventerrors) + 1, internal, injection) + voevent_type
+            voeventerrors.append(thisvoevent)
+            return 'voeventerrors, {0}'.format(thisvoevent)
 
 #-----------------------------------------------------------------------
 # in the case we need to re-send alerts from outside the running
