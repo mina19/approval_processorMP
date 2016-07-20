@@ -176,7 +176,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     configdict['force_all_internal'] = force_all_internal
     preliminary_internal = config.get('general', 'preliminary_internal')
     configdict['preliminary_internal'] = preliminary_internal
-    forgetMeNow_timeout = config.getfloat('general', 'forgetMeNow_timeout')
+    forgetmenow_timeout = config.getfloat('general', 'forgetmenow_timeout')
 
     hardware_inj = config.get('labelCheck', 'hardware_inj')
     configdict['hardware_inj'] = hardware_inj
@@ -220,6 +220,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
+    print graceid
     alert_type = alert['alert_type']
     description = alert['description']
     filename = alert['file']
@@ -227,7 +228,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     # first create event_dict and set up ForgetMeNow queue item
     if alert_type=='new':
         EventDict(alert['object'], graceid, configdict).createDict()
-        item = ForgetMeNow(t0, forgetMeNow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
+        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
         queue.insert(item) # adding queue item to the overall queue
         newSortedQueue = utils.SortedQueue() # creating sorted queue for new graceid
         newSortedQueue.insert(item) # putting the ForgetMeNow queue item into the sorted queue
@@ -252,7 +253,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
             event_dict = g.events(graceid).next()
             EventDict(event_dict, graceid, configdict).createDict()
             # XXX: parse gracedb log to update iDQ information as well 
-            item = ForgetMeNow(t0, forgetMeNow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
+            item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
             queue.insert(item) # adding queue item to the overall queue
             newSortedQueue = utils.SortedQueue() # creating sorted queue for new graceid
             newSortedQueue.insert(item) # putting the ForgetMeNow queue item into the sorted queue
