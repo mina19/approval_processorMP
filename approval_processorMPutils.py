@@ -40,10 +40,13 @@ class ForgetMeNow(utils.QueueItem):
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks)
     def setExpiration(self, t0):
+        print 'self.expiration = {0}'.format(self.expiration)
         for task in self.tasks:
             task.setExpiration(t0)
         self.sortTasks() # sorting tasks in the QueueItem
-        self.event_dicts[self.graceid]['expirationtime'] = self.expiration
+       # self.event_dicts[self.graceid]['expirationtime'] = self.expiration
+        print 'after sorting self.expiration = {0}'.format(self.expiration)
+        EventDict.EventDicts[self.graceid]['expirationtime'] = self.expiration
 
 class RemoveFromEventDicts(utils.Task):
     """
@@ -54,8 +57,7 @@ class RemoveFromEventDicts(utils.Task):
     def __init__(self, graceid, event_dicts, timeout):
         self.graceid = graceid
         self.event_dicts = event_dicts
-        self.timeout = timeout
-        self.functionHandle = self.removeEventDict
+        super(RemoveFromEventDicts, self).__init__(timeout, self.removeEventDict)
     def removeEventDict(self, verbose=False):
         """
         removes graceID event dictionary from self.event_dicts
@@ -71,8 +73,7 @@ class CleanUpQueue(utils.Task):
     def __init__(self, graceid, queueByGraceID, timeout):
         self.graceid = graceid
         self.queueByGraceID = queueByGraceID
-        self.timeout = timeout
-        self.functionHandle = self.cleanUpQueue
+        super(CleanUpQueue, self).__init__(timeout, self.cleanUpQueue)
     def cleanUpQueue(self, verbose=False):
         """
          cleans up queueByGraceID; removes any Queue Item with self.graceid
@@ -82,7 +83,7 @@ class CleanUpQueue(utils.Task):
         while len(sortedQueue):
             nextQueueItem = sortedQueue.pop(0)
             nextQueueItem.complete = True
-        sortedQueue.insert(item) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
+        sortedQueue.insert(queueItem) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
 
 #-----------------------------------------------------------------------
 # Creating event dictionaries
@@ -164,7 +165,7 @@ def loadEventDicts():
 #-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
-def parseAlert(queue, queuByGraceID, alert, t0, config):
+def parseAlert(queue, queueByGraceID, alert, t0, config):
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
     g = GraceDb('{0}'.format(client))
@@ -176,6 +177,9 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     configdict['force_all_internal'] = force_all_internal
     preliminary_internal = config.get('general', 'preliminary_internal')
     configdict['preliminary_internal'] = preliminary_internal
+
+    print config.options('general')
+
     forgetmenow_timeout = config.getfloat('general', 'forgetmenow_timeout')
 
     hardware_inj = config.get('labelCheck', 'hardware_inj')
