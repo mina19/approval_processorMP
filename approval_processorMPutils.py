@@ -4,7 +4,7 @@ author = "Min-A Cho mina19@umd.edu"
 #-----------------------------------------------------------------------
 # Import packages
 #-----------------------------------------------------------------------
-#from ligo.lvalert import lvalertMPutils as utils
+from ligoMP.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb, HTTPError
 import subprocess as sp
 import re
@@ -25,6 +25,66 @@ VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activ
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #-----------------------------------------------------------------------
+# Queue items
+#-----------------------------------------------------------------------
+class ForgetMeNow(utils.QueueItem):
+    """
+    sets the expiration time for GW event candidate using time of last lvalert
+    """
+    name = 'forget me now'
+    description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
+    def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID):
+        self.graceid = graceid
+        tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout),
+                 CleanUpQueue(graceid, queueByGraceID, timeout)
+                ]
+        super(ForgetMeNow, self).__init__(t0, tasks)
+    def setExpiration(self, t0):
+        for task in self.tasks:
+            task.setExpiration(t0)
+        self.sortTasks() # sorting tasks in the QueueItem
+        self.event_dicts[self.graceid]['expirationtime'] = self.expiration
+
+class RemoveFromEventDicts(utils.Task):
+    """
+    first task that gets called by ForgetMeNow; it removes the graceID  event dictionary from EventDict.EventDicts
+    """
+    name = 'remove from event dicts'
+    description = 'removes graceID event dictionary from self.event_dicts'
+    def __init__(self, graceid, event_dicts, timeout):
+        self.graceid = graceid
+        self.event_dicts = event_dicts
+        self.timeout = timeout
+        self.functionHandle = self.removeEventDict
+    def removeEventDict(self, verbose=False):
+        "
+        removes graceID event dictionary from self.event_dicts
+        "
+        self.event_dicts.pop(self.graceid) 
+
+class CleanUpQueue(utils.Task):
+    """
+    second task that gets called by ForgetMeNOw; it cleans up queueByGraceID and removes any Queue Item with self.graceid
+    """
+    name = 'clean up queue'
+    description = 'cleans up queueByGraceID'
+    def __init__(self, graceid, queueByGraceID, timeout):
+        self.graceid = graceid
+        self.queueByGraceID = queueByGraceID
+        self.timeout = timeout
+        self.functionHandle = self.cleanUpQueue
+    def cleanUpQueue(self, verbose=False):
+        "
+         cleans up queueByGraceID; removes any Queue Item with self.graceid
+        "
+        sortedQueue = self.queueByGraceID[self.graceid]
+        queueItem = sortedQueue.pop(0) # this will return the instance of the ForgetMeNow class which is associated with this task
+        while len(sortedQueue):
+            nextQueueItem = sortedQueue.pop(0)
+            nextQueueItem.complete = True
+        sortedQueue.insert(item) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
+
+#-----------------------------------------------------------------------
 # Creating event dictionaries
 #-----------------------------------------------------------------------
 class EventDict:
@@ -33,7 +93,7 @@ class EventDict:
         self.dictionary = dictionary
         self.graceid = graceid
         self.configdict = configdict
-    def CreateDict(self):
+    def createDict(self):
         class_dict = {}
         class_dict['advocate_signoffCheckresult'] = None
         class_dict['advocatelogkey'] = 'no'
@@ -43,6 +103,7 @@ class EventDict:
         class_dict['far'] = self.dictionary['far']
         class_dict['farCheckresult'] = None
         class_dict['farlogkey'] = 'no'
+        class_dict['expirationtime'] = None
         class_dict['gpstime'] = float(self.dictionary['gpstime'])
         class_dict['graceid'] = self.graceid
         class_dict['group'] = self.dictionary['group']
@@ -164,7 +225,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
     
     if alert_type=='new':
     # XXX make sure we do the wait a few seconds thing, compare far values, follow-up on trigger that is most promising
-        EventDict(alert['object'], graceid, configdict).CreateDict()
+        EventDict(alert['object'], graceid, configdict).createDict()
         event_dict = EventDict.EventDicts['{0}'.format(graceid)]
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
         if loggerCheck(event_dict, message)==False:
@@ -177,7 +238,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
         else:
             # query gracedb to get information
             event_dict = g.events(graceid).next()
-            EventDict(event_dict, graceid, configdict).CreateDict()
+            EventDict(event_dict, graceid, configdict).createDict()
             event_dict = EventDict.EventDicts['{0}'.format(graceid)]
             message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
