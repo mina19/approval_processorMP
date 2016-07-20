@@ -284,7 +284,7 @@ def parseAlert(queue, queuByGraceID, alert, t0, config):
                     event_dict[response[0][1]].append(response[0][0])
                     saveEventDicts()
                 else:
-                    return 0
+                    pass
 
     if alert_type=='signoff':
         signoff_object = alert['object']
