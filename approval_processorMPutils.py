@@ -41,13 +41,10 @@ class ForgetMeNow(utils.QueueItem):
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks)
     def setExpiration(self, t0):
-        # print 'self.expiration = {0}'.format(self.expiration)
         for task in self.tasks:
             task.setExpiration(t0)
         self.sortTasks() # sorting tasks in the QueueItem
         self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
-        # print 'after sorting self.expiration = {0}'.format(self.expiration)
-        # EventDict.EventDicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
 
 class RemoveFromEventDicts(utils.Task):
     """
