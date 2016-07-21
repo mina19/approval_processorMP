@@ -44,9 +44,9 @@ class ForgetMeNow(utils.QueueItem):
         for task in self.tasks:
             task.setExpiration(t0)
         self.sortTasks() # sorting tasks in the QueueItem
-       # self.event_dicts[self.graceid]['expirationtime'] = self.expiration
+       # self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
         print 'after sorting self.expiration = {0}'.format(self.expiration)
-        EventDict.EventDicts[self.graceid]['expirationtime'] = self.expiration
+        EventDict.EventDicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
 
 class RemoveFromEventDicts(utils.Task):
     """
@@ -391,7 +391,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-                pas
+                pass
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
@@ -546,8 +546,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 #-----------------------------------------------------------------------
 # Utilities
 #-----------------------------------------------------------------------
-def convertTime():
-    ts = time.time()
+def convertTime(ts=None):
+    if ts is None:
+        ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     return st
 
