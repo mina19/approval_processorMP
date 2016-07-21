@@ -1,0 +1,3 @@
+#!/bin/bash
+
+lvalert_listenMP -a min-a.cho -b $1 -s lvalert.cgca.uwm.edu -c /home/min-a.cho/lvalert-dev/approval_processorMP/lvalert_listenMP.ini
