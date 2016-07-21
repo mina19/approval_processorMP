@@ -391,7 +391,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-                return 0
+                pas
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
@@ -457,7 +457,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-                return 0
+                pass
             elif checkresult==False:
                # need to set DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
@@ -501,7 +501,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             eval('{0}(event_dict, g, config, logger)'.format(Check))
             checkresult = event_dict[Check + 'result']
             if checkresult==None:
-                return 0
+                pass
             elif checkresult==False:
                # need to set DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
