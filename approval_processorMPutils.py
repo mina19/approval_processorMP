@@ -35,18 +35,19 @@ class ForgetMeNow(utils.QueueItem):
     description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
     def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID):
         self.graceid = graceid
+        self.event_dicts = event_dicts
         tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout),
                  CleanUpQueue(graceid, queueByGraceID, timeout)
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks)
     def setExpiration(self, t0):
-        print 'self.expiration = {0}'.format(self.expiration)
+        # print 'self.expiration = {0}'.format(self.expiration)
         for task in self.tasks:
             task.setExpiration(t0)
         self.sortTasks() # sorting tasks in the QueueItem
-       # self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
-        print 'after sorting self.expiration = {0}'.format(self.expiration)
-        EventDict.EventDicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
+        self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
+        # print 'after sorting self.expiration = {0}'.format(self.expiration)
+        # EventDict.EventDicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
 
 class RemoveFromEventDicts(utils.Task):
     """
@@ -449,8 +450,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     #g.put(url)
             else:
                 pass
-            saveEventDicts()
-            return 0
+        saveEventDicts()
+        return 0
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
@@ -493,8 +494,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'EM_READY')
             else:
                 pass
-            saveEventDicts()
-            return 0
+        saveEventDicts()
+        return 0
 
     elif currentstate=='initial_to_update':
         for Check in initial_to_update:
@@ -537,8 +538,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'PE_READY')
             else:
                 pass
-            saveEventDicts()
-            return 0
+        saveEventDicts()
+        return 0
     
     else:
         return 0
