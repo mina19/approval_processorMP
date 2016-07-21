@@ -25,7 +25,7 @@ VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activ
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #-----------------------------------------------------------------------
-# ForgetMeNow queue items
+# ForgetMeNow queue item and tasks
 #-----------------------------------------------------------------------
 class ForgetMeNow(utils.QueueItem):
     """
@@ -168,7 +168,7 @@ def loadEventDicts():
 def parseAlert(queue, queueByGraceID, alert, t0, config):
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
-    g = GraceDb('{0}'.format(client))
+    g = GraceDb(client)
 
     # get other childConfig settings; save in configdict
     configdict = {}
@@ -177,8 +177,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     configdict['force_all_internal'] = force_all_internal
     preliminary_internal = config.get('general', 'preliminary_internal')
     configdict['preliminary_internal'] = preliminary_internal
-
-    print config.options('general')
 
     forgetmenow_timeout = config.getfloat('general', 'forgetmenow_timeout')
 
@@ -224,20 +222,19 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     # get alert specifics and event_dict information
     graceid = alert['uid']
-    print graceid
     alert_type = alert['alert_type']
     description = alert['description']
     filename = alert['file']
 
     # first create event_dict and set up ForgetMeNow queue item
     if alert_type=='new':
-        EventDict(alert['object'], graceid, configdict).createDict()
-        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
-        queue.insert(item) # adding queue item to the overall queue
-        newSortedQueue = utils.SortedQueue() # creating sorted queue for new graceid
-        newSortedQueue.insert(item) # putting the ForgetMeNow queue item into the sorted queue
-        queueByGraceID[item.graceid] = newSortedQueue # adding queue item to the queueByGraceID
-        event_dict = EventDict.EventDicts['{0}'.format(graceid)]
+        EventDict(alert['object'], graceid, configdict).createDict() # create event_dict for event candidate
+        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID) # create ForgetMeNow queue item
+        queue.insert(item) # add queue item to the overall queue
+        newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
+        newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+        queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
+        event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
         if loggerCheck(event_dict, message)==False:
             logger.info(message)
@@ -247,21 +244,33 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         if EventDict.EventDicts.has_key(graceid):
             for item in queueByGraceID[graceid]:
                 if item.name==ForgetMeNow.name: # selects the queue item that is a ForgetMeNow instance
-                    item.setExpiration(t0)
+                    item.setExpiration(t0) # updates the expirationtime key
                     break
             else:
                 os.system('echo \'ForgetMeNow KeyError\' | mail -s \'ForgetMeNow KeyError {0}\' {1}'.format(graceid, advocate_email))       
-            event_dict = EventDict.EventDicts[graceid]
-        else:
+            event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
+        else: # event_dict for event candidate does not exist so we need to create it with up-to-date information
             # query gracedb to get information
             event_dict = g.events(graceid).next()
             EventDict(event_dict, graceid, configdict).createDict()
-            # XXX: parse gracedb log to update iDQ information as well 
+            # update signoff information if available
+            url = g.templates['signoff-list-template'].format(graceid=graceid) # construct url for the operator/advocate signoff list
+            signoff_list = g.get(url).json()['signoff'] # pull down signoff list
+            for signoff_object in signoff_list:
+                record_signoff(EventDict.EventDicts[graceid], signoff_object)
+            # update iDQ information if available
+            log_dicts = g.logs(graceid).json()['log']
+            for message in log_dicts:
+                if re.match('minimum glitch-FAP', message['comment']):
+                    record_idqvalues(EventDict.EventDicts[graceid], message['comment'], logger)
+                else:
+                    pass
+            # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
-            queue.insert(item) # adding queue item to the overall queue
-            newSortedQueue = utils.SortedQueue() # creating sorted queue for new graceid
-            newSortedQueue.insert(item) # putting the ForgetMeNow queue item into the sorted queue
-            queueByGraceID[item.graceid] = newSortedQueue # adding queue item to the queueByGraceID
+            queue.insert(item) # add queue item to the overall queue
+            newSortedQueue = utils.SortedQueue() # create sorted queue for new event candidate
+            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
             event_dict = EventDict.EventDicts[graceid]
             message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
