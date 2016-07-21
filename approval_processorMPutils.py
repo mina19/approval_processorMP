@@ -33,10 +33,11 @@ class ForgetMeNow(utils.QueueItem):
     """
     name = 'forget me now'
     description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
-    def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID):
+    def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID, logger):
         self.graceid = graceid
         self.event_dicts = event_dicts
-        tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout),
+        self.logger = logger
+        tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout, logger),
                  CleanUpQueue(graceid, queueByGraceID, timeout)
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks)
@@ -52,15 +53,17 @@ class RemoveFromEventDicts(utils.Task):
     """
     name = 'remove from event dicts'
     description = 'removes graceID event dictionary from self.event_dicts'
-    def __init__(self, graceid, event_dicts, timeout):
+    def __init__(self, graceid, event_dicts, timeout, logger):
         self.graceid = graceid
         self.event_dicts = event_dicts
+        self.logger = logger
         super(RemoveFromEventDicts, self).__init__(timeout, self.removeEventDict)
     def removeEventDict(self, verbose=False):
         """
         removes graceID event dictionary from self.event_dicts
         """
-        self.event_dicts.pop(self.graceid) 
+        self.logger.info('{0} -- {1} -- Removing event dictionary upon expiration time.'.format(convertTime(), self.graceid))
+        self.event_dicts.pop(self.graceid)
 
 class CleanUpQueue(utils.Task):
     """
@@ -227,7 +230,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     # first create event_dict and set up ForgetMeNow queue item
     if alert_type=='new':
         EventDict(alert['object'], graceid, configdict).createDict() # create event_dict for event candidate
-        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID) # create ForgetMeNow queue item
+        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger) # create ForgetMeNow queue item
         queue.insert(item) # add queue item to the overall queue
         newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
         newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
@@ -264,7 +267,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 else:
                     pass
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
-            item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID)
+            item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger)
             queue.insert(item) # add queue item to the overall queue
             newSortedQueue = utils.SortedQueue() # create sorted queue for new event candidate
             newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
