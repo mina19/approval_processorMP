@@ -1,216 +1,260 @@
 description = "utilities for approval_processorMP.py"
-author = "Min-A Cho mina19@umd.edu"
+author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 
 #-----------------------------------------------------------------------
 # Import packages
 #-----------------------------------------------------------------------
+
+from queueItemsAndTasks import * ### DANGEROUS! but should be ok here...
+
 from ligoMP.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb, HTTPError
-import subprocess as sp
-import re
-import operator
-import functools
+
 import os
 import json
-import random
-import time
-import datetime
 import pickle
 import urllib
-import ConfigParser
 import logging
 
+import ConfigParser
+
+import time
+import datetime
+
+import subprocess as sp
+
+import re
+
+import operator
+
+import functools
+
+import random
+
+#-----------------------------------------------------------------------
 # Activate a virtualenv in order to be able to use Comet.
+#-----------------------------------------------------------------------
+
 VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py"
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #-----------------------------------------------------------------------
-# ForgetMeNow queue item and tasks
-#-----------------------------------------------------------------------
-class ForgetMeNow(utils.QueueItem):
-    """
-    sets the expiration time for GW event candidate using time of last lvalert
-    """
-    name = 'forget me now'
-    description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
-    def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID, logger):
-        self.graceid = graceid
-        self.event_dicts = event_dicts
-        self.logger = logger
-        tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout, logger),
-                 CleanUpQueue(graceid, queueByGraceID, timeout)
-                ]
-        super(ForgetMeNow, self).__init__(t0, tasks)
-    def setExpiration(self, t0):
-        for task in self.tasks:
-            task.setExpiration(t0)
-        self.sortTasks() # sorting tasks in the QueueItem
-        self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration))
-
-class RemoveFromEventDicts(utils.Task):
-    """
-    first task that gets called by ForgetMeNow; it removes the graceID  event dictionary from EventDict.EventDicts
-    """
-    name = 'remove from event dicts'
-    description = 'removes graceID event dictionary from self.event_dicts'
-    def __init__(self, graceid, event_dicts, timeout, logger):
-        self.graceid = graceid
-        self.event_dicts = event_dicts
-        self.logger = logger
-        super(RemoveFromEventDicts, self).__init__(timeout, self.removeEventDict)
-    def removeEventDict(self, verbose=False):
-        """
-        removes graceID event dictionary from self.event_dicts
-        """
-        self.logger.info('{0} -- {1} -- Removing event dictionary upon expiration time.'.format(convertTime(), self.graceid))
-        self.event_dicts.pop(self.graceid)
-
-class CleanUpQueue(utils.Task):
-    """
-    second task that gets called by ForgetMeNOw; it cleans up queueByGraceID and removes any Queue Item with self.graceid
-    """
-    name = 'clean up queue'
-    description = 'cleans up queueByGraceID'
-    def __init__(self, graceid, queueByGraceID, timeout):
-        self.graceid = graceid
-        self.queueByGraceID = queueByGraceID
-        super(CleanUpQueue, self).__init__(timeout, self.cleanUpQueue)
-    def cleanUpQueue(self, verbose=False):
-        """
-         cleans up queueByGraceID; removes any Queue Item with self.graceid
-        """
-        sortedQueue = self.queueByGraceID[self.graceid]
-        queueItem = sortedQueue.pop(0) # this will return the instance of the ForgetMeNow class which is associated with this task
-        while len(sortedQueue):
-            nextQueueItem = sortedQueue.pop(0)
-            nextQueueItem.complete = True
-        sortedQueue.insert(queueItem) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
-
-#-----------------------------------------------------------------------
 # Creating event dictionaries
 #-----------------------------------------------------------------------
+
+### FIXME? Reed finds this data structure and class definition very confusing.
+### the same behavior should be achievable in a much more straightforward way using just a global variable
+### also the instantionation and createDict methods seem like their input arguments should be reversed...
+
 class EventDict:
+    '''
+    MINA SHOULD FILL THIS IN
+    '''
     EventDicts = {}
+
     def __init__(self, dictionary, graceid, configdict):
-        self.dictionary = dictionary
-        self.graceid = graceid
-        self.configdict = configdict
+        self.dictionary = dictionary ### a dictionary either extracted from a lvalert or from a call to ligo.gracedb.rest.GraceDb.event(self.graceid)
+        self.graceid    = graceid
+        self.configdict = configdict ### stores settings used 
+
     def createDict(self):
-        class_dict = {}
-        class_dict['advocate_signoffCheckresult'] = None
-        class_dict['advocatelogkey'] = 'no'
-        class_dict['advocatesignoffs'] = []
-        class_dict['configuration'] = self.configdict
-        class_dict['currentstate'] = 'new_to_preliminary'
-        class_dict['far'] = self.dictionary['far']
-        class_dict['farCheckresult'] = None
-        class_dict['farlogkey'] = 'no'
-        class_dict['expirationtime'] = None
-        class_dict['gpstime'] = float(self.dictionary['gpstime'])
-        class_dict['graceid'] = self.graceid
-        class_dict['group'] = self.dictionary['group']
-        class_dict['have_lvem_skymapCheckresult'] = None
-        class_dict['idq_joint_fapCheckresult'] = None
-        class_dict['idqlogkey'] = 'no'
-        class_dict['idqvalues'] = {}
-        class_dict['injectionCheckresult'] = None
-        class_dict['injectionsfound'] = None
-        class_dict['injectionlogkey'] = 'no'
-        class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
-        class_dict['jointfapvalues'] = {}
-        class_dict['labelCheckresult'] = None
-        class_dict['labels'] = self.dictionary['labels'].keys()
-        class_dict['lastsentskymap'] = None
-        class_dict['loggermessages'] = []
-        class_dict['lvemskymaps'] = {}
-        class_dict['operator_signoffCheckresult'] = None
-        class_dict['operatorlogkey'] = 'no'
-        class_dict['operatorsignoffs'] = {}
-        class_dict['pipeline'] = self.dictionary['pipeline']
-        if 'search' in self.dictionary.keys():
-            class_dict['search'] = self.dictionary['search']
-        else:
-            class_dict['search'] = ''
-        class_dict['voeventerrors'] = []
-        class_dict['voevents'] = []
-        EventDict.EventDicts['{0}'.format(self.graceid)] = class_dict
+        '''
+        MINA SHOULD FILL THIS IN
+        '''
+        ### update the attribute of this class used to store local data about events
+        EventDict.EventDicts[self.graceid] = {
+            'advocate_signoffCheckresult': None,
+            'advocatelogkey'             : 'no',
+            'advocatesignoffs'           : [],
+            'configuration'              : self.configdict,
+            'currentstate'               : 'new_to_preliminary',
+            'far'                        : self.dictionary['far'],
+            'farCheckresult'             : None,
+            'farlogkey'                  : 'no',
+            'expirationtime'             : None,
+            'gpstime'                    : float(self.dictionary['gpstime']),
+            'graceid'                    : self.graceid,
+            'group'                      : self.dictionary['group'],
+            'have_lvem_skymapCheckresult': None,
+            'idq_joint_fapCheckresult'   : None,
+            'idqlogkey'                  : 'no',
+            'idqvalues'                  : {},
+            'injectionCheckresult'       : None,
+            'injectionsfound'            : None,
+            'injectionlogkey'            : 'no',
+            'instruments'                : str(self.dictionary['instruments']).split(','),
+            'jointfapvalues'             : {},
+            'labelCheckresult'           : None,
+            'labels'                     : self.dictionary['labels'].keys(),
+            'lastsentskymap'             : None,
+            'loggermessages'             : [],
+            'lvemskymaps'                : {},
+            'operator_signoffCheckresult': None,
+            'operatorlogkey'             : 'no',
+            'operatorsignoffs'           : {},
+            'pipeline'                   : self.dictionary['pipeline'],
+            'search'                     : self.dictionary['search'] if self.dictionary.has_key('search') else '',
+            'voeventerrors'              : [],
+            'voevents'                   : [],
+        }
+
+#        class_dict = {}
+#        class_dict['advocate_signoffCheckresult'] = None
+#        class_dict['advocatelogkey'] = 'no'
+#        class_dict['advocatesignoffs'] = []
+#        class_dict['configuration'] = self.configdict
+#        class_dict['currentstate'] = 'new_to_preliminary'
+#        class_dict['far'] = self.dictionary['far']
+#        class_dict['farCheckresult'] = None
+#        class_dict['farlogkey'] = 'no'
+#        class_dict['expirationtime'] = None
+#        class_dict['gpstime'] = float(self.dictionary['gpstime'])
+#        class_dict['graceid'] = self.graceid
+#        class_dict['group'] = self.dictionary['group']
+#        class_dict['have_lvem_skymapCheckresult'] = None
+#        class_dict['idq_joint_fapCheckresult'] = None
+#        class_dict['idqlogkey'] = 'no'
+#        class_dict['idqvalues'] = {}
+#        class_dict['injectionCheckresult'] = None
+#        class_dict['injectionsfound'] = None
+#        class_dict['injectionlogkey'] = 'no'
+#        class_dict['instruments'] = str(self.dictionary['instruments']).split(',')
+#        class_dict['jointfapvalues'] = {}
+#        class_dict['labelCheckresult'] = None
+#        class_dict['labels'] = self.dictionary['labels'].keys()
+#        class_dict['lastsentskymap'] = None
+#        class_dict['loggermessages'] = []
+#        class_dict['lvemskymaps'] = {}
+#        class_dict['operator_signoffCheckresult'] = None
+#        class_dict['operatorlogkey'] = 'no'
+#        class_dict['operatorsignoffs'] = {}
+#        class_dict['pipeline'] = self.dictionary['pipeline']
+#
+#        if 'search' in self.dictionary.keys():
+#            class_dict['search'] = self.dictionary['search']
+#        else:
+#            class_dict['search'] = ''
+#
+#        class_dict['voeventerrors'] = []
+#        class_dict['voevents'] = []
+#
+#        EventDict.EventDicts[self.graceid] = class_dict
 
 #-----------------------------------------------------------------------
 # Saving event dictionaries
 #-----------------------------------------------------------------------
 def saveEventDicts():
-    EventDicts = EventDict.EventDicts
+    '''
+    MINA NEEDS TO FILL THIS IN
+    '''
+    eventDicts = EventDict.EventDicts
+
+    ### figure out filenames, etc.
+    ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    pickle.dump(EventDicts, open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir), 'wb'))
-    f = open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.txt'.format(homedir), 'w')
-    Dicts = sorted(EventDicts.keys())
-    for dict in Dicts:
-        f.write('{0}\n'.format(dict))
-        keys = sorted(EventDicts[dict].keys())
-        for key in keys:
+    pklfilename = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir)
+    txtfilename = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.txt'.format(homedir)
+
+    ### write pickle file
+    file_obj = open(pklfilename, 'wb')
+    pickle.dump(EventDicts, file_obj)
+    file_obj
+
+    ### write txt file
+    file_obj = open(txtfilename, 'w')
+    for graceid in sorted(eventDicts.keys()): ### iterate through graceids
+        file_obj.write('{0}\n'.format(graceid))
+        event_dict = eventDicts[graceid]
+
+        for key in sorted(event_dict.keys()): ### iterate through keys for this graceid
             if key!='loggermessages':
-                f.write('    {0}: {1}\n'.format(key, EventDicts[dict][key]))
-        f.write('\n')
-    f.close()
+                file_obj.write('    {0}: {1}\n'.format(key, event_dict[key]))
+        file_obj.write('\n')
+    file_obj.close()
 
 #-----------------------------------------------------------------------
 # Loading event dictionaries
 #-----------------------------------------------------------------------
 def loadEventDicts():
+    '''
+    MINA SHOULD FILL THIS IN
+    '''
+    ### figure out filenames
+    ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    try:
-        EventDict.EventDicts = pickle.load(open('{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir), 'rb'))
-    except:
-        pass
+    pklname = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir)
+
+    if os.path.exists(pklname): ### check to see if the file actually exists
+        file_obj = open(pklname, 'rb')
+        EventDict.EventDicts = pickle.load(file_obj) ### if something fails here, we want to know about it!
+        file_obj.close()
+
+#    try:
+#        file_obj = open(pklname, 'rb')
+#        EventDict.EventDicts = pickle.load(file_obj)
+#    except:
+#        pass
 
 #-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(queue, queueByGraceID, alert, t0, config):
+    '''
+    MINA SHOULD FILL THIS IN
+    '''
+    #--------------------
+    # extract relevant config parameters and set up necessary data structures
+    #--------------------
+
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
     g = GraceDb(client)
 
     # get other childConfig settings; save in configdict
-    configdict = {}
-    voeventerror_email = config.get('general', 'voeventerror_email')
-    force_all_internal = config.get('general', 'force_all_internal')
-    configdict['force_all_internal'] = force_all_internal
+    voeventerror_email   = config.get('general', 'voeventerror_email')
+    force_all_internal   = config.get('general', 'force_all_internal')
     preliminary_internal = config.get('general', 'preliminary_internal')
-    configdict['preliminary_internal'] = preliminary_internal
+    forgetmenow_timeout  = config.getfloat('general', 'forgetmenow_timeout')
+    hardware_inj         = config.get('labelCheck', 'hardware_inj')
+    default_farthresh    = config.getfloat('farCheck', 'default_farthresh')
+    time_duration        = config.getfloat('injectionCheck', 'time_duration')
+    humanscimons         = config.get('operator_signoffCheck', 'humanscimons')
 
-    forgetmenow_timeout = config.getfloat('general', 'forgetmenow_timeout')
-
-    hardware_inj = config.get('labelCheck', 'hardware_inj')
-    configdict['hardware_inj'] = hardware_inj
-
-    default_farthresh = config.getfloat('farCheck', 'default_farthresh')
-    configdict['default_farthresh'] = default_farthresh
-
-    time_duration = config.getfloat('injectionCheck', 'time_duration')
-
-    humanscimons = config.get('operator_signoffCheck', 'humanscimons')
-    configdict['humanscimons'] = humanscimons
-
-    advocates = config.get('advocate_signoffCheck', 'advocates')
-    configdict['advocates'] = advocates
-    advocate_text = config.get('advocate_signoffCheck', 'advocate_text')
+    ### extract options about advocates
+    advocates      = config.get('advocate_signoffCheck', 'advocates')
+    advocate_text  = config.get('advocate_signoffCheck', 'advocate_text')
     advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
-    ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
-    configdict['ignore_idq'] = ignore_idq
+    ### extract options about idq
+    ignore_idq        = config.get('idq_joint_fapCheck', 'ignore_idq')
     default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
-    configdict['default_idqthresh'] = default_idqthresh
-    idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
-    idq_pipelines = idq_pipelines.replace(' ','')
-    idq_pipelines = idq_pipelines.split(',')
+    idq_pipelines     = config.get('idq_joint_fapCheck', 'idq_pipelines')
+    idq_pipelines     = idq_pipelines.replace(' ','')
+    idq_pipelines     = idq_pipelines.split(',')
 
     skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 
+    ### set up configdict (passed to local data structure: EventDict.EventDicts)
+    configdict = {
+        'force_all_internal'  : force_all_internal,
+        'preliminary_internal': preliminary_internal,
+        'hardware_inj'        : hardware_inj,
+        'default_farthresh'   : default_farthresh,
+        'humanscimons'        : humanscimons,
+        'advocates'           : advocates,
+        'ignore_idq'          : ignore_idq,
+        'default_idqthresh'   : default_idqthresh,
+    }
+
     # set up logging
+    ### FIXME: why not open the logger each time parseAlert is called?
+    ###        that would allow you to better control which loggers are necessary and minimize the number of open files.
+    ###        it also minimizes the possibility of something accidentally being written to loggers because they were left open.
+    ###        what's more, this is a natural place to set up multiple loggers, one for all data and one for data pertaining only to this graceid
+
     global logger
-    try:
-        logger
+    try: 
+        logger  ### FIXME: why not open the logger each time parseAlert is called?
     except NameError:
         logger = logging.getLogger('approval_processorMP')
         logfile = config.get('general', 'approval_processorMP_logfile')
@@ -219,46 +263,72 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         logging_filehandler.setLevel(logging.INFO)
         logger.setLevel(logging.INFO)
         logger.addHandler(logging_filehandler)
-        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
+        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime())) ### this information seems to be the only useful bit.
+
+    #--------------------
+    # extract relevant info about this alert
+    #--------------------
 
     # get alert specifics and event_dict information
-    graceid = alert['uid']
-    alert_type = alert['alert_type']
+    graceid     = alert['uid']
+    alert_type  = alert['alert_type']
     description = alert['description']
-    filename = alert['file']
+    filename    = alert['file']
 
-    # first create event_dict and set up ForgetMeNow queue item
-    if alert_type=='new':
-        EventDict(alert['object'], graceid, configdict).createDict() # create event_dict for event candidate
-        item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger) # create ForgetMeNow queue item
+    #--------------------
+    # ensure we have an event_dict and ForgetMeNow tracking this graceid
+    #--------------------
+
+    if alert_type=='new': ### new event -> we must first create event_dict and set up ForgetMeNow queue item
+
+        ### create event_dict
+        EventDict( alert['object'], graceid, configdict ).createDict() # create event_dict for event candidate
+        event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
+
+        ### create ForgetMeNow queue item
+        item = ForgetMeNow( t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger)
         queue.insert(item) # add queue item to the overall queue
+
+        ### set up queueByGraceID
         newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
         newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
         queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
-        event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
+
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
-        if loggerCheck(event_dict, message)==False:
+        if loggerCheck(event_dict, message)==False: ### FIXME? Reed still isn't convinced 'loggerCheck' is a good idea and thinks we should just print everything, always.
             logger.info(message)
         else:
             pass
-    else:
-        if EventDict.EventDicts.has_key(graceid):
+
+    else: ### not a new alert -> we may already be tracking this graceid
+
+        if EventDict.EventDicts.has_key(graceid): ### we're already tracking it
+
+            # get event_dict with expirationtime key updated for the rest of parseAlert
+            event_dict = EventDict.EventDicts[graceid]
+
+            # find ForgetMeNow corresponding to this graceid and update expiration time
             for item in queueByGraceID[graceid]:
                 if item.name==ForgetMeNow.name: # selects the queue item that is a ForgetMeNow instance
                     item.setExpiration(t0) # updates the expirationtime key
                     break
-            else:
+            else: ### we couldn't find a ForgetMeNow for this event! Something is wrong!
                 os.system('echo \'ForgetMeNow KeyError\' | mail -s \'ForgetMeNow KeyError {0}\' {1}'.format(graceid, advocate_email))       
-            event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
-        else: # event_dict for event candidate does not exist so we need to create it with up-to-date information
+                raise KeyError('could not find ForgetMeNow for %s'%graceid) ### Reed thinks this is necessary as a safety net. 
+                                                                            ### we want the process to terminate if things are not set up correctly to force us to fix it
+
+        else: # event_dict for event candidate does not exist. We need to create it with up-to-date information
+
             # query gracedb to get information
-            event_dict = g.events(graceid).next()
-            EventDict(event_dict, graceid, configdict).createDict()
+            EventDict( g.events(graceid).next(), graceid, configdict ).createDict()
+            event_dict = EventDict.EventDicts[graceid]
+
             # update signoff information if available
             url = g.templates['signoff-list-template'].format(graceid=graceid) # construct url for the operator/advocate signoff list
             signoff_list = g.get(url).json()['signoff'] # pull down signoff list
             for signoff_object in signoff_list:
                 record_signoff(EventDict.EventDicts[graceid], signoff_object)
+
             # update iDQ information if available
             log_dicts = g.logs(graceid).json()['log']
             for message in log_dicts:
@@ -266,28 +336,42 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     record_idqvalues(EventDict.EventDicts[graceid], message['comment'], logger)
                 else:
                     pass
+
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger)
             queue.insert(item) # add queue item to the overall queue
+
+            ### set up queueByGraceID
             newSortedQueue = utils.SortedQueue() # create sorted queue for new event candidate
             newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
             queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
-            event_dict = EventDict.EventDicts[graceid]
+
             message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
             else:
                 pass
-    saveEventDicts()
+
+    saveEventDicts() ### save dicts to make sure copy on disk stays up to date
+                     ### FIXME? Reed's not sure if we need to do this here. We probably don't want to write out the dicts more than once each time parseAlert is called...
+
+    #--------------------
+    # ignore alerts that are not relevant, like simulation or MDC events
+    #--------------------
 
     # if the graceid starts with 'M' for MDCs or 'S' for Simulation, ignore
-    if re.match('M', graceid) or re.match('S', graceid):
+    if re.match('M', graceid) or re.match('S', graceid): ### FIXME: we want to make this a config-file option!
         message = '{0} -- {1} -- Mock data challenge or simulation. Ignoring.'.format(convertTime(), graceid)
         if loggerCheck(event_dict, message)==False:
             logger.info(message)
         else:
             pass
         return 0
+
+    #--------------------
+    # Definitions of which checks must be satisfied in each state before moving on
+    # FIXME: can we define these (once) outside of parseAlert instead of re-defining them each time it is called?
+    #--------------------
 
     # tasks when currentstate of event is new_to_preliminary
     new_to_preliminary = [
@@ -303,6 +387,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         'have_lvem_skymapCheck',
         'idq_joint_fapCheck'
         ]
+
     if humanscimons=='yes':
         preliminary_to_initial.append('operator_signoffCheck')
     if advocates=='yes':
@@ -315,8 +400,17 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         'have_lvem_skymapCheck'
         ]
 
+    #--------------------
+    # update information based on the alert_type
+    # includes extracting information from the alert
+    # may also include generating VOEvents and issuing them
+    #--------------------
+
+    ### FIXME: Reed left off commenting here...
+
     # actions for each alert_type
     currentstate = event_dict['currentstate']
+
     if alert_type=='label':
         record_label(event_dict, description)
         saveEventDicts()
@@ -333,7 +427,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 event_dict['currentstate'] = 'complete'
             else:
                 pass
-
         elif description=='EM_READY':
             message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
