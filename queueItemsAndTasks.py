@@ -19,12 +19,12 @@ class ForgetMeNow(utils.QueueItem):
     name = 'forget me now'
     description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
 
-    def __init__(self, t0, timeout, graceid, event_dicts, queueByGraceID, logger):
+    def __init__(self, t0, timeout, graceid, event_dicts, queue, queueByGraceID, logger):
         self.graceid = graceid ### required to look up and modify objects refering to this graceid. Also means interactiveQueue will manage queueByGraceID for us.
         self.event_dicts = event_dicts ### pointer to the big "dictionary of dictionaries" which keeps local records of events' states
         self.logger = logger ### used to redirect print statements
         tasks = [RemoveFromEventDicts(graceid, event_dicts, timeout, logger),  ### first task removes the event from the dict of dicts
-                 CleanUpQueue(graceid, queueByGraceID, timeout)                ### second task removes everything from the queues
+                 CleanUpQueue(graceid, queue, queueByGraceID, timeout)                ### second task removes everything from the queues
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks) ### delegate instantiation to the parent class
 
@@ -66,8 +66,9 @@ class CleanUpQueue(utils.Task):
     name = 'clean up queue'
     description = 'cleans up queueByGraceID'
 
-    def __init__(self, graceid, queueByGraceID, timeout):
+    def __init__(self, graceid, queue, queueByGraceID, timeout):
         self.graceid = graceid ### required for lookup
+        self.queue = queue ### pointer for queue that is managed within interactiveQueue and passed to parseAlert
         self.queueByGraceID = queueByGraceID ### pointer to the queueByGraceID that is managed within interactiveQueue and passed to parseAlert
         super(CleanUpQueue, self).__init__(timeout, self.cleanUpQueue) ### delegate to parent class
 
@@ -80,6 +81,7 @@ class CleanUpQueue(utils.Task):
         while len(sortedQueue): ### remove the rest of the queueItems for this graceid and marke them complete
             nextQueueItem = sortedQueue.pop(0) ### remove the item
             nextQueueItem.complete = True ### mark as complete
+            self.queue.complete += 1 ### increment self.queue's complete attribute to reflect that we marked this item as complete
         sortedQueue.insert(queueItem) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
 
 #-------------------------------------------------

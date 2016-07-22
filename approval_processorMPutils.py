@@ -286,7 +286,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         event_dict = EventDict.EventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
 
         ### create ForgetMeNow queue item
-        item = ForgetMeNow( t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger)
+        item = ForgetMeNow( t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queue, queueByGraceID, logger)
         queue.insert(item) # add queue item to the overall queue
 
         ### set up queueByGraceID
@@ -338,7 +338,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     pass
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
-            item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queueByGraceID, logger)
+            item = ForgetMeNow(t0, forgetmenow_timeout, graceid, EventDict.EventDicts, queue, queueByGraceID, logger)
             queue.insert(item) # add queue item to the overall queue
 
             ### set up queueByGraceID
