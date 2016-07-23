@@ -157,7 +157,7 @@ def saveEventDicts():
 
     ### write pickle file
     file_obj = open(pklfilename, 'wb')
-    pickle.dump(EventDicts, file_obj)
+    pickle.dump(eventDicts, file_obj)
     file_obj
 
     ### write txt file
