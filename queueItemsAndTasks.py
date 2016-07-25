@@ -16,7 +16,7 @@ class ForgetMeNow(utils.QueueItem):
     sets the expiration time for GW event candidate using time of last lvalert
     """
     name = 'forget me now'
-    description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from EventDict.EventDicts and any assoicated queue items'
+    description = 'upon execution delegates to RemoveFromEventDicts and CleanUpQueue in order to remove graceID from eventDicts and any assoicated queue items'
 
     def __init__(self, t0, timeout, graceid, event_dicts, queue, queueByGraceID, logger):
         self.graceid = graceid ### required to look up and modify objects refering to this graceid. Also means interactiveQueue will manage queueByGraceID for us.
@@ -41,7 +41,7 @@ class ForgetMeNow(utils.QueueItem):
 
 class RemoveFromEventDicts(utils.Task):
     """
-    first task that gets called by ForgetMeNow; it removes the graceID  event dictionary from EventDict.EventDicts
+    first task that gets called by ForgetMeNow; it removes the graceID  event dictionary from eventDicts
     """
     name = 'remove from event dicts'
     description = 'removes graceID event dictionary from self.event_dicts'
