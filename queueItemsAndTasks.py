@@ -4,7 +4,6 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 #-------------------------------------------------
 
 from ligoMP.lvalert import lvalertMPutils as utils
-
 import numpy as np
 
 #-------------------------------------------------
@@ -28,15 +27,16 @@ class ForgetMeNow(utils.QueueItem):
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks) ### delegate instantiation to the parent class
 
-    def setExpiration(self, t0):
+    def setExpiration(self, t0, convertTime):
         '''
         updates the expiration of all tasks as well as of the QueueItem itself.
         we overwrite the parent's function because we also touch the event_dict
         '''
-        super(ForgetMeNow, self).setExpiration() ### delegate to parent to touch tasks and self.expiration
-#        for task in self.tasks:
-#            task.setExpiration(t0) ### update expiration of each task
-#        self.sortTasks() ### sorting tasks in the QueueItem. This automatically updates self.expiration
+#        super(ForgetMeNow, self).setExpiration() ### delegate to parent to touch tasks and self.expiration -XXX throws an error: super has no attribute setExpiration()
+        self.convertTime = convertTime
+        for task in self.tasks:
+            task.setExpiration(t0) ### update expiration of each task
+        self.sortTasks() ### sorting tasks in the QueueItem. This automatically updates self.expiration
         self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration)) ### records the expiration in local memory
 
 class RemoveFromEventDicts(utils.Task):

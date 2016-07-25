@@ -310,7 +310,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             # find ForgetMeNow corresponding to this graceid and update expiration time
             for item in queueByGraceID[graceid]:
                 if item.name==ForgetMeNow.name: # selects the queue item that is a ForgetMeNow instance
-                    item.setExpiration(t0) # updates the expirationtime key
+                    item.setExpiration(t0, convertTime) # updates the expirationtime key
                     break
             else: ### we couldn't find a ForgetMeNow for this event! Something is wrong!
                 os.system('echo \'ForgetMeNow KeyError\' | mail -s \'ForgetMeNow KeyError {0}\' {1}'.format(graceid, advocate_email))       
