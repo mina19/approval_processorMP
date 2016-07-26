@@ -102,6 +102,7 @@ class EventDict:
         '''
         client = self.configdict['client']
         g = GraceDb(client) # need the client to query GraceDB for updated information
+        event_dict = EventDict(g.events(self.graceid).next(), self.graceid, self.configdict).createDict() # creates a dictionary using the creatDict method
         event_dict = eventDicts[self.graceid]
 
         # update signoff information if available
@@ -329,24 +330,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         else: # event_dict for event candidate does not exist. we need to create it with up-to-date information
 
             # query gracedb to get information
-            EventDict( g.events(graceid).next(), graceid, configdict ).createDict()
             EventDict( g.events(graceid).next(), graceid, configdict).updateDict()
             event_dict = eventDicts[graceid]
-            print event_dict
-
-#            # update signoff information if available
-#            url = g.templates['signoff-list-template'].format(graceid=graceid) # construct url for the operator/advocate signoff list
-#            signoff_list = g.get(url).json()['signoff'] # pull down signoff list
-#            for signoff_object in signoff_list:
-#                record_signoff(eventDicts[graceid], signoff_object)
-
-#            # update iDQ information if available
-#            log_dicts = g.logs(graceid).json()['log']
-#            for message in log_dicts:
-#                if re.match('minimum glitch-FAP', message['comment']):
-#                    record_idqvalues(eventDicts[graceid], message['comment'], logger)
-#                else:
-#                    pass
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
