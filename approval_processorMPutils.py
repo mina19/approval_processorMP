@@ -151,6 +151,7 @@ def loadLogger(config):
     '''
     sets up logger
     '''
+    global logger
     logger = logging.getLogger('approval_processorMP')
     logfile = config.get('general', 'approval_processorMP_logfile')
     homedir = os.path.expanduser('~')
@@ -223,18 +224,11 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     ###        it also minimizes the possibility of something accidentally being written to loggers because they were left open.
     ###        what's more, this is a natural place to set up multiple loggers, one for all data and one for data pertaining only to this graceid
 
-    global logger
-#    if vars().has_key('logger'): # check to see if we have logger
-#        logger = vars('logger')
-#    else: # if not, set one up
-#        logger = loadLogger(config)
-#        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
-
-    try:
-        logger  ### FIXME: why not open the logger each time parseAlert is called?
-    except NameError:
+    if globals().has_key('logger'): # check to see if we have logger
+        logger = globals()['logger']
+    else: # if not, set one up
         logger = loadLogger(config)
-        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime())) ### this information seems to be the only useful bit.
+        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
 
     #-------------------------------------------------------------------
     # extract relevant info about this alert
