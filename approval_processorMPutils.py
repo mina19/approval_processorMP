@@ -95,6 +95,29 @@ class EventDict:
             'voevents'                   : [],
         }
 
+    def updateDict(self):
+        '''
+        creates an event_dict with signoff and iDQ information for self.graceid
+        this event_dict starts off with currentstate new_to_preliminary
+        '''
+        client = self.configdict['client']
+        g = GraceDb(client) # need the client to query GraceDB for updated information
+        event_dict = eventDicts[self.graceid]
+
+        # update signoff information if available
+        url = g.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
+        signoff_list = g.get(url).json()['signoff'] # pull down signoff list
+        for signoff_object in signoff_list:
+            record_signoff(event_dict, signoff_object)
+
+        # update iDQ information if available
+        log_dicts = g.logs(self.graceid).json()['log']
+        for message in log_dicts:
+            if re.match('minimum glitch-FAP', message['comment']):
+                record_idqvalues(event_dict, message['comment'], logger)
+            else:
+                pass
+
 #-----------------------------------------------------------------------
 # Saving event dictionaries
 #-----------------------------------------------------------------------
@@ -149,7 +172,8 @@ def loadEventDicts():
 #-----------------------------------------------------------------------
 def loadLogger(config):
     '''
-    sets up logger
+    sets up logger.
+    assumes the config has already been set up! if it hasn't been, please run loadConfig before running loadLogger
     '''
     global logger
     logger = logging.getLogger('approval_processorMP')
@@ -160,6 +184,25 @@ def loadLogger(config):
     logger.setLevel(logging.INFO)
     logger.addHandler(logging_filehandler)
     return logger
+
+#-----------------------------------------------------------------------
+# Load config
+#-----------------------------------------------------------------------
+def loadConfig():
+    '''
+    loads the childConfig-approval_processorMP.ini
+    it will prompt the user if they want to use the one on the gracedb.processor machine, or if they want to specify a specific one
+    '''
+    config = ConfigParser.SafeConfigParser()
+    default = raw_input('do you want to use the default childConfig-approval_processorMP.ini? options are yes or no\n')
+    if default=='yes':
+        config.read('/home/gracedb.processor/public_html/monitor/approval_processorMP/files/childConfig-approval_processorMP.ini')
+    elif default=='no':
+        config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include forward slash at end*\n')))
+    else:
+        print 'sorry. options were yes or no. try again'
+    return config
+
 
 #-----------------------------------------------------------------------
 # parseAlert
@@ -216,6 +259,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         'advocates'           : advocates,
         'ignore_idq'          : ignore_idq,
         'default_idqthresh'   : default_idqthresh,
+        'client'              : client
     }
 
     # set up logging
@@ -286,21 +330,23 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
             # query gracedb to get information
             EventDict( g.events(graceid).next(), graceid, configdict ).createDict()
+            EventDict( g.events(graceid).next(), graceid, configdict).updateDict()
             event_dict = eventDicts[graceid]
+            print event_dict
 
-            # update signoff information if available
-            url = g.templates['signoff-list-template'].format(graceid=graceid) # construct url for the operator/advocate signoff list
-            signoff_list = g.get(url).json()['signoff'] # pull down signoff list
-            for signoff_object in signoff_list:
-                record_signoff(eventDicts[graceid], signoff_object)
+#            # update signoff information if available
+#            url = g.templates['signoff-list-template'].format(graceid=graceid) # construct url for the operator/advocate signoff list
+#            signoff_list = g.get(url).json()['signoff'] # pull down signoff list
+#            for signoff_object in signoff_list:
+#                record_signoff(eventDicts[graceid], signoff_object)
 
-            # update iDQ information if available
-            log_dicts = g.logs(graceid).json()['log']
-            for message in log_dicts:
-                if re.match('minimum glitch-FAP', message['comment']):
-                    record_idqvalues(eventDicts[graceid], message['comment'], logger)
-                else:
-                    pass
+#            # update iDQ information if available
+#            log_dicts = g.logs(graceid).json()['log']
+#            for message in log_dicts:
+#                if re.match('minimum glitch-FAP', message['comment']):
+#                    record_idqvalues(eventDicts[graceid], message['comment'], logger)
+#                else:
+#                    pass
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
