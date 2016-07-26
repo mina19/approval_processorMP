@@ -145,6 +145,22 @@ def loadEventDicts():
         file_obj.close()
 
 #-----------------------------------------------------------------------
+# Load logger
+#-----------------------------------------------------------------------
+def loadLogger(config):
+    '''
+    sets up logger
+    '''
+    logger = logging.getLogger('approval_processorMP')
+    logfile = config.get('general', 'approval_processorMP_logfile')
+    homedir = os.path.expanduser('~')
+    logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
+    logging_filehandler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging_filehandler)
+    return logger
+
+#-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
 def parseAlert(queue, queueByGraceID, alert, t0, config):
@@ -208,16 +224,16 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     ###        what's more, this is a natural place to set up multiple loggers, one for all data and one for data pertaining only to this graceid
 
     global logger
-    try: 
+#    if vars().has_key('logger'): # check to see if we have logger
+#        logger = vars('logger')
+#    else: # if not, set one up
+#        logger = loadLogger(config)
+#        logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
+
+    try:
         logger  ### FIXME: why not open the logger each time parseAlert is called?
     except NameError:
-        logger = logging.getLogger('approval_processorMP')
-        logfile = config.get('general', 'approval_processorMP_logfile')
-        homedir = os.path.expanduser('~')
-        logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
-        logging_filehandler.setLevel(logging.INFO)
-        logger.setLevel(logging.INFO)
-        logger.addHandler(logging_filehandler)
+        logger = loadLogger(config)
         logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime())) ### this information seems to be the only useful bit.
 
     #-------------------------------------------------------------------
@@ -1179,13 +1195,7 @@ def resend_alert():
     g = GraceDb('{0}'.format(client))
 
     # set up logger
-    logger = logging.getLogger('approval_processorMP')
-    logfile = config.get('general', 'approval_processorMP_logfile')
-    homedir = os.path.expanduser('~')
-    logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
-    logging_filehandler.setLevel(logging.INFO)
-    logger.setLevel(logging.INFO)
-    logger.addHandler(logging_filehandler)
+    loadLogger(config)
 
     # prompt for graceid
     graceid = str(raw_input('graceid:\n'))
@@ -1195,7 +1205,6 @@ def resend_alert():
 
     # load event dictionaries, get dictionary, send alert
     loadEventDicts()
-    print eventDicts
     event_dict = eventDicts['{0}'.format(graceid)]
     response = process_alert(event_dict, voevent_type, g, config, logger)
     # to edit event_dict in parseAlert later
