@@ -44,8 +44,6 @@ execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 global eventDicts # global variable for local bookkeeping of event candidate checks, files, labels, etc.
 eventDicts = {} # it's a dictionary storing data in the form 'graceid': event_dict where each event_dict is created below in class EventDict
 
-### instantionation and createDict methods seem like their input arguments should be reversed...
-
 class EventDict:
     '''
     creates an event_dict for each event candidate to keep track of checks, files, comments, labels coming in
@@ -122,7 +120,7 @@ class EventDict:
 #-----------------------------------------------------------------------
 # Saving event dictionaries
 #-----------------------------------------------------------------------
-def saveEventDicts(eventdictsfiledirectory):
+def saveEventDicts(approval_processorMPfiles):
     '''
     saves eventDicts (the dictonary of event dictionaries) to a pickle file and txt file
     '''
@@ -130,8 +128,8 @@ def saveEventDicts(eventdictsfiledirectory):
     ### figure out filenames, etc.
     ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    pklfilename = '{0}{1}/EventDicts.p'.format(homedir, eventdictsfiledirectory)
-    txtfilename = '{0}{1}/EventDicts.txt'.format(homedir, eventdictsfiledirectory)
+    pklfilename = '{0}{1}/EventDicts.p'.format(homedir, approval_processorMPfiles)
+    txtfilename = '{0}{1}/EventDicts.txt'.format(homedir, approval_processorMPfiles)
 
     ### write pickle file
     file_obj = open(pklfilename, 'wb')
@@ -153,14 +151,14 @@ def saveEventDicts(eventdictsfiledirectory):
 #-----------------------------------------------------------------------
 # Loading event dictionaries
 #-----------------------------------------------------------------------
-def loadEventDicts(eventdictsfiledirectory):
+def loadEventDicts(approval_processorMPfiles):
     '''
     loads eventDicts (the dictionary of event dictionaries) to do things like resend VOEvents for an event candidate
     '''
     ### figure out filenames
     ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    pklname = '{0}{1}/EventDicts.p'.format(homedir, eventdictsfiledirectory)
+    pklname = '{0}{1}/EventDicts.p'.format(homedir, approval_processorMPfiles)
 
     if os.path.exists(pklname): ### check to see if the file actually exists
         file_obj = open(pklname, 'rb')
@@ -178,9 +176,10 @@ def loadLogger(config):
     '''
     global logger
     logger = logging.getLogger('approval_processorMP')
+    approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     logfile = config.get('general', 'approval_processorMP_logfile')
     homedir = os.path.expanduser('~')
-    logging_filehandler = logging.FileHandler('{0}/public_html/monitor/approval_processorMP/files{1}'.format(homedir, logfile))
+    logging_filehandler = logging.FileHandler('{0}{1}{2}'.format(homedir, approval_processorMPfiles, logfile))
     logging_filehandler.setLevel(logging.INFO)
     logger.setLevel(logging.INFO)
     logger.addHandler(logging_filehandler)
@@ -231,7 +230,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     force_all_internal      = config.get('general', 'force_all_internal')
     preliminary_internal    = config.get('general', 'preliminary_internal')
     forgetmenow_timeout     = config.getfloat('general', 'forgetmenow_timeout')
-    eventdictsfiledirectory = config.get('general', 'eventdictsfiledirectory')
+    approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     hardware_inj            = config.get('labelCheck', 'hardware_inj')
     default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
     time_duration           = config.getfloat('injectionCheck', 'time_duration')
@@ -349,7 +348,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             else:
                 pass
 
-    saveEventDicts(eventdictsfiledirectory) ### save dicts to make sure copy on disk stays up to date
+    saveEventDicts(approval_processorMPfiles) ### save dicts to make sure copy on disk stays up to date
                      ### FIXME? Reed's not sure if we need to do this here. We probably don't want to write out the dicts more than once each time parseAlert is called...
 
     #--------------------
@@ -410,7 +409,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     if alert_type=='label':
         record_label(event_dict, description)
-        saveEventDicts(eventdictsfiledirectory)
+        saveEventDicts(approval_processorMPfiles)
         if description=='PE_READY':
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
@@ -446,7 +445,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     return 0
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction', g, config, logger)
-        saveEventDicts(eventdictsfiledirectory)
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
     if alert_type=='update':
@@ -466,7 +465,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 elif re.match('resent VOEvent', comment):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment)
                     event_dict[response[0][1]].append(response[0][0])
-                    saveEventDicts(eventdictsfiledirectory)
+                    saveEventDicts(approval_processorMPfiles)
                 else:
                     pass
 
@@ -496,7 +495,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     event_dict['currentstate'] = 'rejected'
                 else:
                     pass
-                saveEventDicts(eventdictsfiledirectory)
+                saveEventDicts(approval_processorMPfiles)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -540,7 +539,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     #g.put(url)
             else:
                 pass
-        saveEventDicts(eventdictsfiledirectory)
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
     elif currentstate=='preliminary_to_initial':
@@ -568,7 +567,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLabel(graceid, 'DQV')
                 else:
                     pass
-                saveEventDicts(eventdictsfiledirectory)
+                saveEventDicts(approval_processorMPfiles)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -584,7 +583,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'EM_READY')
             else:
                 pass
-        saveEventDicts(eventdictsfiledirectory)
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
     elif currentstate=='initial_to_update':
@@ -612,7 +611,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLabel(graceid, 'DQV')
                 else:
                     pass
-                saveEventDicts(eventdictsfiledirectory)
+                saveEventDicts(approval_processorMPfiles)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -628,7 +627,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'PE_READY')
             else:
                 pass
-        saveEventDicts(eventdictsfiledirectory)
+        saveEventDicts(approval_processorMPfiles)
         return 0
     
     else:
@@ -1217,7 +1216,7 @@ def resend_alert():
     config = ConfigParser.SafeConfigParser()
     config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include forward slash at end*\n')))
     client = config.get('general', 'client')
-    eventdictsfiledirectory = config.get('general', 'eventdictsfiledirectory')
+    approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     print 'got client: {0}'.format(client)
     g = GraceDb('{0}'.format(client))
 
@@ -1231,14 +1230,14 @@ def resend_alert():
     voevent_type = str(raw_input('voevent_type: (options are preliminary, initial, update, retraction)\n'))
 
     # load event dictionaries, get dictionary, send alert
-    loadEventDicts(eventdictsfiledirectory)
+    loadEventDicts(approval_processorMPfiles)
     event_dict = eventDicts['{0}'.format(graceid)]
     response = process_alert(event_dict, voevent_type, g, config, logger)
     # to edit event_dict in parseAlert later
     response = re.findall(r'(.*), (.*)', response)
 
     # save event dictionaries
-    saveEventDicts(eventdictsfiledirectory)
+    saveEventDicts(approval_processorMPfiles)
     sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
     print 'saved event dicts'
     print 'voeventerrors: {0}'.format(event_dict['voeventerrors'])
