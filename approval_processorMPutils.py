@@ -122,7 +122,7 @@ class EventDict:
 #-----------------------------------------------------------------------
 # Saving event dictionaries
 #-----------------------------------------------------------------------
-def saveEventDicts():
+def saveEventDicts(eventdictsfiledirectory):
     '''
     saves eventDicts (the dictonary of event dictionaries) to a pickle file and txt file
     '''
@@ -130,8 +130,8 @@ def saveEventDicts():
     ### figure out filenames, etc.
     ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    pklfilename = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir)
-    txtfilename = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.txt'.format(homedir)
+    pklfilename = '{0}{1}/EventDicts.p'.format(homedir, eventdictsfiledirectory)
+    txtfilename = '{0}{1}/EventDicts.txt'.format(homedir, eventdictsfiledirectory)
 
     ### write pickle file
     file_obj = open(pklfilename, 'wb')
@@ -153,14 +153,14 @@ def saveEventDicts():
 #-----------------------------------------------------------------------
 # Loading event dictionaries
 #-----------------------------------------------------------------------
-def loadEventDicts():
+def loadEventDicts(eventdictsfiledirectory):
     '''
     loads eventDicts (the dictionary of event dictionaries) to do things like resend VOEvents for an event candidate
     '''
     ### figure out filenames
     ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
-    pklname = '{0}/public_html/monitor/approval_processorMP/files/EventDicts.p'.format(homedir)
+    pklname = '{0}{1}/EventDicts.p'.format(homedir, eventdictsfiledirectory)
 
     if os.path.exists(pklname): ### check to see if the file actually exists
         file_obj = open(pklname, 'rb')
@@ -227,14 +227,15 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     g = GraceDb(client)
 
     # get other childConfig settings; save in configdict
-    voeventerror_email   = config.get('general', 'voeventerror_email')
-    force_all_internal   = config.get('general', 'force_all_internal')
-    preliminary_internal = config.get('general', 'preliminary_internal')
-    forgetmenow_timeout  = config.getfloat('general', 'forgetmenow_timeout')
-    hardware_inj         = config.get('labelCheck', 'hardware_inj')
-    default_farthresh    = config.getfloat('farCheck', 'default_farthresh')
-    time_duration        = config.getfloat('injectionCheck', 'time_duration')
-    humanscimons         = config.get('operator_signoffCheck', 'humanscimons')
+    voeventerror_email      = config.get('general', 'voeventerror_email')
+    force_all_internal      = config.get('general', 'force_all_internal')
+    preliminary_internal    = config.get('general', 'preliminary_internal')
+    forgetmenow_timeout     = config.getfloat('general', 'forgetmenow_timeout')
+    eventdictsfiledirectory = config.get('general', 'eventdictsfiledirectory')
+    hardware_inj            = config.get('labelCheck', 'hardware_inj')
+    default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
+    time_duration           = config.getfloat('injectionCheck', 'time_duration')
+    humanscimons            = config.get('operator_signoffCheck', 'humanscimons')
 
     ### extract options about advocates
     advocates      = config.get('advocate_signoffCheck', 'advocates')
@@ -348,7 +349,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             else:
                 pass
 
-    saveEventDicts() ### save dicts to make sure copy on disk stays up to date
+    saveEventDicts(eventdictsfiledirectory) ### save dicts to make sure copy on disk stays up to date
                      ### FIXME? Reed's not sure if we need to do this here. We probably don't want to write out the dicts more than once each time parseAlert is called...
 
     #--------------------
@@ -409,7 +410,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     if alert_type=='label':
         record_label(event_dict, description)
-        saveEventDicts()
+        saveEventDicts(eventdictsfiledirectory)
         if description=='PE_READY':
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
@@ -445,7 +446,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     return 0
                 # there are existing VOEvents we've sent, but no retraction alert
                 process_alert(event_dict, 'retraction', g, config, logger)
-        saveEventDicts()
+        saveEventDicts(eventdictsfiledirectory)
         return 0
 
     if alert_type=='update':
@@ -465,7 +466,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 elif re.match('resent VOEvent', comment):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment)
                     event_dict[response[0][1]].append(response[0][0])
-                    saveEventDicts()
+                    saveEventDicts(eventdictsfiledirectory)
                 else:
                     pass
 
@@ -495,7 +496,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     event_dict['currentstate'] = 'rejected'
                 else:
                     pass
-                saveEventDicts()
+                saveEventDicts(eventdictsfiledirectory)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -539,7 +540,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     #g.put(url)
             else:
                 pass
-        saveEventDicts()
+        saveEventDicts(eventdictsfiledirectory)
         return 0
 
     elif currentstate=='preliminary_to_initial':
@@ -567,7 +568,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLabel(graceid, 'DQV')
                 else:
                     pass
-                saveEventDicts()
+                saveEventDicts(eventdictsfiledirectory)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -583,7 +584,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'EM_READY')
             else:
                 pass
-        saveEventDicts()
+        saveEventDicts(eventdictsfiledirectory)
         return 0
 
     elif currentstate=='initial_to_update':
@@ -611,7 +612,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLabel(graceid, 'DQV')
                 else:
                     pass
-                saveEventDicts()
+                saveEventDicts(eventdictsfiledirectory)
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
@@ -627,7 +628,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 g.writeLabel(graceid, 'PE_READY')
             else:
                 pass
-        saveEventDicts()
+        saveEventDicts(eventdictsfiledirectory)
         return 0
     
     else:
@@ -1216,6 +1217,7 @@ def resend_alert():
     config = ConfigParser.SafeConfigParser()
     config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include forward slash at end*\n')))
     client = config.get('general', 'client')
+    eventdictsfiledirectory = config.get('general', 'eventdictsfiledirectory')
     print 'got client: {0}'.format(client)
     g = GraceDb('{0}'.format(client))
 
@@ -1229,14 +1231,14 @@ def resend_alert():
     voevent_type = str(raw_input('voevent_type: (options are preliminary, initial, update, retraction)\n'))
 
     # load event dictionaries, get dictionary, send alert
-    loadEventDicts()
+    loadEventDicts(eventdictsfiledirectory)
     event_dict = eventDicts['{0}'.format(graceid)]
     response = process_alert(event_dict, voevent_type, g, config, logger)
     # to edit event_dict in parseAlert later
     response = re.findall(r'(.*), (.*)', response)
 
     # save event dictionaries
-    saveEventDicts()
+    saveEventDicts(eventdictsfiledirectory)
     sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
     print 'saved event dicts'
     print 'voeventerrors: {0}'.format(event_dict['voeventerrors'])
