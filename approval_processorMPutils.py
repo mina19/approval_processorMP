@@ -348,9 +348,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             else:
                 pass
 
-    saveEventDicts(approval_processorMPfiles) ### save dicts to make sure copy on disk stays up to date
-                     ### FIXME? Reed's not sure if we need to do this here. We probably don't want to write out the dicts more than once each time parseAlert is called...
-
     #--------------------
     # ignore alerts that are not relevant, like simulation or MDC events
     #--------------------
@@ -362,6 +359,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             logger.info(message)
         else:
             pass
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
     #--------------------
@@ -631,6 +629,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         return 0
     
     else:
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
 #-----------------------------------------------------------------------
