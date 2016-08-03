@@ -323,6 +323,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             for item in queueByGraceID[graceid]:
                 if item.name==ForgetMeNow.name: # selects the queue item that is a ForgetMeNow instance
                     item.setExpiration(t0, convertTime) # updates the expirationtime key
+                    queue.resort() ### may be expensive, but is needed to guarantee that queue remains sorted
+                    queueByGraceID[graceid].resort()
                     break
             else: ### we couldn't find a ForgetMeNow for this event! Something is wrong!
                 os.system('echo \'ForgetMeNow KeyError\' | mail -s \'ForgetMeNow KeyError {0}\' {1}'.format(graceid, advocate_email))       
@@ -454,25 +456,32 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         groupTag = 'TEMPORARY'
 
         ### check to see if Grouper exists for this groupTag
-        if queueByGraceID.has_key(groupTag): ### a Grouper already exists
-            if len(queueByGraceID[groupTag]) > 1:
-                raise ValueError('too many QueueItems in SortedQueue for groupTag=%s'%groupTag)
-            item = queueByGraceID[groupTag][0] ### we expec there to be only one item in this SortedQueue
+        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
+
+            ### determine if any of the existing Groupers are still accepting new triggers
+            for item in queueByGraceID[groupTag]:
+                if item.isOpen():
+                    break ### this Grouper is still open, so we'll just use it
+            else: ### no Groupers are open, so we need to create one
+                item = Groupter(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+
+                queue.insert( item ) ### insert it in the overall queue
+
+                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+                newSortedQueue.insert(item)
+                queueByGraceID[groupTag] = newSortedQueue  
 
         else: ### we need to make a Grouper
 
             raise NotImplementedError('need to extract parameters for Grouper from config file!')            
 
-            item = Groupter(t0, grouperWin, groupTag, eventDicts) ### create the actual QueueItem
+            item = Groupter(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
             queue.insert( item ) ### insert it in the overall queue
 
             newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
             newSortedQueue.insert(item)
             queueByGraceID[groupTag] = newSortedQueue
-
-            ### also add this to the queueByGraceID for each event? 
-            ### Not sure this will actually work (auto cleanup will be spoiled...), but it would make lookup easier if we have to start with just a graceid
 
         item.add( graceid ) ### add this graceid to the item
 
@@ -517,7 +526,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             else:
                 pass
 
-        elif description=="Throttled": ### the evnet is throttled and we need to turn off all processing for it
+        elif description=="Throttled": ### the event is throttled and we need to turn off all processing for it
 
             event_dict['currentstate'] = 'throttled' ### update current state
             
@@ -528,13 +537,18 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     # there are existing VOEvents we've sent, but no retraction alert
                     process_alert(event_dict, 'retraction', g, config, logger)
 
-            ### update ForgetMeNow expiration to handle all the clean-up            
-            for item in queueByGraceID[graceid]: ### update expiration of the ForgetMeNow so it is immediately processed next.
-                if item.name == ForgetMeNow.name:
-                    time.setExpiration(-np.infty, convertTime ) ### passing a function handle like this is BAD!
-                    break
-            else:
-                raise ValueError('could not find ForgetMeNow QueueItem for graceid=%s'%graceid)
+            ### update ForgetMeNow expiration to handle all the clean-up?
+            ### we probably do NOT want to change the clean-up schedule because we'll still likely receive a lot of alerts about this guy
+            ### therefore, we just retain the local data and ignore him, rather than erasing the local data and having to query to reconstruct it repeatedly as new alerts come in
+#            for item in queueByGraceID[graceid]: ### update expiration of the ForgetMeNow so it is immediately processed next.
+#                if item.name == ForgetMeNow.name:
+#                    time.setExpiration(-np.infty, convertTime ) ### passing a function handle like this is BAD!
+#                                                                ### FIXME: this can break the order in SortedQueue's. We need to pop and reinsert or call a manual resort
+#                    queue.resort() ### may be expensive but is needed to guarantee that queue remains sorted
+#                    queueByGraceID[graceid].resort()
+#                    break
+#            else:
+#                raise ValueError('could not find ForgetMeNow QueueItem for graceid=%s'%graceid)
 
         elif description=="Selected": ### this event was selected by a Grouper 
             raise NotImplementedError('write logic to handle \"Selected\" labels')
@@ -556,6 +570,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         return 0
 
     ### FIXME: Reed left off commenting here...
+
+
+
+
+
+
+
+
 
     elif alert_type=='update':
         # first the case that we have a new lvem skymap

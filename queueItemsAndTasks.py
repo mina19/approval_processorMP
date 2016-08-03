@@ -36,7 +36,7 @@ class ForgetMeNow(utils.QueueItem):
         updates the expiration of all tasks as well as of the QueueItem itself.
         we overwrite the parent's function because we also touch the event_dict
         '''
-        super(ForgetMeNow, self).setExpiration() ### delegate to parent to touch tasks and self.expiration
+        super(ForgetMeNow, self).setExpiration(t0) ### delegate to parent to touch tasks and self.expiration
                                                  ### if this throws an error, you need to update your version of lvalertMP
 
         ### why are we storing this? it is only called within this function and no one else needs it...
@@ -111,6 +111,8 @@ class PipelineThrottle(utils.QueueItem):
     In particular, .add() checks for state changes and applies labels as needed.
 
     assigns group_pipeline[_search] to self.graceid for easy lookup and management within queueByGraceID
+
+    WARNING: all windowing is based off the time at which the alert is received by lvalert_listenMP rather than the gpstime or creation time. We may want to change this.
     '''
     name = 'pipeline throttle'
 
@@ -146,10 +148,10 @@ class PipelineThrottle(utils.QueueItem):
         computes the key assigned to self.graceid based on group, pipelin, and search
         encapsulated this way so we can call it elsewhere as well
         """
-        key = "throttle-%s_%s"%(group, pipeline)
         if search:
-            key = "%s_%s"%(key, search)
-        return key
+            return "%s_%s_%s"%(group, pipeline, search)
+        else: 
+            return "%s_%s"%(group, pipeline)
 
     def computeNthr(self):
         '''
@@ -213,6 +215,10 @@ class PipelineThrottle(utils.QueueItem):
                 break
         else:
             self.events.append( (graceid, t0) )
+        ### NOTE: we do not update expiration because it should be handled within a call to execute()
+        ### either the expiration is too early, in which case execture() is smart enough to handle this
+        ### (note, we expect events to come in in order, so we shouldn't ever have to set the expiration to earlier than it was before...)
+        ### or expiration is already infty, in which case we require a manual reset anyway
 
         throttled = len(self.events) > self.Nthr
         if throttled and self.throttled: ### we are already throttled, so we just label the new graceid
@@ -223,6 +229,8 @@ class PipelineThrottle(utils.QueueItem):
                 self.labelAsThrottled( graceid )
  
         self.throttled = throttled
+        self.complete = False ### there is now at least one item being tracked
+                              ### FIXME: need pointer to queue and queueByGraceID to update complete attribute
 
     def labelAsThrottled(self, graceid):
         """
@@ -233,20 +241,18 @@ class PipelineThrottle(utils.QueueItem):
         except:
             pass ### FIXME: print some intelligent error message here!
 
-    def pop(self, ind=0):
-        '''
-        removes a graceid from self.events and returns it
-        '''
-        data = self.events.pop( ind )
-        self.throttled = len(self.events) > self.Nthr
-        return data
-
     def reset(self):
         '''
         resets the throttle (sets self.events = [])
+
+        NOTE: when calling this, we should also call SortedQueue.resort() to ensure that SortedQueues remain sorted!
+              this may be expensive, but should be rare!
+              We can also play games with marking this as complete by hand, etc.
+        An equivalent proceedure is to reset() is to remove the QueueItem from all SortedQueues. If a new event comes in, we will create a replacement
         '''
         self.events = []
         self.throttled = False
+        self.execute( verbose=False )
 
     def isThrottled(self):
         '''
@@ -261,7 +267,7 @@ class PipelineThrottle(utils.QueueItem):
         we overwrite the parent's method because we don't want to move the task to completedTasks after execution unless there are no more events to be tracked
         '''
         task = self.tasks[0] ### there is only one task!
-        if task.hasExpired():
+        if task.hasExpired(): ### NOTE: we can't just delegate to the parent's execute method because we do not necessarily want the task to be migrated to completedTasks
             task.execute( verbose=verbose )
         self.expiration = task.expiration ### update expiration
         self.complete = len(events)==0 ### complete only if there are no more events being tracked
@@ -301,20 +307,16 @@ class Throttle(utils.Task):
                 if t0 > t: ### event is recent enough that we still care about it
                     self.events.insert(0, (graceid, t0) ) ### add it back in 
                     break
-        self.setExpiration()
 
-    def setExpiration(self, t0):
-        '''
-        sets expiration based on t0 and internal data (self.win and self.events)
-        '''
+        ### determine how we set the expiration by how many events we have left
         if self.isThrottled() and self.requireManualReset: ### we don't expire because we don't forget old events
-            self.expiration = np.infty
+            self.setExpiration( np.infty )
 
         elif self.events: ### we do forget old events and there are events being tracked
-            self.expiration = self.events[0][-1] + self.win
+            self.setExpiration( self.events[0][-1] )
 
         else: ### no events, set expiration so this goes away quickly
-            self.expiration = -np.infty
+            self.setExpiration( -np.infty )
 
 #-------------------------------------------------
 # Grouper
@@ -325,10 +327,17 @@ class Grouper(utils.QueueItem):
     '''
     A QueueItem which groups neighboring GraceDb entries together and makes automatic downselection to select a preferred event.
     This is supported to enforce The Collaboration's mandte that we will only release a single alert for each "physical event".
+
+    WARNING: grouping is currently done by the time at which lvalert_listenMP recieves the alert rather than gpstime or creation time. We may want to revisit this.
+
+    as currently implemented, the group stays "open" until t0+win=closure. 
+    At this point, it begins trying to decide via delegations to it's task. 
+    If it cannot decide immediately (eg: not enough DQ info is available), it will punt "wait" seconds and try again. 
+    This polling will continue until we have enough info to decide or we reach a maximum timeout of "maxWait" after the window closes. 
     '''
     name = 'grouper'
     
-    def __init__(self, t0, win, groupTag, eventDicts):
+    def __init__(self, t0, win, groupTag, eventDicts, wait=1, maxWait=60, graceDB_url='https://gracedb.ligo.org/api'):
         self.graceid = groupTag ### record data bout this group
 
         self.eventDicts = eventDicts ### pointer to the dictionary of dictionaries, which we will need to determine whether a decision can be made
@@ -337,15 +346,56 @@ class Grouper(utils.QueueItem):
 
         self.events = [] ### shared reference that is passed to DefineGroup task
 
-        tasks = [DefineGroup(self.events, win) ### only one task!
+        self.t0 = t0
+        self.closure = t0+win ### when the acceptance gate closes
+
+        self.wait = wait ### the amount we wait (repeatedly) while looking for more information before making a decision
+        self.maxWait = maxWait ### the maximum amount of time after self.closure that we wait for necessary info to make a decision
+
+        tasks = [DefineGroup(self.events, eventDicts, win, graceDB_url=graceDB_url) ### only one task!
                 ]
         super(Grouper, self).__init__(t0, tasks) ### delegate to parent
+
+    def isOpen(self):
+        '''
+        determines whether the Group is still accepting new events
+        '''
+        return time.time() < self.closure
 
     def add(self, graceid):
         '''
         adds a graceid to the DefineGroup task
+        NOTE: we do NOT check whether the grouper is open before adding the event. 
+        This allows us the flexibility to ignore which groupers are still open if needed and "force" events into the mix.
         '''
         self.events.append( graceid )
+
+    def canDecide(self):
+        """
+        determines whether we have enough information to make this decision
+
+        currently, we only require FAR and pipeline information, which we *know* we already have in eventDicts. 
+        Thus, we return True without doing anything.
+        
+        We may want to do something like the following for more complicated logic:
+            goodToGo = True
+            for graceid in self.events: ### iterate through events in this group
+                event_dict = self.eventDicts[graceid]
+                goodToGo *= event_dict.has_key('far') ### ensure we have FAR information
+                goodToGo *= event_dict.has_key('group') and event_dict.has_key('pipeline') and event_dict.has_key('search') ### ensure we have pipeline information
+            return goodToGo
+        """
+        raise True
+
+    def execute( verbose=False ):
+        '''
+        override parent method to handle the case where we cannot make a decision yet
+        we can just set this up to poll every second or so until we can decide or there is a hard timeout. Then we force a decision.
+        '''
+        if self.canDecide() or (time.time() > self.closure+self.maxWait): ### we can decide or we've timed out
+            super(Grouper, self).execute( verbose=verbose ) ### delegate to the parent
+        else: ### we have not timed out and we cannot yet decide
+            self.setExpiration( self.t0+self.wait ) ### increment the expiration time by wait
 
 class DefineGroup(utils.Task):
     '''
@@ -356,22 +406,184 @@ class DefineGroup(utils.Task):
     name = 'define group'
     description = 'a task that defines a group and selects which element is preferred'
 
-    def __init__(self, events, timeout):
+    def __init__(self, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
+        self.eventDicts = eventDicts ### shared reference pointing to the local data about events
+        self.graceDB = GraceDb( graceDB_url )
         super(DefineGroup, self).__init__(timeout, self.decide) ### delegate to parent
-
-    def canDecide(self):
-        """
-        determines whether we have enough information to make this decision
-        """
-        raise NotImplementedError('we need something like a "canDecide" method, but I\'m not sure this is the best place for it to live. Perhaps it should be a method of Grouper itself? It also isn\'t clear exactly how this would be called. Maybe we overwrite Grouper.execute() to handle this and play with expiration dates as necessary?')
 
     def decide(self, verbose=False):
         '''
         decide which event is preferred and "create the group" in GraceDB
 
-        CBC events are preferred above Burst events (regardless of FAR estimates?)
-        After downselecting based on group, event with the lowest FAR is preferred.
-        Do we want to downselect based on anything else? THIS CAN BECOME VERY COMPLICATED VERY QUICKLY.
+        the actual decision making process is delegated to self.choose, which compares pairs of graceid's and picks one it prefers
+
+        NOTE: labeling of events occurs here (either 'Selected' or 'Superceded'
+              we also must know how to make decisions with incomplete information
+              As we make decisions based on more complicated logic requiring more information, we'll also need to update Grouper.canDecide() to reflect this.
         '''
-        raise NotImplementedError("write logic for event downselection here!")
+        selected = self.events[0] ### we assume there is at least one event...
+        superceded = []
+        ### iterate through remaining events and decide if we like any of them better than selected
+        for graceid in self.events[1:]:
+
+            if selected == self.choose( selected, graceid ): ### we reject graceid
+                supreceded.append( graceid )
+            else: ### we reject the old selected and now prefer the new graceid
+                superceded.append( selected )
+                selected = graceid
+
+        ### label events in GraceDb. This will initiate all the necessary processing when alert_type='label' messages are received
+        self.labelAsSelected( selected )
+        for graceid in superceded:
+            self.labelAsSuperceded( graceid )
+
+    def choose( graceidA, graceidB ):
+        """
+        encapsulates logic that determines which event is preferred between a pair of events
+        If we can rank all pairs of events in this way, we can immediately select an overall winner by iteration (ie: what's done in self.decide)
+
+        CBC events are preferred above Burst events (regardless of FAR)
+        After downselecting based on group, event with the lowest FAR is preferred.
+        Do we want to downselect based on anything else? 
+
+        THIS CAN BECOME VERY COMPLICATED VERY QUICKLY.
+
+        returns the preferred graceid
+        """
+        event_dictA = self.eventDicts[graceidA]
+        event_dictB = self.eventDicts[graceidB]
+
+        ### choose based on group_pipeline_search using the class that does this
+        groupPipelineSearchA = GroupPipelineSearch(event_dictA['group'], event_dictA['pipeline'], event_dictA['search'])
+        groupPipelineSearchB = GroupPipelineSearch(event_dictB['group'], event_dictB['pipeline'], event_dictB['search'])
+        if grouptPipelineSearchA != groupPipelineSearchB: ### we can make a decision based on this!
+            if groupPipelineSearchA > groupPipelineSearchB:
+                return graceidA
+            else:
+                return graceidB
+
+        ### choose based on FAR
+        farA = event_dictA['far']
+        farB = event_dictB['far']
+        if farA != farB: ### we can make a decision based on this!
+            if farA < farB:
+                return graceidA ### prefer the smaller far
+            else:
+                return graceidB 
+
+        ### at this point, we have two events with identical GroupPipelineSearch ranks and identical FARs
+        ### these should be "indistinguishable" so we pick the first of the two arguments
+        ### this is an arbitrary choice, but we need to make it.
+        return graceidA
+
+    def labelAsSelected(self, graceid):
+        """
+        attempts to label the graceid as "Selected"
+        """
+        try:
+            self.gdb.writeLable( graceid, "Selected" )
+        except:
+            pass ### FIXME: print some intelligent error message here!
+
+    def labelAsSuperceded(self, graceid):
+        """
+        attempts to label the graceid as "Superceded"
+        """
+        try:
+            self.gdb.writeLable( graceid, "Superceded" )
+        except:
+            pass ### FIXME: print some intelligent error message here!
+
+class GroupPipelineSearch():
+    '''
+    a simple wrapper for the group_pipeline_search combinations that knows how to compare them and find a preference
+
+    this is done by mapping group, pipeline, search combinations into integers and then comparing the integers
+
+    NOTE: bigger things are more preferred and the relative ranking is hard coded into immutable attributes of this class
+          comparison is done first by group. If that is inconclusive, we then compare pipelines. If that is inconclusive, we then check search.
+    
+    we prefer:
+        cbc over burst
+        no pipeline is prefered
+        events with 'search' specified are preferred over events without 'search' specified
+
+    WARNING: if we do not know about a pariticular group, pipeline, or search, we assign a rank of -infty because we don't know about this type of event
+    '''
+    ### dictionaries that map group, pipeline, search into 
+    __groupRank__    = {'cbc'  :1, ### cbc events are preferred over burst
+                        'burst':0,
+                       }
+    __pipelineRank__ = {'gstlal'      :0, ### all pipelines are equal
+                        'mbtaonline'  :0,
+                        'pycbc'       :0,
+                        'gstlal-spiir':0,
+                        'cwb'         :0,
+                        'lib'         :0,
+                       } ### all pipelines are equal
+    __searchRank__   = {'lowmass' :1,   ### events with "search" specified are preferred over events without "search" specified
+                        'highmass':1,
+                        'allsky'  :1,
+                        ''        :0,
+                        None      :0,
+                       }
+
+    def __init__(self, group, pipeline, search=None):
+        self.group = group
+        if self.__groupRank__.has_key(group):
+            self.groupRank = self.__groupRank__[group]
+        else:
+            self.groupRank = -1
+
+        self.pipeline = pipeline
+        if self.__pipelineRank__.has_key(pipeline):
+            self.pipelineRank = self.__pipelineRank__[pipeline]
+        else:
+            self.pipelineRank = -1
+
+        self.search = search
+        if self.__searchRank__.has_key(search):
+            self.searchRank = self.__searchRank__[search]
+        else:
+            self.searchRank = -1
+
+    def __str__(self):
+        return "%s, %s, %s : %d, %d, %d"%(self.group, self.pipeline, self.search, self.groupRank, self.pipelineRank, self.searchRank)
+
+    def __repr__(self):
+        return str(self)
+
+    def __eq__(self, other):
+        return (self.groupRank==other.groupRank) and (self.pipelineRank==other.pipelineRank) and (self.searchRank==other.searchRank)
+
+    def __neq__(self, other):
+        return (not self==other)
+
+    def __lt__(self, other):
+        if self.groupRank == other.groupRank: ### we must decide based on pipelineRank
+            if self.pipelineRank == other.pipelineRank: ### we must decide based on searchRank
+                return self.searchRank < other.searchRank ### decide based on searchRank
+
+            else: ### we can decide based on pipelinerank
+                return self.pipelineRank < other.pipelineRank
+
+        else: ### we can decide based on group alone
+            return self.groupRank < other.groupRank
+
+    def __gt__(self, other):
+        if self.groupRank == other.groupRank: ### we must decide based on pipelineRank
+            if self.pipelineRank == other.pipelineRank: ### we must decide based on searchRank
+                return self.searchRank > other.searchRank ### decide based on searchRank
+
+            else: ### we can decide based on pipelinerank
+                return self.pipelineRank > other.pipelineRank
+
+        else: ### we can decide based on group alone
+            return self.groupRank > other.groupRank
+
+    def __ge__(self, other):
+        return (not self < other)
+
+    def __le__(self, other):
+        return (not self > other)
