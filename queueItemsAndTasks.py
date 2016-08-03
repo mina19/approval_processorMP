@@ -137,7 +137,7 @@ class PipelineThrottle(utils.QueueItem):
 
         self.graceDB = GraceDB( graceDB_url )
 
-        tasks = [Throttle(events, requireManualRestart=requireManualRestart) ### there is only one task!
+        tasks = [Throttle(events, win, requireManualRestart=requireManualRestart) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
 
@@ -272,15 +272,12 @@ class Throttle(utils.Task):
 
     sets expiration to the oldest event in events + win
       when expired, we pop all events older than now-win and re-set expiration.
-      if there are no events, we set expiration to infty so it doesn't get cleaned up
-      NOTE: we may want to allow the queue to clean up the throttles so they don't hang around if they're empty. This is a design choice...
-
-    note: using this Task to update something in PipelineThrottle is perhaps convoluted and stupid. Maybe Reed should re-think that design choice?
+      if there are no events, we set expiration to -infty and this will be cleaned up within PipelineThrottle (complete is set to True)
     '''
     name = 'throttle'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
-    def __init__(self, events, requireManualReset=False):
+    def __init__(self, events, win, requireManualReset=False):
         self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
 
         self.computeNthr() ### compute the threshold number of events assuming a poisson process
@@ -319,27 +316,6 @@ class Throttle(utils.Task):
         else: ### no events, set expiration so this goes away quickly
             self.expiration = -np.infty
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #-------------------------------------------------
 # Grouper
 # used to group nearby events 
@@ -347,48 +323,55 @@ class Throttle(utils.Task):
 
 class Grouper(utils.QueueItem):
     '''
-    FILL ME IN
+    A QueueItem which groups neighboring GraceDb entries together and makes automatic downselection to select a preferred event.
+    This is supported to enforce The Collaboration's mandte that we will only release a single alert for each "physical event".
     '''
     name = 'grouper'
     
-    def __init__(self, t0, groupTag, nodes):
-        ### record data bout this group
-        self.groupTag = groupTag
+    def __init__(self, t0, win, groupTag, eventDicts):
+        self.graceid = groupTag ### record data bout this group
 
-        self.description = "a grouper object collecting events from nodes in (%s) and calling the result %s"%(", ".join(nodes), groupTag)
+        self.eventDicts = eventDicts ### pointer to the dictionary of dictionaries, which we will need to determine whether a decision can be made
 
-        tasks = [DefineGroup() ### only one task!
+        self.description = "a grouper object collecting events and calling the result %s"%(groupTag)
+
+        self.events = [] ### shared reference that is passed to DefineGroup task
+
+        tasks = [DefineGroup(self.events, win) ### only one task!
                 ]
         super(Grouper, self).__init__(t0, tasks) ### delegate to parent
 
-    def add(self, graceid_data):
+    def add(self, graceid):
         '''
         adds a graceid to the DefineGroup task
-        delegates to the task
         '''
-        self.tasks[0].add( graceid_data ) ### only one task!
+        self.events.append( graceid )
 
 class DefineGroup(utils.Task):
     '''
-    Fill me in
-
-    the taks associated with Grouper.
+    the Task associated with Grouper. 
+    When the Grouper object expires, this is called and will actually encapsulte the downselection logic.
+    It also manages labeling in GraceDb, but does not modify local data structures. Instead, we expect those to be updated by the forthcoming alert_type="label" LVAlert messages.
     '''
     name = 'define group'
     description = 'a task that defines a group and selects which element is preferred'
 
-    def __init__(self, timeout):
-        self.events = [] ### track the graceids that are associated with this group
+    def __init__(self, events, timeout):
+        self.events = events ### shared reference to events tracked within Grouper QueueItem
         super(DefineGroup, self).__init__(timeout, self.decide) ### delegate to parent
 
-    def add(self, graceid_data):
-        '''
-        adds graceid_data to internal group
-        '''
-        raise NotImplementedError
+    def canDecide(self):
+        """
+        determines whether we have enough information to make this decision
+        """
+        raise NotImplementedError('we need something like a "canDecide" method, but I\'m not sure this is the best place for it to live. Perhaps it should be a method of Grouper itself? It also isn\'t clear exactly how this would be called. Maybe we overwrite Grouper.execute() to handle this and play with expiration dates as necessary?')
 
     def decide(self, verbose=False):
         '''
         decide which event is preferred and "create the group" in GraceDB
+
+        CBC events are preferred above Burst events (regardless of FAR estimates?)
+        After downselecting based on group, event with the lowest FAR is preferred.
+        Do we want to downselect based on anything else? THIS CAN BECOME VERY COMPLICATED VERY QUICKLY.
         '''
-        raise NotImplementedError
+        raise NotImplementedError("write logic for event downselection here!")

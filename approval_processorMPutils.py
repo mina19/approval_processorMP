@@ -418,11 +418,15 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         search   = event_dict['search']
         key = PipelineThrottle.generate_key(group, pipeline, search=search)
         if queueByGraceID.has_key(key): ### a throttle already exists
+            if len(queueByGraceID[key]) > 1:
+                raise ValueError('too many QueueItems in SortedQueue for pipelineThrottle key=%s'%key)
             item = queueByGraceID[key][0] ### we expect there to be only one item in this SortedQueue
 
         else: ### we need to make a throttle!
-            ### need to extract these from the config file!
-            item = PipelineThrottle(t0, win, targetRate, group, pipeline, search=search, requireManualRestart=False, conf=0.9, graceDB_url=client)
+
+            raise NotImplementedError('need to extract parameters for PipelineThrottle from config file!')
+
+            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualRestart=False, conf=0.9, graceDB_url=client)
 
             queue.insert( item ) ### add to overall queue
 
@@ -440,7 +444,37 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         #----------------
         ### pass data to Grouper
         #----------------
-        raise Warning("Grouper is not implemented yet! we're currently skipping this step")
+        raise Warning("Grouper is not implemented yet! we're currently using a temporate groupTag and prototype code")
+
+        '''
+        need to extract groupTag from group_pipeline[_search] mapping. 
+            These associations should be specified in the config file, so we'll have to specify this somehow.
+            probably just a "Grouper" section, with (option = value) pairs that look like (groupTag = nodeA nodeB nodeC ...)
+        '''
+        groupTag = 'TEMPORARY'
+
+        ### check to see if Grouper exists for this groupTag
+        if queueByGraceID.has_key(groupTag): ### a Grouper already exists
+            if len(queueByGraceID[groupTag]) > 1:
+                raise ValueError('too many QueueItems in SortedQueue for groupTag=%s'%groupTag)
+            item = queueByGraceID[groupTag][0] ### we expec there to be only one item in this SortedQueue
+
+        else: ### we need to make a Grouper
+
+            raise NotImplementedError('need to extract parameters for Grouper from config file!')            
+
+            item = Groupter(t0, grouperWin, groupTag, eventDicts) ### create the actual QueueItem
+
+            queue.insert( item ) ### insert it in the overall queue
+
+            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+            newSortedQueue.insert(item)
+            queueByGraceID[groupTag] = newSortedQueue
+
+            ### also add this to the queueByGraceID for each event? 
+            ### Not sure this will actually work (auto cleanup will be spoiled...), but it would make lookup easier if we have to start with just a graceid
+
+        item.add( graceid ) ### add this graceid to the item
 
         return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
 
