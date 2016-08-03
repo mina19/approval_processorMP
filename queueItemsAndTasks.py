@@ -418,7 +418,7 @@ class DefineGroup(utils.Task):
 
         the actual decision making process is delegated to self.choose, which compares pairs of graceid's and picks one it prefers
 
-        NOTE: labeling of events occurs here (either 'Selected' or 'Superceded'
+        NOTE: labeling of events occurs here (either 'Selected' or 'Superseded'
               we also must know how to make decisions with incomplete information
               As we make decisions based on more complicated logic requiring more information, we'll also need to update Grouper.canDecide() to reflect this.
         '''
@@ -436,7 +436,7 @@ class DefineGroup(utils.Task):
         ### label events in GraceDb. This will initiate all the necessary processing when alert_type='label' messages are received
         self.labelAsSelected( selected )
         for graceid in superceded:
-            self.labelAsSuperceded( graceid )
+            self.labelAsSuperseded( graceid )
 
     def choose( graceidA, graceidB ):
         """
@@ -486,12 +486,12 @@ class DefineGroup(utils.Task):
         except:
             pass ### FIXME: print some intelligent error message here!
 
-    def labelAsSuperceded(self, graceid):
+    def labelAsSuperseded(self, graceid):
         """
-        attempts to label the graceid as "Superceded"
+        attempts to label the graceid as "Superseded"
         """
         try:
-            self.gdb.writeLable( graceid, "Superceded" )
+            self.gdb.writeLable( graceid, "Superseded" )
         except:
             pass ### FIXME: print some intelligent error message here!
 

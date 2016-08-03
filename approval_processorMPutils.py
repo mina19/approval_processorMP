@@ -555,8 +555,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         elif description=="Selected": ### this event was selected by a Grouper 
             raise NotImplementedError('write logic to handle \"Selected\" labels')
 
-        elif description=="Superceded": ### this event was superceded by another event within Grouper
-            raise NotImplementedError('write logic to handle \"Superceded" labels')
+        elif description=="Superseded": ### this event was superceded by another event within Grouper
+            raise NotImplementedError('write logic to handle \"Superseded" labels')
 
         elif (checkLabels(description.split(), config) > 0): ### some other label was applied. We may need to issue a retraction notice.
             event_dict['currentstate'] = 'rejected'
