@@ -44,6 +44,8 @@ execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 global eventDicts # global variable for local bookkeeping of event candidate checks, files, labels, etc.
 eventDicts = {} # it's a dictionary storing data in the form 'graceid': event_dict where each event_dict is created below in class EventDict
 
+
+### FIXME: what purpose does the class really serve? Why can't the two methods just be functions that are called? If the class is to remain, it makes more sense for it to possess it's own attributes that are updated. This can still be accomplished with a dictionary and appropriate look-up functions, as well as methods for filling in the values when data is available. However, we would then instantiate instances of this class for each GraceID and assign pointers to those instances to the values in eventDicts. This is *not* what currently happens, which is confusing because the existence of a class strongly suggests that is what was intended.
 class EventDict:
     '''
     creates an event_dict for each event candidate to keep track of checks, files, comments, labels coming in
@@ -124,7 +126,6 @@ def saveEventDicts(approval_processorMPfiles):
     '''
     saves eventDicts (the dictonary of event dictionaries) to a pickle file and txt file
     '''
-
     ### figure out filenames, etc.
     ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
@@ -188,6 +189,8 @@ def loadLogger(config):
 #-----------------------------------------------------------------------
 # Load config
 #-----------------------------------------------------------------------
+
+### FIXME: this is never used. Why is it defined?
 def loadConfig():
     '''
     loads the childConfig-approval_processorMP.ini
@@ -202,7 +205,6 @@ def loadConfig():
     else:
         print 'sorry. options were yes or no. try again'
     return config
-
 
 #-----------------------------------------------------------------------
 # parseAlert
@@ -400,53 +402,128 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     # may also include generating VOEvents and issuing them
     #--------------------
 
-    ### FIXME: Reed left off commenting here...
-
     # actions for each alert_type
-    currentstate = event_dict['currentstate']
+    currentstate = event_dict['currentstate'] ### actions depend on the current state
+       
+    ### NOTE: we handle alert_type=="new" above as well and this conditional is slightly redundant...
+    if alert_type=='new':
 
-    if alert_type=='label':
+        #----------------
+        ### pass event through PipelineThrottle
+        #----------------
+
+        ### check if a PipelineThrottle exists for this node
+        group    = event_dict['group']
+        pipeline = event_dict['pipeline']
+        search   = event_dict['search']
+        key = PipelineThrottle.generate_key(group, pipeline, search=search)
+        if queueByGraceID.has_key(key): ### a throttle already exists
+            item = queueByGraceID[key][0] ### we expect there to be only one item in this SortedQueue
+
+        else: ### we need to make a throttle!
+            ### need to extract these from the config file!
+            item = PipelineThrottle(t0, win, targetRate, group, pipeline, search=search, requireManualRestart=False, conf=0.9, graceDB_url=client)
+
+            queue.insert( item ) ### add to overall queue
+
+            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
+            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
+
+        item.add( (graceid, t0) ) ### add new event to throttle
+                                  ### this takes care of labeling in gracedb as necessary
+
+        if item.isThrottled(): 
+            ### send some warning message?
+            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
+
+        #----------------
+        ### pass data to Grouper
+        #----------------
+        raise Warning("Grouper is not implemented yet! we're currently skipping this step")
+
+        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
+
+
+    elif alert_type=='label':
         record_label(event_dict, description)
-        saveEventDicts(approval_processorMPfiles)
-        if description=='PE_READY':
+
+        if description=='PE_READY': ### PE_READY label was just applied. We may need to send an update alert
+
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 process_alert(event_dict, 'update', g, config, logger)
+
             else:
                 pass
+
             message = '{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'complete'
+
             else:
                 pass
-        elif description=='EM_READY':
+
+        elif description=='EM_READY': ### EM_READY label was just applied. We may need to send an initial alert
             message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 process_alert(event_dict, 'initial', g, config, logger)
+
             else:
                 pass
+
             message = '{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict, message)==False:
                 logger.info(message)
                 event_dict['currentstate'] = 'initial_to_update'
+
             else:
                 pass
 
-        elif (checkLabels(description.split(), config) > 0):
-            event_dict['currentstate'] = 'rejected'
-            voevents = sorted(event_dict['voevents'])
+        elif description=="Throttled": ### the evnet is throttled and we need to turn off all processing for it
+
+            event_dict['currentstate'] = 'throttled' ### update current state
+            
+            ### check if we need to send retractions
+            voevents = event_dict['voevents']
             if len(voevents) > 0:
-                if 'retraction' in voevents[-1]:
-                    return 0
-                # there are existing VOEvents we've sent, but no retraction alert
-                process_alert(event_dict, 'retraction', g, config, logger)
-        saveEventDicts(approval_processorMPfiles)
+                if 'retraction' not in sorted(voevents)[-1]:
+                    # there are existing VOEvents we've sent, but no retraction alert
+                    process_alert(event_dict, 'retraction', g, config, logger)
+
+            ### update ForgetMeNow expiration to handle all the clean-up            
+            for item in queueByGraceID[graceid]: ### update expiration of the ForgetMeNow so it is immediately processed next.
+                if item.name == ForgetMeNow.name:
+                    time.setExpiration(-np.infty, convertTime ) ### passing a function handle like this is BAD!
+                    break
+            else:
+                raise ValueError('could not find ForgetMeNow QueueItem for graceid=%s'%graceid)
+
+        elif description=="Selected": ### this event was selected by a Grouper 
+            raise NotImplementedError('write logic to handle \"Selected\" labels')
+
+        elif description=="Superceded": ### this event was superceded by another event within Grouper
+            raise NotImplementedError('write logic to handle \"Superceded" labels')
+
+        elif (checkLabels(description.split(), config) > 0): ### some other label was applied. We may need to issue a retraction notice.
+            event_dict['currentstate'] = 'rejected'
+
+            ### check to see if we need to send a retraction
+            voevents = event_dict['voevents']
+            if len(voevents) > 0:
+                if 'retraction' not in sorted(voevents[-1]):
+                    # there are existing VOEvents we've sent, but no retraction alert
+                    process_alert(event_dict, 'retraction', g, config, logger)
+
+        saveEventDicts(approval_processorMPfiles) ### save the updated eventDict to disk
         return 0
 
-    if alert_type=='update':
+    ### FIXME: Reed left off commenting here...
+
+    elif alert_type=='update':
         # first the case that we have a new lvem skymap
         if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
             if 'lvem' in alert['object']['tag_names']:
@@ -467,9 +544,11 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 else:
                     pass
 
-    if alert_type=='signoff':
+    elif alert_type=='signoff':
         signoff_object = alert['object']
         record_signoff(event_dict, signoff_object)
+
+    #---------------------------------------------
 
     # run checks specific to currentstate of the event candidate
     passedcheckcount = 0
@@ -1220,7 +1299,7 @@ def resend_alert():
     g = GraceDb('{0}'.format(client))
 
     # set up logger
-    loadLogger(config)
+    logger = loadLogger(config)
 
     # prompt for graceid
     graceid = str(raw_input('graceid:\n'))

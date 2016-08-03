@@ -4,6 +4,10 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 #-------------------------------------------------
 
 from ligoMP.lvalert import lvalertMPutils as utils
+from ligo.gracedb.rest import GraceDb
+
+import time
+
 import numpy as np
 
 #-------------------------------------------------
@@ -32,11 +36,18 @@ class ForgetMeNow(utils.QueueItem):
         updates the expiration of all tasks as well as of the QueueItem itself.
         we overwrite the parent's function because we also touch the event_dict
         '''
-#        super(ForgetMeNow, self).setExpiration() ### delegate to parent to touch tasks and self.expiration -XXX throws an error: super has no attribute setExpiration()
-        self.convertTime = convertTime
-        for task in self.tasks:
-            task.setExpiration(t0) ### update expiration of each task
-        self.sortTasks() ### sorting tasks in the QueueItem. This automatically updates self.expiration
+        super(ForgetMeNow, self).setExpiration() ### delegate to parent to touch tasks and self.expiration
+                                                 ### if this throws an error, you need to update your version of lvalertMP
+
+        ### why are we storing this? it is only called within this function and no one else needs it...
+        self.convertTime = convertTime ### FIXME: this is not great and is caused by poor organization. 
+                                       ### Functions like this that are needed in multiple modules and which have essentially no dependences should be defined in little modules that everyone can import
+                                       ### rather than passed as arguments. This essentially means that only approval_processorMPutils can use this item. Although that's the expected use case, we shouldn't
+                                       ### contrive the code such that this *must* be the case.
+#        for task in self.tasks:
+#            task.setExpiration(t0) ### update expiration of each task
+#        self.sortTasks() ### sorting tasks in the QueueItem. This automatically updates self.expiration
+
         self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration)) ### records the expiration in local memory
 
 class RemoveFromEventDicts(utils.Task):
@@ -56,6 +67,7 @@ class RemoveFromEventDicts(utils.Task):
         """
         removes graceID event dictionary from self.event_dicts
         """
+        ### FIXME: how will this know what convertTime() is? It isn't defined and it isn't passed in
         self.logger.info('{0} -- {1} -- Removing event dictionary upon expiration time.'.format(convertTime(), self.graceid)) ### record that we're removing this
         self.event_dicts.pop(self.graceid) ### remove the graceid from the dict of dicts
 
@@ -94,96 +106,50 @@ class PipelineThrottle(utils.QueueItem):
     '''
     A throttle that determines which events approval processor will actually track.
     This is implemented so that pipelines which are behaving badly do not trigger alerts.
-    All the actual manipulations of events and decision making are delegated to this class's single task: Throttle(lvalerMPutils.Task)
+    We delegate the task of updating the list of events upon expiration to this class's single task: Throttle(lvalerMPutils.Task)
+    The decision making and applying labels, etc. is handled within *this* class. 
+    In particular, .add() checks for state changes and applies labels as needed.
 
     assigns group_pipeline[_search] to self.graceid for easy lookup and management within queueByGraceID
-
-    NOTE: we overwrite execute() and don't use the parent's __init__
-        This means things may be fragile...
     '''
     name = 'pipeline throttle'
 
-    def __init__(self, t0, win, targetRate, group, pipeline, search=None, requireManualRestart=False, conf=0.9):
+    def __init__(self, t0, win, targetRate, group, pipeline, search=None, requireManualRestart=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
         ### record data about the pipeline (equivalently, the lvalert node)
         self.group    = group
         self.pipeline = pipeline
         self.search   = search
 
         ### set self.graceid for easy lookup and automatic management
-        self.graceid = "%s_%s"%(group, pipeline)
-        if search:
-            self.graceid = "%s_%s"%(self.graceid, search)
+        self.graceid = self.generate_key(group, pipeline, search)
 
         self.description = "a throttle on the events approval processor will react to from %s_%s"%(group, self.graceid)
 
-        tasks = [Throttle(win, targetRate, conf=conf, requireManualRestart=requireManualRestart) ### there is only one task!
-                ]
-        super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
+        self.events = [] ### list managed by Throttle task
 
-    def add(self, graceid_data):
-        '''
-        adds a graceid to the ManagePipelineThrottleEvents task
-        delegates to the task
-        '''
-        self.tasks[0].add( graceid_data ) ### only one task!
-
-    def pop(self, ind=0):
-        '''
-        removes a graceid from the ManagePipelineThrottleEvents task and returns it
-        delegates to the task
-        '''
-        return self.tasks[0].pop( ind ) ### only one task!
-
-    def reset(self):
-        '''
-        reset the throttle
-        delegates to the task
-        '''
-        self.tasks[0].reset()
-
-    def isThrottled(self):
-        '''
-        determines if this pipeline is throttled
-        delegates to the task
-        '''
-        return self.tasks[0].isThrottled()
-
-    def execute(self, verbose=False):
-        '''
-        manage internal data, removing old events if necessary
-        we overwrite the parent's method because we don't want to move the task to completedTasks after execution
-        '''
-        task = self.tasks[0] ### there is only one task!
-        if task.hasExpired():
-            task.execute( verbose=verbose )
-        self.expiration = task.expiration
-
-class Throttle(utils.Task):
-    '''
-    FILL ME IN
-
-    the task associated with PipelineThrottle
-
-    sets expiration to the oldes event in events + win
-      when expired, we pop all evnets older than now-win and re-set expiration.
-      if there are no events, we set expiration to infty so it doesn't get cleaned up
-
-    note: using this Task to update something in PipelineThrottle is perhaps convoluted and stupid. Maybe Reed should re-think that design choice?
-    '''
-    name = 'throttle'
-    description = 'a task that manages which events are tracked as part of the PipelineThrottle'
-
-    def __init__(self, win, targetRate, conf=0.9, requireManualReset=False):
         self.win        = win ### the window over which we track events
         self.targetRate = targetRate ### the target rate at which we expect events
         self.conf       = conf ### determines the upper limit on the acceptable number of events in win via a poisson one-sided confidence interval
 
-        self.computeNthr() ### compute the threshold number of events assuming a poisson process
+        self.computeNthr()
 
-        self.requireManualRestart = requireManualRestart
+        self.throttled = False
 
-        self.events = [] ### list of data we're tracking
-        super(Throttle, self).__init__(win, self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+        self.graceDB = GraceDB( graceDB_url )
+
+        tasks = [Throttle(events, requireManualRestart=requireManualRestart) ### there is only one task!
+                ]
+        super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
+
+    def generate_key(group, pipeline, search=None):
+        """
+        computes the key assigned to self.graceid based on group, pipelin, and search
+        encapsulated this way so we can call it elsewhere as well
+        """
+        key = "throttle-%s_%s"%(group, pipeline)
+        if search:
+            key = "%s_%s"%(key, search)
+        return key
 
     def computeNthr(self):
         '''
@@ -236,41 +202,143 @@ class Throttle(utils.Task):
         else:
             return 0.5*np.log(np.pi*2*n) + n*np.log(n) - n
 
-    def manageEvents(self):
-        '''
-        actually manage the events that are being tracked
-        '''
-        raise NotImplementedError('write ManagePipelineThrottleEvents.manageEvents')
-
-    def add(self, graceid_data):
+    def add(self, graceid, t0):
         '''
         adds a graceid to self.events and keeps them ordered
+        Checks for state changes of self.throttled and applies labels in GraceDB as necessary
         '''
-        raise NotImplementedError
+        for i, (_, t1) in enumerate(self.events): ### insert in order
+            if t0 < t1:
+                self.events.insert( i, (graceid, t0) )
+                break
+        else:
+            self.events.append( (graceid, t0) )
+
+        throttled = len(self.events) > self.Nthr
+        if throttled and self.throttled: ### we are already throttled, so we just label the new graceid
+            self.labelAsThrottled( graceid )
+ 
+        elif throttled: ### we were not throttled, but now we are, so we label everything as throttled.
+            for graceid, _ in self.events:
+                self.labelAsThrottled( graceid )
+ 
+        self.throttled = throttled
+
+    def labelAsThrottled(self, graceid):
+        """
+        attempts to label the graceid as "Throttled"
+        """
+        try:
+            self.gdb.writeLable( graceid, "Throttled" )
+        except:
+            pass ### FIXME: print some intelligent error message here!
 
     def pop(self, ind=0):
         '''
         removes a graceid from self.events and returns it
         '''
-        raise NotImplementedError
+        data = self.events.pop( ind )
+        self.throttled = len(self.events) > self.Nthr
+        return data
 
     def reset(self):
         '''
-        resets the throttle
+        resets the throttle (sets self.events = [])
         '''
-        raise NotImplementedError
+        self.events = []
+        self.throttled = False
+
+    def isThrottled(self):
+        '''
+        determines if this pipeline is throttled
+        delegates to the task
+        '''
+        return self.throttled
+
+    def execute(self, verbose=False):
+        '''
+        manage internal data, removing old events if necessary
+        we overwrite the parent's method because we don't want to move the task to completedTasks after execution unless there are no more events to be tracked
+        '''
+        task = self.tasks[0] ### there is only one task!
+        if task.hasExpired():
+            task.execute( verbose=verbose )
+        self.expiration = task.expiration ### update expiration
+        self.complete = len(events)==0 ### complete only if there are no more events being tracked
+
+class Throttle(utils.Task):
+    '''
+    the task associated with PipelineThrottle
+
+    sets expiration to the oldest event in events + win
+      when expired, we pop all events older than now-win and re-set expiration.
+      if there are no events, we set expiration to infty so it doesn't get cleaned up
+      NOTE: we may want to allow the queue to clean up the throttles so they don't hang around if they're empty. This is a design choice...
+
+    note: using this Task to update something in PipelineThrottle is perhaps convoluted and stupid. Maybe Reed should re-think that design choice?
+    '''
+    name = 'throttle'
+    description = 'a task that manages which events are tracked as part of the PipelineThrottle'
+
+    def __init__(self, events, requireManualReset=False):
+        self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
+
+        self.computeNthr() ### compute the threshold number of events assuming a poisson process
+
+        self.requireManualRestart = requireManualRestart
+
+        super(Throttle, self).__init__(win, self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+
+    def manageEvents(self):
+        '''
+        actually manage the events that are being tracked
+        this is called from execute() and will remove events from the known set
+        the exception is if we are already throttled and we require manual reset. 
+        Then we update expiration to infty and hold onto all events.
+        '''
+        ### if we are not already throttled and require manual reset, we forget about events that are old enough
+        if not (self.isThrottled() and self.requireManualReset):
+            t = time.time() - self.win ### cut off for what is "too old"
+            while len(self.events):
+                graceid, t0 = self.events.pop(0)
+                if t0 > t: ### event is recent enough that we still care about it
+                    self.events.insert(0, (graceid, t0) ) ### add it back in 
+                    break
+        self.setExpiration()
 
     def setExpiration(self, t0):
         '''
         sets expiration based on t0 and internal data (self.win and self.events)
         '''
-        raise NotImplementedError
+        if self.isThrottled() and self.requireManualReset: ### we don't expire because we don't forget old events
+            self.expiration = np.infty
 
-    def isThrottled(self):
-        '''
-        determines if we are throttled
-        '''
-        raise NotImplementedError
+        elif self.events: ### we do forget old events and there are events being tracked
+            self.expiration = self.events[0][-1] + self.win
+
+        else: ### no events, set expiration so this goes away quickly
+            self.expiration = -np.infty
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #-------------------------------------------------
 # Grouper
