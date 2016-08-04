@@ -8,6 +8,7 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 from queueItemsAndTasks import * ### DANGEROUS! but should be ok here...
 
 from ligoMP.lvalert import lvalertMPutils as utils
+from ligoMP.lvalert.commands import parseCommand
 from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
@@ -214,6 +215,9 @@ def loadConfig():
 def parseAlert(queue, queueByGraceID, alert, t0, config):
     '''
     the way approval_processorMP digests lvalerts
+
+    --> check if this alert is a command and delegate to parseCommand
+
     1) instantiates GraceDB client
     2) pulls childConfig settings
     3) makes sure we have the logger
@@ -221,6 +225,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     5) ensure we have the event_dict for the graceid = lvalert['uid']
     6) take proper action depending on the lvalert info coming in and currentstate of the event_dict 
     '''
+
+    #-------------------------------------------------------------------
+    # process commands sent via lvalert_commandMP
+    #-------------------------------------------------------------------
+
+    if alert['uid'] == 'command': ### this is a command message!
+        return parseCommand( queue, queueByGraceID, alert, t0) ### delegate to parseCommand and return
+
     #-------------------------------------------------------------------
     # extract relevant config parameters and set up necessary data structures
     #-------------------------------------------------------------------
