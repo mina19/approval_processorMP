@@ -844,6 +844,8 @@ def farCheck(event_dict, client, config, logger):
 # labelCheck
 #-----------------------------------------------------------------------
 def checkLabels(labels, config):
+
+    ### FIXME: we also need to add 'Throttled' and 'Superseded' to the lists of bad labels...
     hardware_inj = config.get('labelCheck', 'hardware_inj')
     if hardware_inj == 'yes':
         badlabels = ['DQV']
