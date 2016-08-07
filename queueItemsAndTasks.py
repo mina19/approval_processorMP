@@ -261,16 +261,18 @@ class PipelineThrottle(utils.QueueItem):
         '''
         return self.throttled
 
-    def execute(self, verbose=False):
-        '''
-        manage internal data, removing old events if necessary
-        we overwrite the parent's method because we don't want to move the task to completedTasks after execution unless there are no more events to be tracked
-        '''
-        task = self.tasks[0] ### there is only one task!
-        if task.hasExpired(): ### NOTE: we can't just delegate to the parent's execute method because we do not necessarily want the task to be migrated to completedTasks
-            task.execute( verbose=verbose )
-        self.expiration = task.expiration ### update expiration
-        self.complete = len(events)==0 ### complete only if there are no more events being tracked
+     ### we can get away with just delgating to the parent
+#    def execute(self, verbose=False):
+#        '''
+#        manage internal data, removing old events if necessary
+#        we overwrite the parent's method because we don't want to move the task to completedTasks after execution unless there are no more events to be tracked
+#        '''
+#        task = self.tasks[0] ### there is only one task!
+#        if task.hasExpired(): ### NOTE: we can't just delegate to the parent's execute method because we do not necessarily want the task to be migrated to completedTasks
+#            task.execute( verbose=verbose )
+#        self.expiration = task.expiration ### update expiration
+#
+#        self.complete = len(events)==0 ### complete only if there are no more events being tracked
 
 class Throttle(utils.Task):
     '''
