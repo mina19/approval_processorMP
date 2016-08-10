@@ -135,7 +135,7 @@ class PipelineThrottle(utils.QueueItem):
         self.search   = search
 
         ### set self.graceid for easy lookup and automatic management
-        self.graceid = self.generate_ThrottleKey(group, pipeline, search)
+        self.graceid = generate_ThrottleKey(group, pipeline, search)
 
         self.description = "a throttle on the events approval processor will react to from %s_%s"%(group, self.graceid)
 
