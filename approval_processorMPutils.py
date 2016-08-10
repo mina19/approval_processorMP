@@ -540,7 +540,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             else:
                 pass
 
-        elif description=="Throttled": ### the event is throttled and we need to turn off all processing for it
+        elif description=="EM_Throttled": ### the event is throttled and we need to turn off all processing for it
 
             event_dict['currentstate'] = 'throttled' ### update current state
             
@@ -564,10 +564,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 #            else:
 #                raise ValueError('could not find ForgetMeNow QueueItem for graceid=%s'%graceid)
 
-        elif description=="Selected": ### this event was selected by a Grouper 
+        elif description=="EM_Selected": ### this event was selected by a Grouper 
             raise NotImplementedError('write logic to handle \"Selected\" labels')
 
-        elif description=="Superseded": ### this event was superceded by another event within Grouper
+        elif description=="EM_Superseded": ### this event was superceded by another event within Grouper
             raise NotImplementedError('write logic to handle \"Superseded" labels')
 
         elif (checkLabels(description.split(), config) > 0): ### some other label was applied. We may need to issue a retraction notice.
