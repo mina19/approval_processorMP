@@ -432,7 +432,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         group    = event_dict['group']
         pipeline = event_dict['pipeline']
         search   = event_dict['search']
-        key = PipelineThrottle.generate_key(group, pipeline, search=search)
+        key = generate_ThrottleKey(group, pipeline, search=search)
         if queueByGraceID.has_key(key): ### a throttle already exists
             if len(queueByGraceID[key]) > 1:
                 raise ValueError('too many QueueItems in SortedQueue for pipelineThrottle key=%s'%key)

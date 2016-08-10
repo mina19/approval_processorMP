@@ -102,6 +102,18 @@ class CleanUpQueue(utils.Task):
 # NOTE: this will not stop GraceDB from crashing but it will prevent approval processor from being overloaded
 #-------------------------------------------------
 
+def generate_ThrottleKey(group, pipeline, search=None):
+    """
+    computes the key assigned to self.graceid based on group, pipelin, and search
+    encapsulated this way so we can call it elsewhere as well
+
+    NOTE: we define this outside of the PipelineThrottle class because we need it without having access to an actual instance
+    """
+    if search:
+        return "%s_%s_%s"%(group, pipeline, search)
+    else:
+        return "%s_%s"%(group, pipeline)
+
 class PipelineThrottle(utils.QueueItem):
     '''
     A throttle that determines which events approval processor will actually track.
@@ -123,7 +135,7 @@ class PipelineThrottle(utils.QueueItem):
         self.search   = search
 
         ### set self.graceid for easy lookup and automatic management
-        self.graceid = self.generate_key(group, pipeline, search)
+        self.graceid = self.generate_ThrottleKey(group, pipeline, search)
 
         self.description = "a throttle on the events approval processor will react to from %s_%s"%(group, self.graceid)
 
@@ -142,16 +154,6 @@ class PipelineThrottle(utils.QueueItem):
         tasks = [Throttle(events, win, requireManualRestart=requireManualRestart) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
-
-    def generate_key(group, pipeline, search=None):
-        """
-        computes the key assigned to self.graceid based on group, pipelin, and search
-        encapsulated this way so we can call it elsewhere as well
-        """
-        if search:
-            return "%s_%s_%s"%(group, pipeline, search)
-        else: 
-            return "%s_%s"%(group, pipeline)
 
     def computeNthr(self):
         '''
