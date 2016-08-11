@@ -49,20 +49,22 @@ eventDicts = {} # it's a dictionary storing data in the form 'graceid': event_di
 
 
 ### FIXME: what purpose does the class really serve? Why can't the two methods just be functions that are called? If the class is to remain, it makes more sense for it to possess it's own attributes that are updated. This can still be accomplished with a dictionary and appropriate look-up functions, as well as methods for filling in the values when data is available. However, we would then instantiate instances of this class for each GraceID and assign pointers to those instances to the values in eventDicts. This is *not* what currently happens, which is confusing because the existence of a class strongly suggests that is what was intended.
-class EventDict:
+class EventDict():
     '''
     creates an event_dict for each event candidate to keep track of checks, files, comments, labels coming in
     '''
-    def __init__(self, dictionary, graceid, configdict):
-        self.dictionary = dictionary ### a dictionary either extracted from a lvalert or from a call to ligo.gracedb.rest.GraceDb.event(self.graceid)
-        self.graceid    = graceid
-        self.configdict = configdict ### stores settings used 
+    def __init__(self):
+        self.data = {} # create a blank dictionary that gets populated later
 
-    def createDict(self):
-        '''
-        creates an event_dict for event candidate with self.graceid in the currentstate 'new_to_preliminary'
-        '''
-        eventDicts[self.graceid] = {
+    def __getitem__(self, key):
+        self.key = key
+        return self.data[self.key]
+
+    def setup(self, dictionary, graceid, configdict):
+        self.dictionary = dictionary # a dictionary either extracted from an lvalert or from a call to graceDb
+        self.graceid = graceid
+        self.configdict = configdict # stores settings used
+        self.data.update({
             'advocate_signoffCheckresult': None,
             'advocatelogkey'             : 'no',
             'advocatesignoffs'           : [],
@@ -95,30 +97,27 @@ class EventDict:
             'pipeline'                   : self.dictionary['pipeline'],
             'search'                     : self.dictionary['search'] if self.dictionary.has_key('search') else '',
             'voeventerrors'              : [],
-            'voevents'                   : [],
-        }
+            'voevents'                   : []
+        })
 
-    def updateDict(self):
+    def update(self, client):
         '''
         creates an event_dict with signoff and iDQ information for self.graceid
         this event_dict starts off with currentstate new_to_preliminary
         '''
-        client = self.configdict['client']
-        g = GraceDb(client) # need the client to query GraceDB for updated information
-        event_dict = EventDict(g.events(self.graceid).next(), self.graceid, self.configdict).createDict() # creates a dictionary using the creatDict method
-        event_dict = eventDicts[self.graceid]
+        self.client = client
 
         # update signoff information if available
-        url = g.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
-        signoff_list = g.get(url).json()['signoff'] # pull down signoff list
+        url = self.client.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
+        signoff_list = self.client.get(url).json()['signoff'] # pull down signoff list
         for signoff_object in signoff_list:
-            record_signoff(event_dict, signoff_object)
+            record_signoff(self.data, signoff_object)
 
         # update iDQ information if available
-        log_dicts = g.logs(self.graceid).json()['log']
+        log_dicts = self.client.logs(self.graceid).json()['log']
         for message in log_dicts:
             if re.match('minimum glitch-FAP', message['comment']):
-                record_idqvalues(event_dict, message['comment'], logger)
+                record_idqvalues(self.data, message['comment'], logger)
             else:
                 pass
 
@@ -308,10 +307,11 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     if alert_type=='new': ### new event -> we must first create event_dict and set up ForgetMeNow queue item
 
         ### create event_dict
-        EventDict( alert['object'], graceid, configdict ).createDict() # create event_dict for event candidate
-        event_dict = eventDicts[graceid] # get event_dict with expirationtime key updated for the rest of parseAlert
+        event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
+        event_dict.setup(alert['object'], graceid, configdict) # populate this event_dict with information from lvalert
+        eventDicts[graceid] = event_dict # add this event_dict to the global eventDicts
 
-        ### create ForgetMeNow queue item
+        ### ForgetMeNow queue item
         item = ForgetMeNow( t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
         queue.insert(item) # add queue item to the overall queue
 
@@ -346,10 +346,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                                                                             ### we want the process to terminate if things are not set up correctly to force us to fix it
 
         else: # event_dict for event candidate does not exist. we need to create it with up-to-date information
-
-            # query gracedb to get information
-            EventDict( g.events(graceid).next(), graceid, configdict).updateDict()
-            event_dict = eventDicts[graceid]
+            event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
+            event_dict.setup(g.events(graceid).next(), graceid, configdict) # fill in event_dict using queried event candidate dictionary
+            event_dict.update(g) # update the event_dict with signoffs and iDQ info
+            eventDicts[graceid] = event_dict # add event_dict to the global eventDicts
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
