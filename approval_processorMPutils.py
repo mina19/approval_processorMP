@@ -145,7 +145,7 @@ def saveEventDicts(approval_processorMPfiles):
         file_obj.write('{0}\n'.format(graceid))
         event_dict = eventDicts[graceid]
 
-        for key in sorted(event_dict.keys()): ### iterate through keys for this graceid
+        for key in sorted(event_dict.data.keys()): ### iterate through keys for this graceid
             if key!='loggermessages':
                 file_obj.write('    {0}: {1}\n'.format(key, event_dict[key]))
         file_obj.write('\n')
@@ -310,6 +310,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
         event_dict.setup(alert['object'], graceid, configdict) # populate this event_dict with information from lvalert
         eventDicts[graceid] = event_dict # add this event_dict to the global eventDicts
+        saveEventDicts(approval_processorMPfiles)
 
         ### ForgetMeNow queue item
         item = ForgetMeNow( t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
