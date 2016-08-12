@@ -149,9 +149,10 @@ class PipelineThrottle(utils.QueueItem):
 
         self.throttled = False
 
-        self.graceDB = GraceDB( graceDB_url )
+        self.graceDB = GraceDb( graceDB_url )
+        self.requireManualRestart = requireManualRestart
 
-        tasks = [Throttle(events, win, requireManualRestart=requireManualRestart) ### there is only one task!
+        tasks = [Throttle(self.events, win, requireManualRestart = self.requireManualRestart) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
 
@@ -175,7 +176,7 @@ class PipelineThrottle(utils.QueueItem):
         ### set up direct iteration
         k = self.targetRate*self.win
         self.Nthr = 0
-        logProb = self.__logProb__(n, k)
+        logProb = self.__logProb__(self.Nthr, k)
         logConf = np.log(self.conf)
 
         ### integrate
@@ -188,7 +189,7 @@ class PipelineThrottle(utils.QueueItem):
         take the sum of logarithms to high precision
         '''
         logs = np.array(logs)
-        maxLog = np.max(logs)
+        maxLogs = np.max(logs)
         return np.log( np.sum( np.exp( logs-maxLogs ) ) ) + maxLogs
 
     def __logProb__(self, n, k):
@@ -202,7 +203,7 @@ class PipelineThrottle(utils.QueueItem):
         return the log of a factorial, using Stirling's approximation if n >= 100
         '''
         if n < 100:
-            return np.log( np.factorial(n) )
+            return np.log( np.math.factorial(n) )
         else:
             return 0.5*np.log(np.pi*2*n) + n*np.log(n) - n
 
@@ -287,7 +288,7 @@ class Throttle(utils.Task):
     name = 'throttle'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
-    def __init__(self, events, win, requireManualReset=False):
+    def __init__(self, events, win, requireManualRestart=False):
         self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
 
         self.computeNthr() ### compute the threshold number of events assuming a poisson process
