@@ -145,7 +145,7 @@ def saveEventDicts(approval_processorMPfiles):
         file_obj.write('{0}\n'.format(graceid))
         event_dict = eventDicts[graceid]
 
-        for key in sorted(event_dict.data.keys()): ### iterate through keys for this graceid
+        for key in sorted(event_dict.keys()): ### iterate through keys for this graceid
             if key!='loggermessages':
                 file_obj.write('    {0}: {1}\n'.format(key, event_dict[key]))
         file_obj.write('\n')
@@ -309,8 +309,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         ### create event_dict
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
         event_dict.setup(alert['object'], graceid, configdict) # populate this event_dict with information from lvalert
+        event_dict = event_dict.data # getting the event_dict we made in this instance
         eventDicts[graceid] = event_dict # add this event_dict to the global eventDicts
-        saveEventDicts(approval_processorMPfiles)
 
         ### ForgetMeNow queue item
         item = ForgetMeNow( t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
@@ -320,6 +320,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
         newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
         queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
+        saveEventDicts(approval_processorMPfiles) # trying to see if expirationtime is updated from None
 
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
         if loggerCheck(event_dict, message)==False: ### FIXME? Reed still isn't convinced 'loggerCheck' is a good idea and thinks we should just print everything, always. ### Mina disagrees here; without the loggerCheck there are sometimes the same messages printed ten, twenty times but out of order. very hard to read the logger and understand the event candidate
@@ -350,6 +351,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
             event_dict.setup(g.events(graceid).next(), graceid, configdict) # fill in event_dict using queried event candidate dictionary
             event_dict.update(g) # update the event_dict with signoffs and iDQ info
+            event_dict = event_dict.data # getting the dictionary made in the EventDict class instance
             eventDicts[graceid] = event_dict # add event_dict to the global eventDicts
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
@@ -441,7 +443,19 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         else: ### we need to make a throttle!
 
-            raise NotImplementedError('need to extract parameters for PipelineThrottle from config file!')
+            #raise NotImplementedError('need to extract parameters for PipelineThrottle from config file!')
+            # pull PipelineThrottle parameters from the config
+            if config.has_section(key):
+                throttleWin          = config.getfloat(key, 'throttleWin')
+                targetRate           = config.getfloat(key, 'targetRate')
+                requireManualRestart = config.get(key, 'requireManualRestart')
+                conf                 = config.getfloat(key, 'conf')
+
+            else:
+                throttleWin          = config.getfloat('default_PipelineThrottle', 'throttleWin')
+                targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
+                requireManualRestart = config.get('default_PipelineThrottle', 'requireManualRestart')
+                conf                 = config.getfloat('default_PipelineThrottle', 'conf')
 
             item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualRestart=False, conf=0.9, graceDB_url=client)
 
@@ -478,7 +492,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 if item.isOpen():
                     break ### this Grouper is still open, so we'll just use it
             else: ### no Groupers are open, so we need to create one
-                item = Groupter(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
                 queue.insert( item ) ### insert it in the overall queue
 
