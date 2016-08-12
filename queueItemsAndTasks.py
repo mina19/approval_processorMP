@@ -98,8 +98,8 @@ class CleanUpQueue(utils.Task):
 
 #-------------------------------------------------
 # PipelineThrottle
-# used to ignore certain pipelines when they submit too many events to GraceDB. 
-# NOTE: this will not stop GraceDB from crashing but it will prevent approval processor from being overloaded
+# used to ignore certain pipelines when they submit too many events to GraceDb. 
+# NOTE: this will not stop GraceDb from crashing but it will prevent approval processor from being overloaded
 #-------------------------------------------------
 
 def generate_ThrottleKey(group, pipeline, search=None):
@@ -128,7 +128,7 @@ class PipelineThrottle(utils.QueueItem):
     '''
     name = 'pipeline throttle'
 
-    def __init__(self, t0, win, targetRate, group, pipeline, search=None, requireManualRestart=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
+    def __init__(self, t0, win, targetRate, group, pipeline, search=None, requireManualReset=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
         ### record data about the pipeline (equivalently, the lvalert node)
         self.group    = group
         self.pipeline = pipeline
@@ -137,7 +137,7 @@ class PipelineThrottle(utils.QueueItem):
         ### set self.graceid for easy lookup and automatic management
         self.graceid = generate_ThrottleKey(group, pipeline, search)
 
-        self.description = "a throttle on the events approval processor will react to from %s_%s"%(group, self.graceid)
+        self.description = "a throttle on the events approval processor will react to from %s"%(self.graceid)
 
         self.events = [] ### list managed by Throttle task
 
@@ -145,14 +145,11 @@ class PipelineThrottle(utils.QueueItem):
         self.targetRate = targetRate ### the target rate at which we expect events
         self.conf       = conf ### determines the upper limit on the acceptable number of events in win via a poisson one-sided confidence interval
 
-        self.computeNthr()
-
-        self.throttled = False
+        self.computeNthr() ### sets self.Nthr
 
         self.graceDB = GraceDb( graceDB_url )
-        self.requireManualRestart = requireManualRestart
 
-        tasks = [Throttle(self.events, win, requireManualRestart = self.requireManualRestart) ### there is only one task!
+        tasks = [Throttle(self.events, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
 
@@ -207,11 +204,19 @@ class PipelineThrottle(utils.QueueItem):
         else:
             return 0.5*np.log(np.pi*2*n) + n*np.log(n) - n
 
-    def add(self, graceid, t0):
+    def isThrottled(self):
+        '''
+        determines if this pipeline is throttled
+        delegates to the task
+        '''
+        return self.tasks[0].isThrottled()
+
+    def addEvent(self, graceid, t0):
         '''
         adds a graceid to self.events and keeps them ordered
-        Checks for state changes of self.throttled and applies labels in GraceDB as necessary
+        Checks for state changes of self.throttled and applies labels in GraceDb as necessary
         '''
+        wasThrottled = self.isThrottled() ### figure out if we're already throttled before adding event
         for i, (_, t1) in enumerate(self.events): ### insert in order
             if t0 < t1:
                 self.events.insert( i, (graceid, t0) )
@@ -223,24 +228,22 @@ class PipelineThrottle(utils.QueueItem):
         ### (note, we expect events to come in in order, so we shouldn't ever have to set the expiration to earlier than it was before...)
         ### or expiration is already infty, in which case we require a manual reset anyway
 
-        throttled = len(self.events) > self.Nthr
-        if throttled and self.throttled: ### we are already throttled, so we just label the new graceid
+        if wasThrottled: ### we are already throttled, so we just label the new graceid
             self.labelAsThrottled( graceid )
  
-        elif throttled: ### we were not throttled, but now we are, so we label everything as throttled.
+        elif self.isThrottled: ### we were not throttled, but now we are, so we label everything as throttled.
             for graceid, _ in self.events:
                 self.labelAsThrottled( graceid )
  
-        self.throttled = throttled
         self.complete = False ### there is now at least one item being tracked
                               ### FIXME: need pointer to queue and queueByGraceID to update complete attribute
 
     def labelAsThrottled(self, graceid):
         """
-        attempts to label the graceid as "Throttled"
+        attempts to label the graceid as "EM_Throttled"
         """
         try:
-            self.gdb.writeLable( graceid, "Throttled" )
+            self.gdb.writeLabel( graceid, "EM_Throttled" )
         except:
             pass ### FIXME: print some intelligent error message here!
 
@@ -254,7 +257,6 @@ class PipelineThrottle(utils.QueueItem):
         An equivalent proceedure is to reset() is to remove the QueueItem from all SortedQueues. If a new event comes in, we will create a replacement
         '''
         self.events = []
-        self.throttled = False
         self.execute( verbose=False )
 
     def isThrottled(self):
@@ -262,20 +264,7 @@ class PipelineThrottle(utils.QueueItem):
         determines if this pipeline is throttled
         delegates to the task
         '''
-        return self.throttled
-
-     ### we can get away with just delgating to the parent
-#    def execute(self, verbose=False):
-#        '''
-#        manage internal data, removing old events if necessary
-#        we overwrite the parent's method because we don't want to move the task to completedTasks after execution unless there are no more events to be tracked
-#        '''
-#        task = self.tasks[0] ### there is only one task!
-#        if task.hasExpired(): ### NOTE: we can't just delegate to the parent's execute method because we do not necessarily want the task to be migrated to completedTasks
-#            task.execute( verbose=verbose )
-#        self.expiration = task.expiration ### update expiration
-#
-#        self.complete = len(events)==0 ### complete only if there are no more events being tracked
+        return self.tasks[0].isThrottled()
 
 class Throttle(utils.Task):
     '''
@@ -288,14 +277,20 @@ class Throttle(utils.Task):
     name = 'throttle'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
-    def __init__(self, events, win, requireManualRestart=False):
+    def __init__(self, events, win, Nthr, requireManualReset=False):
         self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
 
-        self.computeNthr() ### compute the threshold number of events assuming a poisson process
+        self.Nthr = Nthr
 
-        self.requireManualRestart = requireManualRestart
+        self.requireManualReset = requireManualReset
 
         super(Throttle, self).__init__(win, self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+
+    def isThrottled(self):
+        '''
+        return len(self.events) > self.Nthr
+        '''
+        return len(self.events) > self.Nthr
 
     def manageEvents(self):
         '''
@@ -419,7 +414,7 @@ class DefineGroup(utils.Task):
 
     def decide(self, verbose=False):
         '''
-        decide which event is preferred and "create the group" in GraceDB
+        decide which event is preferred and "create the group" in GraceDb
 
         the actual decision making process is delegated to self.choose, which compares pairs of graceid's and picks one it prefers
 

@@ -465,8 +465,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
             queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
 
-        item.add( (graceid, t0) ) ### add new event to throttle
-                                  ### this takes care of labeling in gracedb as necessary
+        item.addEvent( (graceid, t0) ) ### add new event to throttle
+                                       ### this takes care of labeling in gracedb as necessary
 
         if item.isThrottled(): 
             ### send some warning message?
