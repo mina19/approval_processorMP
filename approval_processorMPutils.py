@@ -448,13 +448,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             if config.has_section(key):
                 throttleWin          = config.getfloat(key, 'throttleWin')
                 targetRate           = config.getfloat(key, 'targetRate')
-                requireManualRestart = config.get(key, 'requireManualRestart')
+                requireManualReset = config.get(key, 'requireManualReset')
                 conf                 = config.getfloat(key, 'conf')
 
             else:
                 throttleWin          = config.getfloat('default_PipelineThrottle', 'throttleWin')
                 targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
-                requireManualRestart = config.get('default_PipelineThrottle', 'requireManualRestart')
+                requireManualReset = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
 
             item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
