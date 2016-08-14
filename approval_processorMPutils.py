@@ -456,65 +456,65 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
                 requireManualReset = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
+            pass  
+#            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
 
-            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
+#            queue.insert( item ) ### add to overall queue
 
-            queue.insert( item ) ### add to overall queue
+#            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
+#            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+#            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
 
-            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
-            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
-            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
-
-        item.addEvent( (graceid, t0) ) ### add new event to throttle
+#        item.addEvent( (graceid, t0) ) ### add new event to throttle
                                        ### this takes care of labeling in gracedb as necessary
 
-        if item.isThrottled(): 
+#        if item.isThrottled(): 
             ### send some warning message?
-            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
+#            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
 
         #----------------
         ### pass data to Grouper
         #----------------
-        raise Warning("Grouper is not implemented yet! we're currently using a temporate groupTag and prototype code")
+#        raise Warning("Grouper is not implemented yet! we're currently using a temporate groupTag and prototype code")
 
         '''
         need to extract groupTag from group_pipeline[_search] mapping. 
             These associations should be specified in the config file, so we'll have to specify this somehow.
             probably just a "Grouper" section, with (option = value) pairs that look like (groupTag = nodeA nodeB nodeC ...)
         '''
-        groupTag = 'TEMPORARY'
+#        groupTag = 'TEMPORARY'
 
         ### check to see if Grouper exists for this groupTag
-        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
+#        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
 
             ### determine if any of the existing Groupers are still accepting new triggers
-            for item in queueByGraceID[groupTag]:
-                if item.isOpen():
-                    break ### this Grouper is still open, so we'll just use it
-            else: ### no Groupers are open, so we need to create one
-                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+#            for item in queueByGraceID[groupTag]:
+#                if item.isOpen():
+#                    break ### this Grouper is still open, so we'll just use it
+#            else: ### no Groupers are open, so we need to create one
+#                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
-                queue.insert( item ) ### insert it in the overall queue
+#                queue.insert( item ) ### insert it in the overall queue
 
-                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-                newSortedQueue.insert(item)
-                queueByGraceID[groupTag] = newSortedQueue  
+#                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+#                newSortedQueue.insert(item)
+#                queueByGraceID[groupTag] = newSortedQueue  
 
-        else: ### we need to make a Grouper
+#        else: ### we need to make a Grouper
 
-            raise NotImplementedError('need to extract parameters for Grouper from config file!')            
+#            raise NotImplementedError('need to extract parameters for Grouper from config file!')            
 
-            item = Groupter(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+#            item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
-            queue.insert( item ) ### insert it in the overall queue
+#            queue.insert( item ) ### insert it in the overall queue
 
-            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-            newSortedQueue.insert(item)
-            queueByGraceID[groupTag] = newSortedQueue
+#            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+#            newSortedQueue.insert(item)
+#            queueByGraceID[groupTag] = newSortedQueue
 
-        item.add( graceid ) ### add this graceid to the item
+#        item.add( graceid ) ### add this graceid to the item
 
-        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
+#        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
 
 
     elif alert_type=='label':
