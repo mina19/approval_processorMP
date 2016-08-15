@@ -2,7 +2,7 @@ description = "a module that holds definitions of all required QueueItem and Tas
 author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 
 #-------------------------------------------------
-
+from eventDictClassMethods import *
 from ligoMP.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb
 
@@ -31,7 +31,7 @@ class ForgetMeNow(utils.QueueItem):
                 ]
         super(ForgetMeNow, self).__init__(t0, tasks) ### delegate instantiation to the parent class
 
-    def setExpiration(self, t0, convertTime):
+    def setExpiration(self, t0):
         '''
         updates the expiration of all tasks as well as of the QueueItem itself.
         we overwrite the parent's function because we also touch the event_dict
@@ -40,15 +40,11 @@ class ForgetMeNow(utils.QueueItem):
                                                  ### if this throws an error, you need to update your version of lvalertMP
 
         ### why are we storing this? it is only called within this function and no one else needs it...
-        self.convertTime = convertTime ### FIXME: this is not great and is caused by poor organization. 
-                                       ### Functions like this that are needed in multiple modules and which have essentially no dependences should be defined in little modules that everyone can import
-                                       ### rather than passed as arguments. This essentially means that only approval_processorMPutils can use this item. Although that's the expected use case, we shouldn't
-                                       ### contrive the code such that this *must* be the case.
 #        for task in self.tasks:
 #            task.setExpiration(t0) ### update expiration of each task
 #        self.sortTasks() ### sorting tasks in the QueueItem. This automatically updates self.expiration
 
-        self.event_dicts[self.graceid]['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration)) ### records the expiration in local memory
+        self.event_dicts[self.graceid].data['expirationtime'] = '{0} -- {1}'.format(self.expiration, convertTime(self.expiration)) ### records the expiration in local memory
 
 class RemoveFromEventDicts(utils.Task):
     """

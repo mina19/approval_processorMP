@@ -48,10 +48,13 @@ class EventDict():
         self.key = key
         return self.data[self.key]
 
-    def setup(self, dictionary, graceid, configdict):
+    def setup(self, dictionary, graceid, configdict, client, config, logger):
         self.dictionary = dictionary # a dictionary either extracted from an lvalert or from a call to graceDb
         self.graceid = graceid
         self.configdict = configdict # stores settings used
+        self.client = client
+        self.config = config
+        self.logger = logger
         self.data.update({
             'advocate_signoffCheckresult': None,
             'advocatelogkey'             : 'no',
@@ -88,13 +91,11 @@ class EventDict():
             'voevents'                   : []
         })
 
-    def update(self, client):
+    def update(self):
         '''
         creates an event_dict with signoff and iDQ information for self.graceid
         this event_dict starts off with currentstate new_to_preliminary
         '''
-        self.client = client
-
         # update signoff information if available
         url = self.client.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
         signoff_list = self.client.get(url).json()['signoff'] # pull down signoff list
@@ -108,6 +109,316 @@ class EventDict():
                 record_idqvalues(self.data, message['comment'], logger)
             else:
                 pass
+
+    def farCheck(self):
+        '''
+        checks to see if the far of the event candidate is less than the threshold
+        '''
+        farCheckresult = self.data['farCheckresult']
+        if farCheckresult!=None:
+            return farCheckresult
+        else:
+            far       = self.data['far']
+            pipeline  = self.data['pipeline']
+            search    = self.data['search']
+            farthresh = get_farthresh(pipeline, search, self.config)
+            if far >= farthresh:
+                self.client.writeLog(self.graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
+                self.data['farlogkey'] = 'yes'
+                message = '{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), self.graceid, far, farthresh)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['farCheckresult'] = False
+                else:
+                    pass
+                return False
+            elif far < farthresh:
+                self.client.writeLog(self.graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
+                self.data['farlogkey'] = 'yes'
+                message = '{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), self.graceid, far, farthresh)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['farCheckresult'] = True
+                else:
+                    pass
+                return True
+
+    def labelCheck(self):
+        '''
+        checks whether event has either INJ or DQV label. it will trest INJ as a real event or not depending on config setting
+        '''
+        labels = self.data['labels']
+        if checkLabels(labels, self.config) > 0:
+            message = '{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), self.graceid)
+            if loggerCheck(self.data, message)==False:
+                self.logger.info(message)
+                self.data['labelCheckresult'] = False
+            else:
+                pass
+            return False
+        else:
+            self.data['labelCheckresult'] = True
+            return True
+
+    def injectionCheck(self):
+        injectionCheckresult = self.data['injectionCheckresult']
+        if injectionCheckresult!=None:
+            return injectionCheckresult
+        else:
+            eventtime = float(self.data['gpstime'])
+            time_duration = self.config.getfloat('injectionCheck', 'time_duration')
+            from raven.search import query
+            th = time_duration
+            tl = -th
+            Injections = query('HardwareInjection', eventtime, tl, th)
+            self.data['injectionsfound'] = len(Injections)
+            hardware_inj = self.config.get('labelCheck', 'hardware_inj')
+            if len(Injections) > 0:
+                if hardware_inj=='no':
+                    self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
+                    self.data['injectionlogkey'] = 'yes'
+                    message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), self.graceid, th)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['injectionCheckresult'] = False
+                    else:
+                        pass
+                    return False
+                else:
+                    self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
+                    self.data['injectionlogkey'] = 'yes'
+                    message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), self.graceid, th)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['injectionCheckresult'] = True
+                    else:
+                        pass
+                    return True
+            elif len(Injections)==0:
+                self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
+                self.data['injectionlogkey'] = 'yes'
+                message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), self.graceid, th)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['injectionCheckresult'] = True
+                else:
+                    pass
+                return True
+
+    def have_lvem_skymapCheck(self):
+        '''
+        checks whether there is an lvem tagged skymap that has not been sent in an alert
+        '''
+        # this function should only return True or None, never False
+        # if return True, we have a new lvem skymap
+        # otherwise, add this Check to queueByGraceID
+        currentstate = self.data['currentstate']
+        lvemskymaps  = self.data['lvemskymaps'].keys()
+        if currentstate=='preliminary_to_initial':
+            if len(lvemskymaps)>=1:
+                self.data['have_lvem_skymapCheckresult'] = True
+                skymap = sorted(lvemskymaps)[-1]
+                skymap = re.findall(r'-(\S+)', skymap)[0]
+                message = '{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), self.graceid, skymap)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+                return True
+            else:
+                self.data['have_lvem_skymapCheckresult'] = None
+                return None
+        elif (currentstate=='initial_to_update' or currentstate=='complete'):
+            if len(lvemskymaps)>=2:
+                if lvemskymaps[-1]!=self.data['lastsentskymap']:
+                    self.data['have_lvem_skymapCheckresult'] = True
+                    skymap = sorted(lvemskymaps)[-1]
+                    skymap = re.findall(r'-(\S+)', skymap)[0]
+                    message = '{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), self.graceid, skymap)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                    else:
+                        pass
+                    return True
+                else:
+                    self.data['have_lvem_skymapCheckresult'] = None
+                    return None
+            else:
+                self.data['have_lvem_skymapCheckresult'] = None
+                return None
+
+    def idq_joint_fapCheck(self):
+        group      = self.data['group']
+        ignore_idq = self.config.get('idq_joint_fapCheck', 'ignore_idq')
+        idq_joint_fapCheckresult = self.data['idq_joint_fapCheckresult']
+        if idq_joint_fapCheckresult!=None:
+            return idq_joint_fapCheckresult
+        elif group in ignore_idq:
+            # self.logger.info('{0} -- {1} -- Not using idq checks for events with group(s) {2}.'.format(convertTime(), self.graceid, ignore_idq))
+            self.data['idq_joint_fapCheckresult'] = True
+            return True
+        else:
+            pipeline       = self.data['pipeline']
+            search         = self.data['search']
+            idqthresh      = get_idqthresh(pipeline, search, self.config)
+            compute_joint_fap_values(self.data, self.config)
+            idqvalues      = self.data['idqvalues']
+            idqlogkey      = self.data['idqlogkey']
+            instruments    = self.data['instruments']
+            jointfapvalues = self.data['jointfapvalues']
+            idq_pipelines  = self.config.get('idq_joint_fapCheck', 'idq_pipelines')
+            idq_pipelines  = idq_pipelines.replace(' ', '')
+            idq_pipelines  = idq_pipelines.split(',')
+            if len(idqvalues)==0:
+                message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+                return None
+            elif (0 < len(idqvalues) < (len(idq_pipelines)*len(instruments))):
+                message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+                if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
+                    if idqlogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
+                        self.data['idqlogkey']='yes'
+                    message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), self.graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['idq_joint_fapCheckresult'] = False
+                    else:
+                        pass
+                    #self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    return False
+            elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
+                message = '{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+            else:
+                message = '{0} -- {1} -- Ready to run iDQ checks.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+                # 'glitch-FAP' is the probabilty that the classifier thinks there was a glitch and there was not a glitch
+                # 'glitch-FAP' -> 0 means high confidence that there is a glitch
+                # 'glitch-FAP' -> 1 means low confidence that there is a glitch
+                # What we want is the minimum of the products of FAPs from different sites computed for each classifier
+                for idqpipeline in idq_pipelines:
+                    jointfap = 1
+                    for idqdetector in instruments:
+                        detectorstring = '{0}.{1}'.format(idqpipeline, idqdetector)
+                        jointfap = jointfap*idqvalues[detectorstring]
+                    jointfapvalues[idqpipeline] = jointfap
+                    message = '{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), self.graceid, jointfap, idqpipeline)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                    else:
+                        pass
+                if min(jointfapvalues.values()) > idqthresh:
+                    if idqlogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                        self.data['idqlogkey']='yes'
+                    message = '{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), self.graceid, min(jointfapvalues.values()), idqthresh)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['idq_joint_fapCheckresult'] = True
+                    else:
+                        pass
+                    return True
+                else:
+                    if idqlogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
+                        self.data['idqlogkey'] = 'yes'
+                    message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), self.graceid, min(jointfapvalues.values()), idqthresh)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['idq_joint_fapCheckresult'] = False
+                    else:
+                        pass
+                    #self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    return False
+
+    def operator_signoffCheck(self):
+        operator_signoffCheckresult = self.data['operator_signoffCheckresult']
+        if operator_signoffCheckresult!=None:
+            return operator_signoffCheckresult
+        else:
+            instruments      = self.data['instruments']
+            operatorlogkey   = self.data['operatorlogkey']
+            operatorsignoffs = self.data['operatorsignoffs']
+            if len(operatorsignoffs) < len(instruments):
+                if 'NO' in operatorsignoffs.values():
+                    if operatorlogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                        self.data['operatorlogkey'] = 'yes'
+                        # self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    self.data['operator_signoffCheckresult'] = False
+                    return False
+                else:
+                    message = '{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                    else:
+                        pass
+            else:
+                if 'NO' in operatorsignoffs.values():
+                    if operatorlogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
+                        self.data['operatorlogkey'] = 'yes'
+                        #self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    self.data['operator_signoffCheckresult'] = False
+                    return False
+                else:
+                    if operatorlogkey=='no':
+                        message = '{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), self.graceid)
+                        if loggerCheck(self.data, message)==False:
+                            self.logger.info(message)
+                        else:
+                            pass
+                        self.client.writeLog(self.graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
+                        self.data['operatorlogkey'] = 'yes'
+                    self.data['operator_signoffCheckresult'] = True
+                    return True
+
+    def advocate_signoffCheck(self):
+        advocate_signoffCheckresult = self.data['advocate_signoffCheckresult']
+        if advocate_signoffCheckresult!=None:
+            return advocate_signoffCheckresult
+        else:
+            advocatelogkey = self.data['advocatelogkey']
+            advocatesignoffs = self.data['advocatesignoffs']
+            if len(advocatesignoffs)==0:
+                message = '{0} -- {1} -- Advocates have not signed off yet.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                else:
+                    pass
+            elif len(advocatesignoffs) > 0:
+                if 'NO' in advocatesignoffs:
+                    if advocatelogkey=='no':
+                        self.client.writeLog(self.graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
+                        self.data['advocatelogkey'] = 'yes'
+                        #self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
+                    self.data['advocate_signoffCheckresult'] = False
+                    return False
+                else:
+                    if advocatelogkey=='no':
+                        message = '{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), self.graceid)
+                        if loggerCheck(self.data, message)==False:
+                            logger.info(message)
+                        else:
+                            pass
+                        self.client.writeLog(self.graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
+                        self.data['advocatelogkey'] = 'yes'
+                    self.data['advocate_signoffCheckresult'] = True
+                    return True
 
 #-----------------------------------------------------------------------
 # Saving event dictionaries
@@ -123,15 +434,15 @@ def saveEventDicts(approval_processorMPfiles):
     txtfilename = '{0}{1}/EventDicts.txt'.format(homedir, approval_processorMPfiles)
 
     ### write pickle file
-    file_obj = open(pklfilename, 'wb')
-    pickle.dump(eventDicts, file_obj)
-    file_obj
+#    file_obj = open(pklfilename, 'wb')
+#    pickle.dump(eventDicts, file_obj)
+#    file_obj
 
     ### write txt file
     file_obj = open(txtfilename, 'w')
     for graceid in sorted(eventDicts.keys()): ### iterate through graceids
         file_obj.write('{0}\n'.format(graceid))
-        event_dict = eventDicts[graceid]
+        event_dict = eventDicts[graceid].data
 
         for key in sorted(event_dict.keys()): ### iterate through keys for this graceid
             if key!='loggermessages':
@@ -179,7 +490,6 @@ def loadLogger(config):
 #-----------------------------------------------------------------------
 # Load config
 #-----------------------------------------------------------------------
-
 ### FIXME: this is never used. Why is it defined?
 def loadConfig():
     '''
@@ -224,37 +534,6 @@ def get_farthresh(pipeline, search, config):
     except:
         return config.getfloat('farCheck', 'default_farthresh')
 
-def farCheck(event_dict, client, config, logger):
-    farCheckresult = event_dict['farCheckresult']
-    if farCheckresult!=None:
-        return farCheckresult
-    else:
-        far = event_dict['far']
-        graceid = event_dict['graceid']
-        pipeline = event_dict['pipeline']
-        search = event_dict['search']
-        farthresh = get_farthresh(pipeline, search, config)
-        if far >= farthresh:
-            client.writeLog(graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
-            event_dict['farlogkey'] = 'yes'
-            message = '{0} -- {1} -- Rejected due to large FAR. {2} >= {3}'.format(convertTime(), graceid, far, farthresh)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-                event_dict['farCheckresult'] = False
-            else:
-                pass
-            return False
-        elif far < farthresh:
-            client.writeLog(graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
-            event_dict['farlogkey'] = 'yes'
-            message = '{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), graceid, far, farthresh)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-                event_dict['farCheckresult'] = True
-            else:
-                pass
-            return True
-
 #-----------------------------------------------------------------------
 # labelCheck
 #-----------------------------------------------------------------------
@@ -269,21 +548,6 @@ def checkLabels(labels, config):
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
-def labelCheck(event_dict, client, config, logger):
-    graceid = event_dict['graceid']
-    labels = event_dict['labels']
-    if checkLabels(labels, config) > 0:
-        message = '{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), graceid)
-        if loggerCheck(event_dict, message)==False:
-            logger.info(message)
-            event_dict['labelCheckresult'] = False
-        else:
-            pass
-        return False
-    else:
-        event_dict['labelCheckresult'] = True
-        return True
-
 def record_label(event_dict, label):
     labels = event_dict['labels']
     graceid = event_dict['graceid']
@@ -295,99 +559,8 @@ def record_label(event_dict, label):
         pass
 
 #-----------------------------------------------------------------------
-# injectionCheck
-#-----------------------------------------------------------------------
-def injectionCheck(event_dict, client, config, logger):
-    injectionCheckresult = event_dict['injectionCheckresult']
-    if injectionCheckresult!=None:
-        return injectionCheckresult
-    else:
-        eventtime = float(event_dict['gpstime'])
-        graceid = event_dict['graceid']
-        time_duration = config.getfloat('injectionCheck', 'time_duration')
-        from raven.search import query
-        th = time_duration
-        tl = -th
-        Injections = query('HardwareInjection', eventtime, tl, th)
-        event_dict['injectionsfound'] = len(Injections)
-        hardware_inj = config.get('labelCheck', 'hardware_inj')
-        if len(Injections) > 0:
-            if hardware_inj=='no':
-                client.writeLog(graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
-                event_dict['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), graceid, th)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                    event_dict['injectionCheckresult'] = False
-                else:
-                    pass
-                return False
-            else:
-                client.writeLog(graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
-                event_dict['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), graceid, th)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                    event_dict['injectionCheckresult'] = True
-                else:
-                    pass
-                return True
-        elif len(Injections)==0:
-            client.writeLog(graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
-            event_dict['injectionlogkey'] = 'yes'
-            message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), graceid, th)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-                event_dict['injectionCheckresult'] = True
-            else:
-                pass
-            return True
-
-#-----------------------------------------------------------------------
 # have_lvem_skymapCheck
 #-----------------------------------------------------------------------
-def have_lvem_skymapCheck(event_dict, client, config, logger):
-    # this function should only return True or None, never False
-    # if return True, we have a new lvem skymap
-    # otherwise, add this Check to queueByGraceID
-    graceid = event_dict['graceid']
-    currentstate = event_dict['currentstate']
-    lvemskymaps = event_dict['lvemskymaps'].keys()
-
-    if currentstate=='preliminary_to_initial':
-        if len(lvemskymaps)>=1:
-            event_dict['have_lvem_skymapCheckresult'] = True
-            skymap = sorted(lvemskymaps)[-1]
-            skymap = re.findall(r'-(\S+)', skymap)[0]
-            message = '{0} -- {1} -- Initial skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-            return True
-        else:
-            event_dict['have_lvem_skymapCheckresult'] = None
-            return None
-
-    elif (currentstate=='initial_to_update' or currentstate=='complete'):
-        if len(lvemskymaps)>=2:
-            if lvemskymaps[-1]!=event_dict['lastsentskymap']:
-                event_dict['have_lvem_skymapCheckresult'] = True
-                skymap = sorted(lvemskymaps)[-1]
-                skymap = re.findall(r'-(\S+)', skymap)[0]
-                message = '{0} -- {1} -- Update skymap tagged lvem {2} available.'.format(convertTime(), graceid, skymap)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                else:
-                    pass
-                return True
-            else:
-                event_dict['have_lvem_skymapCheckresult'] = None
-                return None
-        else:
-            event_dict['have_lvem_skymapCheckresult'] = None
-            return None
-
 def current_lvem_skymap(event_dict):
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     if len(lvemskymaps)==0:
@@ -455,105 +628,6 @@ def compute_joint_fap_values(event_dict, config):
                 pipeline_values.append(idqvalues[key])
         jointfapvalues[idqpipeline] = functools.reduce(operator.mul, pipeline_values, 1)
 
-def idq_joint_fapCheck(event_dict, client, config, logger):
-    group = event_dict['group']
-    ignore_idq = config.get('idq_joint_fapCheck', 'ignore_idq')
-    idq_joint_fapCheckresult = event_dict['idq_joint_fapCheckresult']
-    if idq_joint_fapCheckresult!=None:
-        return idq_joint_fapCheckresult
-    elif group in ignore_idq:
-        # logger.info('{0} -- {1} -- Not using idq checks for events with group(s) {2}.'.format(convertTime(), graceid, ignore_idq))
-        event_dict['idq_joint_fapCheckresult'] = True
-        return True
-    else:
-        pipeline = event_dict['pipeline']
-        search = event_dict['search']
-        idqthresh = get_idqthresh(pipeline, search, config)
-        compute_joint_fap_values(event_dict, config)
-        graceid = event_dict['graceid']
-        idqvalues = event_dict['idqvalues']
-        idqlogkey = event_dict['idqlogkey']
-        instruments = event_dict['instruments']
-        jointfapvalues = event_dict['jointfapvalues']
-        idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
-        idq_pipelines = idq_pipelines.replace(' ', '')
-        idq_pipelines = idq_pipelines.split(',')
-        if len(idqvalues)==0:
-            message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-            return None
-        elif (0 < len(idqvalues) < (len(idq_pipelines)*len(instruments))):
-            message = '{0} -- {1} -- Have not gotten all the minfap values yet.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-            if (min(idqvalues.values() and jointfapvalues.values()) < idqthresh):
-                if idqlogkey=='no':
-                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected because incomplete joint min-FAP value already less than iDQ threshold. {0} < {1}'.format(min(idqvalues.values() and jointfapvalues.values()), idqthresh), tagname='em_follow')
-                    event_dict['idqlogkey']='yes'
-                message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(idqvalues.values() and jointfapvalues.values()), idqthresh)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                    event_dict['idq_joint_fapCheckresult'] = False
-                else:
-                    pass
-                #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
-                return False
-        elif (len(idqvalues) > (len(idq_pipelines)*len(instruments))):
-            message = '{0} -- {1} -- Too many minfap values in idqvalues dictionary.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-        else:
-            message = '{0} -- {1} -- Ready to run iDQ checks.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-            # 'glitch-FAP' is the probabilty that the classifier thinks there was a glitch and there was not a glitch
-            # 'glitch-FAP' -> 0 means high confidence that there is a glitch
-            # 'glitch-FAP' -> 1 means low confidence that there is a glitch
-            # What we want is the minimum of the products of FAPs from different sites computed for each classifier
-            for idqpipeline in idq_pipelines:
-                jointfap = 1
-                for idqdetector in instruments:
-                    detectorstring = '{0}.{1}'.format(idqpipeline, idqdetector)
-                    jointfap = jointfap*idqvalues[detectorstring]
-                jointfapvalues[idqpipeline] = jointfap
-                message = '{0} -- {1} -- Got joint_fap = {2} for iDQ pipeline {3}.'.format(convertTime(), graceid, jointfap, idqpipeline)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                else:
-                    pass
-            if min(jointfapvalues.values()) > idqthresh:
-                if idqlogkey=='no':
-                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event passed iDQ checks. {0} > {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
-                    event_dict['idqlogkey']='yes'
-                message = '{0} -- {1} -- Passed iDQ check: {2} > {3}.'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                    event_dict['idq_joint_fapCheckresult'] = True
-                else:
-                    pass
-                return True
-            else:
-                if idqlogkey=='no':
-                    client.writeLog(graceid, 'AP: Finished running iDQ checks. Candidate event rejected due to low iDQ FAP value. {0} < {1}'.format(min(jointfapvalues.values()), idqthresh), tagname = 'em_follow')
-                    event_dict['idqlogkey'] = 'yes'
-                message = '{0} -- {1} -- iDQ check result: {2} < {3}'.format(convertTime(), graceid, min(jointfapvalues.values()), idqthresh)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                    event_dict['idq_joint_fapCheckresult'] = False
-                else:
-                    pass
-                #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
-                return False
-
 #-----------------------------------------------------------------------
 # operator_signoffCheck
 #-----------------------------------------------------------------------
@@ -568,86 +642,6 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
-def operator_signoffCheck(event_dict, client, config, logger):
-    operator_signoffCheckresult = event_dict['operator_signoffCheckresult']
-    if operator_signoffCheckresult!=None:
-        return operator_signoffCheckresult
-    else:
-        graceid = event_dict['graceid']
-        instruments = event_dict['instruments']
-        operatorlogkey = event_dict['operatorlogkey']
-        operatorsignoffs = event_dict['operatorsignoffs']
-        if len(operatorsignoffs) < len(instruments):
-            if 'NO' in operatorsignoffs.values():
-                if operatorlogkey=='no':
-                    client.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
-                    event_dict['operatorlogkey'] = 'yes'
-                    # client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
-                event_dict['operator_signoffCheckresult'] = False
-                return False
-            else:
-                message = '{0} -- {1} -- Not all operators have signed off yet.'.format(convertTime(), graceid)
-                if loggerCheck(event_dict, message)==False:
-                    logger.info(message)
-                else:
-                    pass
-        else:
-            if 'NO' in operatorsignoffs.values():
-                if operatorlogkey=='no':
-                    client.writeLog(graceid, 'AP: Candidate event failed operator signoff check.', tagname = 'em_follow')
-                    event_dict['operatorlogkey'] = 'yes'
-                    #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
-                event_dict['operator_signoffCheckresult'] = False
-                return False
-            else:
-                if operatorlogkey=='no':
-                    message = '{0} -- {1} -- Candidate event passed operator signoff check.'.format(convertTime(), graceid)
-                    if loggerCheck(event_dict, message)==False:
-                        logger.info(message)
-                    else:
-                        pass
-                    client.writeLog(graceid, 'AP: Candidate event passed operator signoff check.', tagname = 'em_follow')
-                    event_dict['operatorlogkey'] = 'yes'
-                event_dict['operator_signoffCheckresult'] = True
-                return True
-
-#-----------------------------------------------------------------------
-# advocate_signoffCheck
-#-----------------------------------------------------------------------
-def advocate_signoffCheck(event_dict, client, config, logger):
-    advocate_signoffCheckresult = event_dict['advocate_signoffCheckresult']
-    if advocate_signoffCheckresult!=None:
-        return advocate_signoffCheckresult
-    else:
-        advocatelogkey = event_dict['advocatelogkey']
-        advocatesignoffs = event_dict['advocatesignoffs']
-        graceid = event_dict['graceid']
-        if len(advocatesignoffs)==0:
-            message = '{0} -- {1} -- Advocates have not signed off yet.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
-                logger.info(message)
-            else:
-                pass
-        elif len(advocatesignoffs) > 0:
-            if 'NO' in advocatesignoffs:
-                if advocatelogkey=='no':
-                    client.writeLog(graceid, 'AP: Candidate event failed advocate signoff check.', tagname = 'em_follow')
-                    event_dict['advocatelogkey'] = 'yes'
-                    #client.writeLabel(graceid, 'DQV') [apply DQV in parseAlert when return False]
-                event_dict['advocate_signoffCheckresult'] = False
-                return False
-            else:
-                if advocatelogkey=='no':
-                    message = '{0} -- {1} -- Candidate event passed advocate signoff check.'.format(convertTime(), graceid)
-                    if loggerCheck(event_dict, message)==False:
-                        logger.info(message)
-                    else:
-                        pass
-                    client.writeLog(graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
-                    event_dict['advocatelogkey'] = 'yes'
-                event_dict['advocate_signoffCheckresult'] = True
-                return True
-        
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------

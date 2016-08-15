@@ -42,6 +42,33 @@ VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activ
                                                                                              ### That way, it is straightforward to install and run the code from *any* computer withour modifying the source code
 execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
+#--------------------
+# Definitions of which checks must be satisfied in each state before moving on
+#--------------------
+
+# main checks when currentstate of event is new_to_preliminary
+new_to_preliminary = [
+    'farCheck',
+    'labelCheck',
+    'injectionCheck'
+    ]
+
+# main checks when currentstate of event is preliminary_to_initial
+# will add human signoff and advocate checks later in parseAlert after reading config file
+preliminary_to_initial = [
+    'farCheck',
+    'labelCheck',
+    'have_lvem_skymapCheck',
+    'idq_joint_fapCheck'
+    ]
+
+# tasks when currentstate of event is initial_to_update
+initial_to_update = [
+    'farCheck',
+    'labelCheck',
+    'have_lvem_skymapCheck'
+    ]
+
 #-----------------------------------------------------------------------
 # parseAlert
 #-----------------------------------------------------------------------
@@ -143,9 +170,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         ### create event_dict
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
-        event_dict.setup(alert['object'], graceid, configdict) # populate this event_dict with information from lvalert
-        event_dict = event_dict.data # getting the event_dict we made in this instance
-        eventDicts[graceid] = event_dict # add this event_dict to the global eventDicts
+        event_dict.setup(alert['object'], graceid, configdict, g, config, logger) # populate this event_dict with information from lvalert
+        eventDicts[graceid] = event_dict # add the instance to the global eventDicts
 
         ### ForgetMeNow queue item
         item = ForgetMeNow( t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
@@ -158,7 +184,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         saveEventDicts(approval_processorMPfiles) # trying to see if expirationtime is updated from None
 
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
-        if loggerCheck(event_dict, message)==False: ### FIXME? Reed still isn't convinced 'loggerCheck' is a good idea and thinks we should just print everything, always. ### Mina disagrees here; without the loggerCheck there are sometimes the same messages printed ten, twenty times but out of order. very hard to read the logger and understand the event candidate
+        if loggerCheck(event_dict.data, message)==False: ### FIXME? Reed still isn't convinced 'loggerCheck' is a good idea and thinks we should just print everything, always. ### Mina disagrees here; without the loggerCheck there are sometimes the same messages printed ten, twenty times but out of order. very hard to read the logger and understand the event candidate
             logger.info(message)
         else:
             pass
@@ -173,7 +199,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             # find ForgetMeNow corresponding to this graceid and update expiration time
             for item in queueByGraceID[graceid]:
                 if item.name==ForgetMeNow.name: # selects the queue item that is a ForgetMeNow instance
-                    item.setExpiration(t0, convertTime) # updates the expirationtime key
+                    item.setExpiration(t0) # updates the expirationtime key
                     queue.resort() ### may be expensive, but is needed to guarantee that queue remains sorted
                     queueByGraceID[graceid].resort()
                     break
@@ -184,10 +210,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         else: # event_dict for event candidate does not exist. we need to create it with up-to-date information
             event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
-            event_dict.setup(g.events(graceid).next(), graceid, configdict) # fill in event_dict using queried event candidate dictionary
-            event_dict.update(g) # update the event_dict with signoffs and iDQ info
-            event_dict = event_dict.data # getting the dictionary made in the EventDict class instance
-            eventDicts[graceid] = event_dict # add event_dict to the global eventDicts
+            event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # fill in event_dict using queried event candidate dictionary
+            event_dict.update() # update the event_dict with signoffs and iDQ info
+            eventDicts[graceid] = event_dict.data # add this instance to the global eventDicts
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
@@ -199,7 +224,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
 
             message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
             else:
                 pass
@@ -211,7 +236,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     # if the graceid starts with 'M' for MDCs or 'S' for Simulation, ignore
     if re.match('M', graceid) or re.match('S', graceid): ### FIXME: we want to make this a config-file option!
         message = '{0} -- {1} -- Mock data challenge or simulation. Ignoring.'.format(convertTime(), graceid)
-        if loggerCheck(event_dict, message)==False:
+        if loggerCheck(event_dict.data, message)==False:
             logger.info(message)
         else:
             pass
@@ -219,36 +244,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         return 0
 
     #--------------------
-    # Definitions of which checks must be satisfied in each state before moving on
-    # FIXME: can we define these (once) outside of parseAlert instead of re-defining them each time it is called?
+    # Appending which checks must be satisfied in preliminary_to_initial state before moving on
     #--------------------
-
-    # tasks when currentstate of event is new_to_preliminary
-    new_to_preliminary = [
-        'farCheck',
-        'labelCheck',
-        'injectionCheck'
-        ]
-
-    # tasks when currentstate of event is preliminary_to_initial
-    preliminary_to_initial = [
-        'farCheck',
-        'labelCheck',
-        'have_lvem_skymapCheck',
-        'idq_joint_fapCheck'
-        ]
 
     if humanscimons=='yes':
         preliminary_to_initial.append('operator_signoffCheck')
     if advocates=='yes':
         preliminary_to_initial.append('advocate_signoffCheck')
-
-    # tasks when currentstate of event is initial_to_update
-    initial_to_update = [
-        'farCheck',
-        'labelCheck',
-        'have_lvem_skymapCheck'
-        ]
 
     #--------------------
     # update information based on the alert_type
@@ -257,7 +259,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     #--------------------
 
     # actions for each alert_type
-    currentstate = event_dict['currentstate'] ### actions depend on the current state
+    currentstate = event_dict.data['currentstate'] ### actions depend on the current state
        
     ### NOTE: we handle alert_type=="new" above as well and this conditional is slightly redundant...
     if alert_type=='new':
@@ -267,9 +269,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         #----------------
 
         ### check if a PipelineThrottle exists for this node
-        group    = event_dict['group']
-        pipeline = event_dict['pipeline']
-        search   = event_dict['search']
+        group    = event_dict.data['group']
+        pipeline = event_dict.data['pipeline']
+        search   = event_dict.data['search']
         key = generate_ThrottleKey(group, pipeline, search=search)
         if queueByGraceID.has_key(key): ### a throttle already exists
             if len(queueByGraceID[key]) > 1:
@@ -283,13 +285,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             if config.has_section(key):
                 throttleWin          = config.getfloat(key, 'throttleWin')
                 targetRate           = config.getfloat(key, 'targetRate')
-                requireManualReset = config.get(key, 'requireManualReset')
+                requireManualReset   = config.get(key, 'requireManualReset')
                 conf                 = config.getfloat(key, 'conf')
 
             else:
                 throttleWin          = config.getfloat('default_PipelineThrottle', 'throttleWin')
                 targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
-                requireManualReset = config.get('default_PipelineThrottle', 'requireManualReset')
+                requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
             pass  
 #            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
@@ -353,60 +355,60 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
 
     elif alert_type=='label':
-        record_label(event_dict, description)
+        record_label(event_dict.data, description)
 
         if description=='PE_READY': ### PE_READY label was just applied. We may need to send an update alert
 
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                process_alert(event_dict, 'update', g, config, logger)
+                process_alert(event_dict.data, 'update', g, config, logger)
 
             else:
                 pass
 
             message = '{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                event_dict['currentstate'] = 'complete'
+                event_dict.data['currentstate'] = 'complete'
 
             else:
                 pass
 
         elif description=='EM_READY': ### EM_READY label was just applied. We may need to send an initial alert
             message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                process_alert(event_dict, 'initial', g, config, logger)
+                process_alert(event_dict.data, 'initial', g, config, logger)
 
             else:
                 pass
 
             message = '{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                event_dict['currentstate'] = 'initial_to_update'
+                event_dict.data['currentstate'] = 'initial_to_update'
 
             else:
                 pass
 
         elif description=="EM_Throttled": ### the event is throttled and we need to turn off all processing for it
 
-            event_dict['currentstate'] = 'throttled' ### update current state
+            event_dict.data['currentstate'] = 'throttled' ### update current state
             
             ### check if we need to send retractions
-            voevents = event_dict['voevents']
+            voevents = event_dict.data['voevents']
             if len(voevents) > 0:
                 if 'retraction' not in sorted(voevents)[-1]:
                     # there are existing VOEvents we've sent, but no retraction alert
-                    process_alert(event_dict, 'retraction', g, config, logger)
+                    process_alert(event_dict.data, 'retraction', g, config, logger)
 
             ### update ForgetMeNow expiration to handle all the clean-up?
             ### we probably do NOT want to change the clean-up schedule because we'll still likely receive a lot of alerts about this guy
             ### therefore, we just retain the local data and ignore him, rather than erasing the local data and having to query to reconstruct it repeatedly as new alerts come in
 #            for item in queueByGraceID[graceid]: ### update expiration of the ForgetMeNow so it is immediately processed next.
 #                if item.name == ForgetMeNow.name:
-#                    time.setExpiration(-np.infty, convertTime ) ### passing a function handle like this is BAD!
+#                    time.setExpiration(-np.infty )
 #                                                                ### FIXME: this can break the order in SortedQueue's. We need to pop and reinsert or call a manual resort
 #                    queue.resort() ### may be expensive but is needed to guarantee that queue remains sorted
 #                    queueByGraceID[graceid].resort()
@@ -421,14 +423,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             raise NotImplementedError('write logic to handle \"Superseded" labels')
 
         elif (checkLabels(description.split(), config) > 0): ### some other label was applied. We may need to issue a retraction notice.
-            event_dict['currentstate'] = 'rejected'
+            event_dict.data['currentstate'] = 'rejected'
 
             ### check to see if we need to send a retraction
-            voevents = event_dict['voevents']
+            voevents = event_dict.data['voevents']
             if len(voevents) > 0:
                 if 'retraction' not in sorted(voevents[-1]):
                     # there are existing VOEvents we've sent, but no retraction alert
-                    process_alert(event_dict, 'retraction', g, config, logger)
+                    process_alert(event_dict.data, 'retraction', g, config, logger)
 
         saveEventDicts(approval_processorMPfiles) ### save the updated eventDict to disk
         return 0
@@ -448,7 +450,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
             if 'lvem' in alert['object']['tag_names']:
                 submitter = alert['object']['issuer']['display_name']
-                record_skymap(event_dict, filename, submitter, logger)
+                record_skymap(event_dict.data, filename, submitter, logger)
             else:
                 pass
         # interested in iDQ information
@@ -456,17 +458,17 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
                 if re.match('minimum glitch-FAP', comment):
-                    record_idqvalues(event_dict, comment, logger)
+                    record_idqvalues(event_dict.data, comment, logger)
                 elif re.match('resent VOEvent', comment):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment)
-                    event_dict[response[0][1]].append(response[0][0])
+                    event_dict.data[response[0][1]].append(response[0][0])
                     saveEventDicts(approval_processorMPfiles)
                 else:
                     pass
 
     elif alert_type=='signoff':
         signoff_object = alert['object']
-        record_signoff(event_dict, signoff_object)
+        record_signoff(event_dict.data, signoff_object)
 
     #---------------------------------------------
 
@@ -475,21 +477,21 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     if currentstate=='new_to_preliminary':
         for Check in new_to_preliminary:
-            eval('{0}(event_dict, g, config, logger)'.format(Check))
-            checkresult = event_dict[Check + 'result']
+            eval('event_dict.{0}()'.format(Check))
+            checkresult = event_dict.data[Check + 'result']
             if checkresult==None:
                 pass
             elif checkresult==False:
                 # because in 'new_to_preliminary' state, no need to apply DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
-                    event_dict['currentstate'] = 'rejected'
+                    event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
                 saveEventDicts(approval_processorMPfiles)
@@ -498,34 +500,34 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 passedcheckcount += 1
         if passedcheckcount==len(new_to_preliminary):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
             else:
                 pass
             message = '{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                process_alert(event_dict, 'preliminary', g, config, logger)
+                process_alert(event_dict.data, 'preliminary', g, config, logger)
             else:
                 pass
             message = '{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                event_dict['currentstate'] = 'preliminary_to_initial'
+                event_dict.data['currentstate'] = 'preliminary_to_initial'
             else:
                 pass
             # notify the operators
-            instruments = event_dict['instruments']
+            instruments = event_dict.data['instruments']
             for instrument in instruments:
                 message = '{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                     g.writeLabel(graceid, '{0}OPS'.format(instrument))
                 else:
                     pass
             # notify the advocates
             message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
                 g.writeLabel(graceid, 'ADVREQ')
                 os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
@@ -541,25 +543,25 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     elif currentstate=='preliminary_to_initial':
         for Check in preliminary_to_initial:
-            eval('{0}(event_dict, g, config, logger)'.format(Check))
-            checkresult = event_dict[Check + 'result']
+            eval('event_dict.{0}()'.format(Check))
+            checkresult = event_dict.data[Check + 'result']
             if checkresult==None:
                 pass
             elif checkresult==False:
                # need to set DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
-                    event_dict['currentstate'] = 'rejected'
+                    event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
                 message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                     g.writeLabel(graceid, 'DQV')
                 else:
@@ -570,12 +572,12 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 passedcheckcount += 1
         if passedcheckcount==len(preliminary_to_initial):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
             else:
                 pass
             message = '{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
                 g.writeLabel(graceid, 'EM_READY')
             else:
@@ -585,25 +587,25 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     elif currentstate=='initial_to_update':
         for Check in initial_to_update:
-            eval('{0}(event_dict, g, config, logger)'.format(Check))
-            checkresult = event_dict[Check + 'result']
+            eval('event_dict.{0}()'.format(Check))
+            checkresult = event_dict.data[Check + 'result']
             if checkresult==None:
                 pass
             elif checkresult==False:
                # need to set DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
-                    event_dict['currentstate'] = 'rejected'
+                    event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
                 message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
-                if loggerCheck(event_dict, message)==False:
+                if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
                     g.writeLabel(graceid, 'DQV')
                 else:
@@ -614,12 +616,12 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 passedcheckcount += 1
         if passedcheckcount==len(initial_to_update):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
             else:
                 pass
             message = '{0} -- {1} -- Labeling PE_READY.'.format(convertTime(), graceid)
-            if loggerCheck(event_dict, message)==False:
+            if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
                 g.writeLabel(graceid, 'PE_READY')
             else:
