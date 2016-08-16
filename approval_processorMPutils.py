@@ -279,8 +279,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             item = queueByGraceID[key][0] ### we expect there to be only one item in this SortedQueue
 
         else: ### we need to make a throttle!
-
-            #raise NotImplementedError('need to extract parameters for PipelineThrottle from config file!')
             # pull PipelineThrottle parameters from the config
             if config.has_section(key):
                 throttleWin          = config.getfloat(key, 'throttleWin')
@@ -293,7 +291,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
                 requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
-            pass  
             item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
 
             queue.insert( item ) ### add to overall queue
