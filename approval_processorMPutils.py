@@ -316,40 +316,37 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             These associations should be specified in the config file, so we'll have to specify this somehow.
             probably just a "Grouper" section, with (option = value) pairs that look like (groupTag = nodeA nodeB nodeC ...)
         '''
-#        groupTag = 'TEMPORARY'
+        groupTag = 'TEMPORARY'
 
         ### check to see if Grouper exists for this groupTag
-#        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
+        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
 
             ### determine if any of the existing Groupers are still accepting new triggers
-#            for item in queueByGraceID[groupTag]:
-#                if item.isOpen():
-#                    break ### this Grouper is still open, so we'll just use it
-#            else: ### no Groupers are open, so we need to create one
-#                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+            for item in queueByGraceID[groupTag]:
+                if item.isOpen():
+                    break ### this Grouper is still open, so we'll just use it
+            else: ### no Groupers are open, so we need to create one
+                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
-#                queue.insert( item ) ### insert it in the overall queue
+                queue.insert( item ) ### insert it in the overall queue
 
-#                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-#                newSortedQueue.insert(item)
-#                queueByGraceID[groupTag] = newSortedQueue  
+                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+                newSortedQueue.insert(item)
+                queueByGraceID[groupTag] = newSortedQueue  
 
-#        else: ### we need to make a Grouper
+        else: ### we need to make a Grouper
+            grouperWin = config.getfloat('grouper', 'grouperWin')
+            item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
 
-#            raise NotImplementedError('need to extract parameters for Grouper from config file!')            
+            queue.insert( item ) ### insert it in the overall queue
 
-#            item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+            newSortedQueue.insert(item)
+            queueByGraceID[groupTag] = newSortedQueue
 
-#            queue.insert( item ) ### insert it in the overall queue
+        item.add( graceid ) ### add this graceid to the item
 
-#            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-#            newSortedQueue.insert(item)
-#            queueByGraceID[groupTag] = newSortedQueue
-
-#        item.add( graceid ) ### add this graceid to the item
-
-#        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
-
+        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
 
     elif alert_type=='label':
         record_label(event_dict.data, description)
