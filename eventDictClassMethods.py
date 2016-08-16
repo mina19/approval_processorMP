@@ -440,7 +440,7 @@ def saveEventDicts(approval_processorMPfiles):
 
     ### write pickle file
     file_obj = open(pklfilename, 'wb')
-    pickle.dump(eventDictionaries, file_obj)
+    pickle.dump(eventDictionaries, file_obj) # note: we save eventDictionaries rather than eventDicts because we run into pickling errors with the instances saved in eventDicts
     file_obj
 
     ### write txt file
