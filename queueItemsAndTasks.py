@@ -385,7 +385,7 @@ class Grouper(utils.QueueItem):
         """
         raise True
 
-    def execute( verbose=False, *args, **kwargs ):
+    def execute(self, verbose=False ):
         '''
         override parent method to handle the case where we cannot make a decision yet
         we can just set this up to poll every second or so until we can decide or there is a hard timeout. Then we force a decision.
@@ -436,7 +436,7 @@ class DefineGroup(utils.Task):
         for graceid in superceded:
             self.labelAsSuperseded( graceid )
 
-    def choose( graceidA, graceidB ):
+    def choose(self, graceidA, graceidB ):
         """
         encapsulates logic that determines which event is preferred between a pair of events
         If we can rank all pairs of events in this way, we can immediately select an overall winner by iteration (ie: what's done in self.decide)
