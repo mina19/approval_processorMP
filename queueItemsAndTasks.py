@@ -383,7 +383,7 @@ class Grouper(utils.QueueItem):
                 goodToGo *= event_dict.has_key('group') and event_dict.has_key('pipeline') and event_dict.has_key('search') ### ensure we have pipeline information
             return goodToGo
         """
-        raise True
+        return True
 
     def execute(self, verbose=False ):
         '''
