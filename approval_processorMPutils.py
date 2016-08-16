@@ -294,20 +294,20 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
             pass  
-#            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
+            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
 
-#            queue.insert( item ) ### add to overall queue
+            queue.insert( item ) ### add to overall queue
 
-#            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
-#            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
-#            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
+            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
+            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
 
-#        item.addEvent( (graceid, t0) ) ### add new event to throttle
+        item.addEvent( graceid, t0 ) ### add new event to throttle
                                        ### this takes care of labeling in gracedb as necessary
 
-#        if item.isThrottled(): 
+        if item.isThrottled(): 
             ### send some warning message?
-#            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
+            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
 
         #----------------
         ### pass data to Grouper
