@@ -288,7 +288,7 @@ class Throttle(utils.Task):
         '''
         return len(self.events) > self.Nthr
 
-    def manageEvents(self):
+    def manageEvents(self, verbose=False, *args, **kwargs):
         '''
         actually manage the events that are being tracked
         this is called from execute() and will remove events from the known set
@@ -383,7 +383,7 @@ class Grouper(utils.QueueItem):
         """
         raise True
 
-    def execute( verbose=False ):
+    def execute( verbose=False, *args, **kwargs ):
         '''
         override parent method to handle the case where we cannot make a decision yet
         we can just set this up to poll every second or so until we can decide or there is a hard timeout. Then we force a decision.
