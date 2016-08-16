@@ -346,7 +346,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 #            newSortedQueue.insert(item)
 #            queueByGraceID[groupTag] = newSortedQueue
 
-#        item.add( graceid ) ### add this graceid to the item
+#        item.addEvent( graceid ) ### add this graceid to the item
 
 #        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
 

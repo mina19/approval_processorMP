@@ -2,6 +2,7 @@ description = "a module that holds definitions of all required QueueItem and Tas
 author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 
 #-------------------------------------------------
+
 from eventDictClassMethods import *
 from ligoMP.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb
@@ -281,6 +282,7 @@ class Throttle(utils.Task):
         self.requireManualReset = requireManualReset
 
         super(Throttle, self).__init__(win, self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+        #                               ^win is stored as timeout via delegation to Parent
 
     def isThrottled(self):
         '''
@@ -297,7 +299,7 @@ class Throttle(utils.Task):
         '''
         ### if we are not already throttled and require manual reset, we forget about events that are old enough
         if not (self.isThrottled() and self.requireManualReset):
-            t = time.time() - self.win ### cut off for what is "too old"
+            t = time.time() - self.timeout ### cut off for what is "too old"
             while len(self.events):
                 graceid, t0 = self.events.pop(0)
                 if t0 > t: ### event is recent enough that we still care about it
@@ -358,7 +360,7 @@ class Grouper(utils.QueueItem):
         '''
         return time.time() < self.closure
 
-    def add(self, graceid):
+    def addEvent(self, graceid):
         '''
         adds a graceid to the DefineGroup task
         NOTE: we do NOT check whether the grouper is open before adding the event. 
