@@ -30,8 +30,13 @@ import random
 #-----------------------------------------------------------------------
 # Creating the global event dictionaries variable for local bookkeeping
 #-----------------------------------------------------------------------
-global eventDicts # global variable for local bookkeeping of event candidate checks, files, labels, etc.
+global eventDicts # global variable for local bookkeeping of event candidate checks, files, labels, etc. 
+### important thing is it saves the event_dict as an INSTANCE of the EventDict class
 eventDicts = {} # it's a dictionary storing data in the form 'graceid': event_dict where each event_dict is created below in class EventDict
+
+global eventDictionaries # global variable for local bookkeeping
+### important thing is it saves the event_dict as a DICTIONARY
+eventDictionaries = {}
 
 #-----------------------------------------------------------------------
 # EventDict class
@@ -434,15 +439,15 @@ def saveEventDicts(approval_processorMPfiles):
     txtfilename = '{0}{1}/EventDicts.txt'.format(homedir, approval_processorMPfiles)
 
     ### write pickle file
-#    file_obj = open(pklfilename, 'wb')
-#    pickle.dump(eventDicts, file_obj)
-#    file_obj
+    file_obj = open(pklfilename, 'wb')
+    pickle.dump(eventDictionaries, file_obj)
+    file_obj
 
     ### write txt file
     file_obj = open(txtfilename, 'w')
-    for graceid in sorted(eventDicts.keys()): ### iterate through graceids
+    for graceid in sorted(eventDictionaries.keys()): ### iterate through graceids
         file_obj.write('{0}\n'.format(graceid))
-        event_dict = eventDicts[graceid].data
+        event_dict = eventDictionaries[graceid]
 
         for key in sorted(event_dict.keys()): ### iterate through keys for this graceid
             if key!='loggermessages':

@@ -172,6 +172,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
         event_dict.setup(alert['object'], graceid, configdict, g, config, logger) # populate this event_dict with information from lvalert
         eventDicts[graceid] = event_dict # add the instance to the global eventDicts
+        eventDictionaries[graceid] = event_dict.data # add the dictionary to the global eventDictionaries
 
         ### ForgetMeNow queue item
         item = ForgetMeNow( t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
@@ -212,7 +213,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
             event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # fill in event_dict using queried event candidate dictionary
             event_dict.update() # update the event_dict with signoffs and iDQ info
-            eventDicts[graceid] = event_dict.data # add this instance to the global eventDicts
+            eventDicts[graceid] = event_dict # add this instance to the global eventDicts
+            eventDictionaries[graceid] = event_dict.data # add the dictionary to the global eventDictionaries
 
             # create ForgetMeNow queue item and add to overall queue and queueByGraceID
             item = ForgetMeNow(t0, forgetmenow_timeout, graceid, eventDicts, queue, queueByGraceID, logger)
