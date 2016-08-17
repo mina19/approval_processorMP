@@ -41,7 +41,6 @@ eventDictionaries = {}
 #-----------------------------------------------------------------------
 # EventDict class
 #-----------------------------------------------------------------------
-### FIXME: what purpose does the class really serve? Why can't the two methods just be functions that are called? If the class is to remain, it makes more sense for it to possess it's own attributes that are updated. This can still be accomplished with a dictionary and appropriate look-up functions, as well as methods for filling in the values when data is available. However, we would then instantiate instances of this class for each GraceID and assign pointers to those instances to the values in eventDicts. This is *not* what currently happens, which is confusing because the existence of a class strongly suggests that is what was intended.
 class EventDict():
     '''
     creates an event_dict for each event candidate to keep track of checks, files, comments, labels coming in
@@ -114,6 +113,14 @@ class EventDict():
                 record_idqvalues(self.data, message['comment'], logger)
             else:
                 pass
+    #-----------------------------------------------------------------------
+    # farCheck
+    #-----------------------------------------------------------------------
+    def __get_farthresh__(self, pipeline, search, config):
+        try:
+            return config.getfloat('farCheck', 'farthresh[{0}.{1}]'.format(pipeline, search))
+        except:
+            return config.getfloat('farCheck', 'default_farthresh')
 
     def farCheck(self):
         '''
@@ -126,7 +133,7 @@ class EventDict():
             far       = self.data['far']
             pipeline  = self.data['pipeline']
             search    = self.data['search']
-            farthresh = get_farthresh(pipeline, search, self.config)
+            farthresh = self.__get_farthresh__(pipeline, search, self.config)
             if far >= farthresh:
                 self.client.writeLog(self.graceid, 'AP: Candidate event rejected due to large FAR. {0} >= {1}'.format(far, farthresh), tagname='em_follow')
                 self.data['farlogkey'] = 'yes'
@@ -148,6 +155,9 @@ class EventDict():
                     pass
                 return True
 
+    #-----------------------------------------------------------------------
+    # labelCheck
+    #-----------------------------------------------------------------------
     def labelCheck(self):
         '''
         checks whether event has either INJ or DQV label. it will trest INJ as a real event or not depending on config setting
@@ -165,6 +175,9 @@ class EventDict():
             self.data['labelCheckresult'] = True
             return True
 
+    #-----------------------------------------------------------------------
+    # injectionCheck
+    #-----------------------------------------------------------------------
     def injectionCheck(self):
         injectionCheckresult = self.data['injectionCheckresult']
         if injectionCheckresult!=None:
@@ -210,6 +223,9 @@ class EventDict():
                     pass
                 return True
 
+    #-----------------------------------------------------------------------
+    # have_lvem_skymapCheck
+    #-----------------------------------------------------------------------
     def have_lvem_skymapCheck(self):
         '''
         checks whether there is an lvem tagged skymap that has not been sent in an alert
@@ -252,6 +268,28 @@ class EventDict():
                 self.data['have_lvem_skymapCheckresult'] = None
                 return None
 
+    #-----------------------------------------------------------------------
+    # idq_joint_fapCheck
+    #-----------------------------------------------------------------------
+    def __get_idqthresh__(self, pipeline, search, config):
+        try:
+            return config.getfloat('idq_joint_fapCheck', 'idqthresh[{0}.{1}]'.format(pipeline, search))
+        except:
+            return config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
+
+    def __compute_joint_fap_values__(self, config):
+        idqvalues = self.data['idqvalues']
+        jointfapvalues = self.data['jointfapvalues']
+        idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
+        idq_pipelines = idq_pipelines.replace(' ', '')
+        idq_pipelines = idq_pipelines.split(',')
+        for idqpipeline in idq_pipelines:
+            pipeline_values = []
+            for key in idqvalues.keys():
+                if idqpipeline in key:
+                    pipeline_values.append(idqvalues[key])
+            jointfapvalues[idqpipeline] = functools.reduce(operator.mul, pipeline_values, 1)
+
     def idq_joint_fapCheck(self):
         group      = self.data['group']
         ignore_idq = self.config.get('idq_joint_fapCheck', 'ignore_idq')
@@ -265,8 +303,8 @@ class EventDict():
         else:
             pipeline       = self.data['pipeline']
             search         = self.data['search']
-            idqthresh      = get_idqthresh(pipeline, search, self.config)
-            compute_joint_fap_values(self.data, self.config)
+            idqthresh      = self.__get_idqthresh__(pipeline, search, self.config)
+            self.__compute_joint_fap_values__(self.config)
             idqvalues      = self.data['idqvalues']
             idqlogkey      = self.data['idqlogkey']
             instruments    = self.data['instruments']
@@ -350,6 +388,9 @@ class EventDict():
                     #self.client.writeLabel(self.graceid, 'DQV') [apply DQV in parseAlert when return False]
                     return False
 
+    #-----------------------------------------------------------------------
+    # operator_signoffCheck
+    #-----------------------------------------------------------------------
     def operator_signoffCheck(self):
         operator_signoffCheckresult = self.data['operator_signoffCheckresult']
         if operator_signoffCheckresult!=None:
@@ -392,6 +433,9 @@ class EventDict():
                     self.data['operator_signoffCheckresult'] = True
                     return True
 
+    #-----------------------------------------------------------------------
+    # advocate_signoffCheck
+    #-----------------------------------------------------------------------
     def advocate_signoffCheck(self):
         advocate_signoffCheckresult = self.data['advocate_signoffCheckresult']
         if advocate_signoffCheckresult!=None:
@@ -495,7 +539,6 @@ def loadLogger(config):
 #-----------------------------------------------------------------------
 # Load config
 #-----------------------------------------------------------------------
-### FIXME: this is never used. Why is it defined?
 def loadConfig():
     '''
     loads the childConfig-approval_processorMP.ini
@@ -530,26 +573,12 @@ def loggerCheck(event_dict, message):
         event_dict['loggermessages'].append(message)
         return False
     
-#-----------------------------------------------------------------------
-# farCheck
-#-----------------------------------------------------------------------
-def get_farthresh(pipeline, search, config):
-    try:
-        return config.getfloat('farCheck', 'farthresh[{0}.{1}]'.format(pipeline, search))
-    except:
-        return config.getfloat('farCheck', 'default_farthresh')
-
-#-----------------------------------------------------------------------
-# labelCheck
-#-----------------------------------------------------------------------
 def checkLabels(labels, config):
-
-    ### FIXME: we also need to add 'Throttled' and 'Superseded' to the lists of bad labels...
     hardware_inj = config.get('labelCheck', 'hardware_inj')
     if hardware_inj == 'yes':
-        badlabels = ['DQV']
+        badlabels = ['DQV', 'Throttled', 'Superseded']
     else:
-        badlabels = ['DQV', 'INJ']
+        badlabels = ['DQV', 'Throttled', 'Superseded', 'INJ']
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
@@ -563,9 +592,6 @@ def record_label(event_dict, label):
     else:
         pass
 
-#-----------------------------------------------------------------------
-# have_lvem_skymapCheck
-#-----------------------------------------------------------------------
 def current_lvem_skymap(event_dict):
     lvemskymaps = sorted(event_dict['lvemskymaps'].keys())
     if len(lvemskymaps)==0:
@@ -596,15 +622,6 @@ def record_skymap(event_dict, skymap, submitter, logger):
         else:
             pass
 
-#-----------------------------------------------------------------------
-# idq_joint_fapCheck
-#-----------------------------------------------------------------------
-def get_idqthresh(pipeline, search, config):
-    try:
-        return config.getfloat('idq_joint_fapCheck', 'idqthresh[{0}.{1}]'.format(pipeline, search))
-    except:
-        return config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
-
 def record_idqvalues(event_dict, comment, logger):
     graceid = event_dict['graceid']
     idqinfo = re.findall('minimum glitch-FAP for (.*) at (.*) with', comment)
@@ -620,22 +637,6 @@ def record_idqvalues(event_dict, comment, logger):
     else:
         pass
 
-def compute_joint_fap_values(event_dict, config):
-    idqvalues = event_dict['idqvalues']
-    jointfapvalues = event_dict['jointfapvalues']
-    idq_pipelines = config.get('idq_joint_fapCheck', 'idq_pipelines')
-    idq_pipelines = idq_pipelines.replace(' ', '')
-    idq_pipelines = idq_pipelines.split(',')
-    for idqpipeline in idq_pipelines:
-        pipeline_values = []
-        for key in idqvalues.keys():
-            if idqpipeline in key:
-                pipeline_values.append(idqvalues[key])
-        jointfapvalues[idqpipeline] = functools.reduce(operator.mul, pipeline_values, 1)
-
-#-----------------------------------------------------------------------
-# operator_signoffCheck
-#-----------------------------------------------------------------------
 def record_signoff(event_dict, signoff_object):
     instrument = signoff_object['instrument']
     signofftype = signoff_object['signoff_type']
@@ -776,9 +777,9 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 # approval_processorMP instance
 #-----------------------------------------------------------------------
 def resend_alert():
+    # load config and set up client
+    loadConfig()
     # set up client
-    config = ConfigParser.SafeConfigParser()
-    config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include forward slash at end*\n')))
     client = config.get('general', 'client')
     approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     print 'got client: {0}'.format(client)
