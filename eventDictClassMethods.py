@@ -778,7 +778,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 #-----------------------------------------------------------------------
 def resend_alert():
     # load config and set up client
-    loadConfig()
+    config = loadConfig()
     # set up client
     client = config.get('general', 'client')
     approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
