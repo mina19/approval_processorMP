@@ -671,7 +671,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     else:
         internal = 0
 
-    open_default_farthresh = config.get('farCheck', 'open_default_farthresh')
+    open_default_farthresh = config.getfloat('farCheck', 'open_default_farthresh')
     far = event_dict['far']
     if far < open_default_farthresh: # the far is below the open alert default far threshold so we send an open alert
         open_alert = 1
