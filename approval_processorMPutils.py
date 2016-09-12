@@ -567,7 +567,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             elif checkresult==True:
                 passedcheckcount += 1
                 if Check=='have_lvem_skymapCheck': # we want to send skymaps out as quickly as possible, even if humans have not vetted the event
-                    print 'trying to send unvetted preliminary alert'
                     process_alert(event_dict.data, 'preliminary', g, config, logger) # if it turns out we've sent this alert with this skymap before, the process_alert function will just not send this repeat
         if passedcheckcount==len(preliminary_to_initial):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)

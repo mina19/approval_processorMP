@@ -755,7 +755,6 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     thisvoevent = '{0}-'.format(len(voevents) + 1) + thisvoevent
 
     try:
-        print 'trying to create voevent'
         r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj)
         voevent = r.json()['text']
     except Exception, e:
