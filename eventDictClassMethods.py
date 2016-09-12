@@ -84,6 +84,7 @@ class EventDict():
             'labelCheckresult'           : None,
             'labels'                     : self.dictionary['labels'].keys(),
             'lastsentskymap'             : None,
+            'lastsentpreliminaryskymap'  : None,
             'loggermessages'             : [],
             'lvemskymaps'                : {},
             'operator_signoffCheckresult': None,
@@ -670,6 +671,13 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     else:
         internal = 0
 
+    open_default_farthresh = config.get('farCheck', 'open_default_farthresh')
+    far = event_dict['far']
+    if far < open_default_farthresh: # the far is below the open alert default far threshold so we send an open alert
+        open_alert = 1
+    else:
+        open_alert = 0
+
     if voevent_type=='preliminary':
         if force_all_internal=='yes':
             internal = 1
@@ -678,9 +686,18 @@ def process_alert(event_dict, voevent_type, client, config, logger):
                 internal = 1
             else:
                 internal = 0
-        skymap_filename = None
-        skymap_type = None
-        skymap_image_filename = None
+        vetted = 0 # default value for preliminary alerts
+        skymap_filename = current_lvem_skymap(event_dict)
+        if skymap_filename==None:
+            skymap_type = None
+            skymap_image_filename = None
+        else:
+            skymapname = re.findall(r'(\S+).fits', skymap_filename)[0]
+            group = event_dict['group']
+            search = event_dict['search']
+            skymap_type = skymapname + '-' + group + search
+            skymap_image_filename = skymapname + '.png'
+            #submitter = event_dict['lvemskymaps'][skymap_filename]
 
     if voevent_type=='retraction':
         # check if we've sent alerts for this event
@@ -698,6 +715,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
                     internal = 0
             else:
                 pass
+            vetted = 1
             skymap_filename = None
             skymap_type = None
             skymap_image_filename = None
@@ -705,6 +723,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             return
 
     if (voevent_type=='initial' or voevent_type=='update'):
+        vetted = 1 # all initial and update alerts have been human vetted by definition
         skymap_filename = current_lvem_skymap(event_dict)
         if skymap_filename==None:
             skymap_type = None
@@ -720,16 +739,28 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
         injectionCheck(event_dict, client, config, logger)
-        injection = event_dict['injectionsfound']
+        hardware_inj = event_dict['injectionsfound']
     else:
-        injection = injectionsfound
+        hardware_inj = injectionsfound
 
-    logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
-    voevent = None
-    thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voevents) + 1, internal, injection) + voevent_type
+    thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
+    # check if we sent this voevent before
+    if (len(voevents) > 0) and (thisvoevent in voevents):
+        if voevent_type=='preliminary':
+            if skymap_filename!=event_dict['lastsentpreliminaryskymap']:
+                pass # we have not sent a preliminary alert with this skymap
+            else:
+                return
+        else:
+            return
+    else:
+        logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
+        voevent = None
+        thisvoevent = '{0}'.format(len(voevents) + 1) + thisvoevent
+        pass
 
     try:
-        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal)
+        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj)
         voevent = r.json()['text']
     except Exception, e:
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
@@ -748,6 +779,8 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             for key in voeventerrors:
                 if voevent_type in key:
                     voeventerrors.remove(key)
+            if (voevent_type=='preliminary' and internal!=1):
+                event_dict['lastsentpreliminaryskymap'] = skymap_filename
             if (voevent_type=='initial' or voevent_type=='update'):
                 event_dict['lastsentskymap'] = skymap_filename
             else:
@@ -768,7 +801,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             else:
                 voeventerror_email = config.get('general', 'voeventerror_email')
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
-            thisvoevent = '{0}-(internal,injection):({1},{2})-'.format(len(voeventerrors) + 1, internal, injection) + voevent_type
+            thisvoevent = '{0}-(internal,vetted,open_alert,hardware_inj):({1},{2},{3},{4})-'.format(len(voeventerrors) + 1, internal, vetted, open_alert, hardware_inj) + voevent_type
             voeventerrors.append(thisvoevent)
             return 'voeventerrors, {0}'.format(thisvoevent)
 
