@@ -658,12 +658,6 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     voeventerrors = event_dict['voeventerrors']
     voevents = event_dict['voevents']
 
-    # check if we just sent this voevent
-    if (len(voevents) > 0) and (voevent_type in sorted(voevents)[-1]):
-        return
-    else:
-        pass
-
     # setting default internal value settings for alerts
     force_all_internal = config.get('general', 'force_all_internal')
     if force_all_internal=='yes':
@@ -745,7 +739,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 
     thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
     # check if we sent this voevent before
-    if (len(voevents) > 0) and (thisvoevent in voevents):
+    if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
         if voevent_type=='preliminary':
             if skymap_filename!=event_dict['lastsentpreliminaryskymap']:
                 pass # we have not sent a preliminary alert with this skymap
@@ -754,12 +748,14 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         else:
             return
     else:
-        logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
-        voevent = None
-        thisvoevent = '{0}'.format(len(voevents) + 1) + thisvoevent
         pass
 
+    logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
+    voevent = None
+    thisvoevent = '{0}-'.format(len(voevents) + 1) + thisvoevent
+
     try:
+        print 'trying to create voevent'
         r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj)
         voevent = r.json()['text']
     except Exception, e:
@@ -779,7 +775,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             for key in voeventerrors:
                 if voevent_type in key:
                     voeventerrors.remove(key)
-            if (voevent_type=='preliminary' and internal!=1):
+            if (voevent_type=='preliminary'):
                 event_dict['lastsentpreliminaryskymap'] = skymap_filename
             if (voevent_type=='initial' or voevent_type=='update'):
                 event_dict['lastsentskymap'] = skymap_filename
