@@ -117,6 +117,12 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     advocate_text  = config.get('advocate_signoffCheck', 'advocate_text')
     advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
+    ### extract options for GRB alerts
+    em_coinc_json    = config.get('GRB_alerts', 'em_coinc_json')
+    grb_online_json  = config.get('GRB_alerts', 'grb_online_json')
+    grb_offline_json = config.get('GRB_alerts', 'grb_offline_json')
+    grb_email        = config.get('GRB_alerts', 'grb_email')
+
     ### extract options about idq
     ignore_idq        = config.get('idq_joint_fapCheck', 'ignore_idq')
     default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
@@ -444,8 +450,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     elif alert_type=='update':
         # first the case that we have a new lvem skymap
         if (filename.endswith('.fits.gz') or filename.endswith('.fits')):
-            if 'lvem' in alert['object']['tag_names']:
-                submitter = alert['object']['issuer']['display_name']
+            if 'lvem' in alert['object']['tag_names']: # we only care about skymaps tagged lvem for sharing with MOU partners
+                submitter = alert['object']['issuer']['display_name'] # in the past, we used to care who submitted skymaps; keeping this functionality just in case
                 record_skymap(event_dict.data, filename, submitter, logger)
             else:
                 pass
@@ -453,10 +459,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         else:
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
-                if re.match('minimum glitch-FAP', comment):
+                if re.match('minimum glitch-FAP', comment): # looking to see if it's iDQ glitch-FAP information
                     record_idqvalues(event_dict.data, comment, logger)
-                elif re.match('resent VOEvent', comment):
-                    response = re.findall(r'resent VOEvent (.*) in (.*)', comment)
+                elif re.match('resent VOEvent', comment): # looking to see if another running instance of approval_processorMP sent a VOEvent
+                    response = re.findall(r'resent VOEvent (.*) in (.*)', comment) # extracting which VOEvent was re-sent
                     event_dict.data[response[0][1]].append(response[0][0])
                     saveEventDicts(approval_processorMPfiles)
                 else:
@@ -467,8 +473,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         record_signoff(event_dict.data, signoff_object)
 
     #---------------------------------------------
-
     # run checks specific to currentstate of the event candidate
+    #---------------------------------------------
+
     passedcheckcount = 0
 
     if currentstate=='new_to_preliminary':
