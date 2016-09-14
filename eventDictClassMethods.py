@@ -125,14 +125,14 @@ class EventDict():
         self.config = config
         self.logger = logger
         self.data.update({
-            'em_coinc_json'   : None
-            'expirationtime'  : None 
-            'graceid'         : self.graceid
-            'grb_offline_json : None
-            'grb_online_json' : None
-            'labels'          : self.dictionary['labels'].keys()
-            'loggermessages'  : []
-            'pipeline'        : self.dictionary['pipeline']
+            'em_coinc_json'    : None,
+            'expirationtime'   : None,
+            'graceid'          : self.graceid,
+            'grb_offline_json' : None,
+            'grb_online_json'  : None,
+            'labels'           : self.dictionary['labels'].keys(),
+            'loggermessages'   : [],
+            'pipeline'         : self.dictionary['pipeline']
         })  
 
     #-----------------------------------------------------------------------
