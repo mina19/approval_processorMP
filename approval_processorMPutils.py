@@ -118,9 +118,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
     ### extract options for GRB alerts
-    em_coinc_json    = config.get('GRB_alerts', 'em_coinc_json')
-    grb_online_json  = config.get('GRB_alerts', 'grb_online_json')
-    grb_offline_json = config.get('GRB_alerts', 'grb_offline_json')
+    em_coinc_text    = config.get('GRB_alerts', 'em_coinc_text')
+    grb_online_text  = config.get('GRB_alerts', 'grb_online_text')
+    grb_offline_text = config.get('GRB_alerts', 'grb_offline_text')
     grb_email        = config.get('GRB_alerts', 'grb_email')
 
     ### extract options about idq
@@ -172,11 +172,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     # ensure we have an event_dict and ForgetMeNow tracking this graceid
     #-------------------------------------------------------------------
 
-    if alert_type=='new': ### new event -> we must first create event_dict and set up ForgetMeNow queue item
+    if alert_type=='new': ### new event -> we must first create event_dict and set up ForgetMeNow queue item for G events
 
         ### create event_dict
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
-        event_dict.setup(alert['object'], graceid, configdict, g, config, logger) # populate this event_dict with information from lvalert
+        if re.match('E', graceid): # this is an external GRB trigger
+            event_dict.grb_trigger_setup(alert['object'], graceid, g, config, logger) # populate this event_dict with grb trigger info from lvalert
+        else:
+            event_dict.setup(alert['object'], graceid, configdict, g, config, logger) # populate this event_dict with information from lvalert
         eventDicts[graceid] = event_dict # add the instance to the global eventDicts
         eventDictionaries[graceid] = event_dict.data # add the dictionary to the global eventDictionaries
 
@@ -217,8 +220,11 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         else: # event_dict for event candidate does not exist. we need to create it with up-to-date information
             event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
-            event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # fill in event_dict using queried event candidate dictionary
-            event_dict.update() # update the event_dict with signoffs and iDQ info
+            if re.match('E', graceid):
+                event_dict.grb_trigger_setup(g.events(graceid).next(), graceid, g, config, logger)
+            else:
+                event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # fill in event_dict using queried event candidate dictionary
+                event_dict.update() # update the event_dict with signoffs and iDQ info
             eventDicts[graceid] = event_dict # add this instance to the global eventDicts
             eventDictionaries[graceid] = event_dict.data # add the dictionary to the global eventDictionaries
 
@@ -249,6 +255,24 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         else:
             pass
         saveEventDicts(approval_processorMPfiles)
+        return 0
+
+    #--------------------
+    # take care of external GRB triggers
+    #--------------------
+    if re.match('E', graceid):
+        # if it's not a log message updating us about possible coincidence with gravitational-wave triggers OR labels we are not interested
+        if alert_type=='label':
+            record_label(event_dict.data, description)
+        if alert_type=='update':
+            if 'comment' in alert['object'].keys():
+                comment = alert['object']['comment']
+                if re.match('coinc', comment): # XXX: find out from Alex what the comments will look like
+                    issuer = alert['object']['issuer']
+                    record_coinc_info(event_dict.data, comment, issuer, logger)
+                    # XXX populate the correct json textfields depending on the issuer OR what the comment looks like
+            else:
+                pass
         return 0
 
     #--------------------

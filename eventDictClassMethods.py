@@ -114,6 +114,27 @@ class EventDict():
                 record_idqvalues(self.data, message['comment'], logger)
             else:
                 pass
+
+    #-----------------------------------------------------------------------
+    # external GRB trigger local data bookkeeping
+    #-----------------------------------------------------------------------
+    def grb_trigger_setup(self, dictionary, graceid, client, config, logger):
+        self.dictionary = dictionary # a dictionary either extracted from an lvalert or from a call to gracedb
+        self.graceid = graceid
+        self.client = client
+        self.config = config
+        self.logger = logger
+        self.data.update({
+            'em_coinc_json'   : None
+            'expirationtime'  : None 
+            'graceid'         : self.graceid
+            'grb_offline_json : None
+            'grb_online_json' : None
+            'labels'          : self.dictionary['labels'].keys()
+            'loggermessages'  : []
+            'pipeline'        : self.dictionary['pipeline']
+        })  
+
     #-----------------------------------------------------------------------
     # farCheck
     #-----------------------------------------------------------------------
@@ -582,6 +603,17 @@ def checkLabels(labels, config):
         badlabels = ['DQV', 'Throttled', 'Superseded', 'INJ']
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
+
+def record_coinc_info(event_dict, comment, issuer, logger):
+    graceid = event_dict['graceid']
+    coinc_info = re.findall('coinc between (.*) and (.*) with a far (.*)', comment)
+    gw_trigger = coinc_info[0][1]
+    coinc_far = coinc_info[0][2]
+    message = '{0} -- {1} -- GRB coincidence with {2} found with {3}. FAR is {4}.'.format(convertTime(), graceid, gw_trigger, issuer, coinc_far)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
 
 def record_label(event_dict, label):
     labels = event_dict['labels']
