@@ -118,10 +118,11 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
 
     ### extract options for GRB alerts
-    em_coinc_text    = config.get('GRB_alerts', 'em_coinc_text')
-    grb_online_text  = config.get('GRB_alerts', 'grb_online_text')
-    grb_offline_text = config.get('GRB_alerts', 'grb_offline_text')
-    grb_email        = config.get('GRB_alerts', 'grb_email')
+    em_coinc_text     = config.get('GRB_alerts', 'em_coinc_text')
+    grb_online_text   = config.get('GRB_alerts', 'grb_online_text')
+    grb_offline_text  = config.get('GRB_alerts', 'grb_offline_text')
+    grb_email         = config.get('GRB_alerts', 'grb_email')
+    notification_text = config.get('GRB_alerts', 'notification_text')
 
     ### extract options about idq
     ignore_idq        = config.get('idq_joint_fapCheck', 'ignore_idq')
