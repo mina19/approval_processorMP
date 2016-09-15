@@ -603,7 +603,7 @@ def is_external_trigger(alert):
     search   = alert['object']['search'] if alert['object'].has_key('search') else ''
     if re.match('E', graceid):
         return True
-    elif group='External':
+    elif group=='External':
         return True
     elif pipeline=='Swift' or pipeline=='Fermi' or pipeline=='SNEWS':
         return True
