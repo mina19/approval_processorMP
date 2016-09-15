@@ -177,7 +177,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         ### create event_dict
         event_dict = EventDict() # create a new instance of EventDict class which is a blank event_dict
-        if re.match('E', graceid): # this is an external GRB trigger
+        if is_external_trigger(alert)==True: # this is an external GRB trigger
             event_dict.grb_trigger_setup(alert['object'], graceid, g, config, logger) # populate this event_dict with grb trigger info from lvalert
         else:
             event_dict.setup(alert['object'], graceid, configdict, g, config, logger) # populate this event_dict with information from lvalert
@@ -221,7 +221,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         else: # event_dict for event candidate does not exist. we need to create it with up-to-date information
             event_dict = EventDict() # create a new instance of the EventDict class which is a blank event_dict
-            if re.match('E', graceid):
+            if is_external_trigger(alert)==True:
                 event_dict.grb_trigger_setup(g.events(graceid).next(), graceid, g, config, logger)
             else:
                 event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # fill in event_dict using queried event candidate dictionary
@@ -261,19 +261,32 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     #--------------------
     # take care of external GRB triggers
     #--------------------
-    if re.match('E', graceid):
+    if is_external_trigger(alert)==True: # for now, grouped everything related to external triggers together below
         # if it's not a log message updating us about possible coincidence with gravitational-wave triggers OR labels we are not interested
         if alert_type=='label':
             record_label(event_dict.data, description)
         if alert_type=='update':
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
-                if re.match('coinc', comment): # XXX: find out from Alex what the comments will look like
-                    issuer = alert['object']['issuer']
+                if re.match('coinc', comment): # XXX: find out from Alex/Dipongkar what the comments will look like
+                    issuer = alert['object']['issuer']['username'] # could also do alert['object']['issuer']['display_name']
                     record_coinc_info(event_dict.data, comment, issuer, logger)
-                    # XXX populate the correct json textfields depending on the issuer OR what the comment looks like
+                    # XXX populate the correct json textfields depending on the issuer? until we agree on the log messages...
+                    if issuer=='gracedb.processor': # this is a raven pipeline; could also be issuer=='GraceDB Processor'
+                        message = em_coinc_text.format(graceid, pipeline, gw_trigger, far)
+                    elif issuer=='grb.exttrig': # could also be issuer=='GRB ExtTrig'
+                        message = grb_online_text.format(graceid, gw_trigger, probability)
+                    message_dict = {}
+                    message_dict['message'] = message
+                    message_dict['sent'] = None
+                    ### make json file
+                    message_dict = json.dumps(message_dict)
+                    ### load json file to gracedb
+                    ### alert via email
+                    os.system('echo \{0}' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
             else:
                 pass
+        saveEventDicts(approval_processorMPfiles)
         return 0
 
     #--------------------
