@@ -119,8 +119,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     ### extract options for GRB alerts
     em_coinc_text     = config.get('GRB_alerts', 'em_coinc_text')
-    grb_online_text   = config.get('GRB_alerts', 'grb_online_text')
-    grb_offline_text  = config.get('GRB_alerts', 'grb_offline_text')
+    coinc_text        = config.get('GRB_alerts', 'coinc_text')
     grb_email         = config.get('GRB_alerts', 'grb_email')
     notification_text = config.get('GRB_alerts', 'notification_text')
 
@@ -262,28 +261,33 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     # take care of external GRB triggers
     #--------------------
     if is_external_trigger(alert)==True: # for now, grouped everything related to external triggers together below
-        # if it's not a log message updating us about possible coincidence with gravitational-wave triggers OR labels we are not interested
+        # if it's not a log message updating us about possible coincidence with gravitational-waves OR labels OR json file uploads we are not interested
         if alert_type=='label':
             record_label(event_dict.data, description)
         if alert_type=='update':
+            # is this a comment containing coinc info that needs to be parsed?
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
-                if re.match('coinc', comment): # XXX: find out from Alex/Dipongkar what the comments will look like
-                    issuer = alert['object']['issuer']['username'] # could also do alert['object']['issuer']['display_name']
-                    record_coinc_info(event_dict.data, comment, issuer, logger)
-                    # XXX populate the correct json textfields depending on the issuer? until we agree on the log messages...
-                    if issuer=='gracedb.processor': # this is a raven pipeline; could also be issuer=='GraceDB Processor'
-                        message = em_coinc_text.format(graceid, pipeline, gw_trigger, far)
-                    elif issuer=='grb.exttrig': # could also be issuer=='GRB ExtTrig'
-                        message = grb_online_text.format(graceid, gw_trigger, probability)
+                if 'Significant event in on-source' in comment: # got comment structure from Dipongkar
+                    coinc_pipeline, coinc_fap = record_coinc_info(event_dict.data, comment, alert, logger)
+                    # begin creating the dictionary that will turn into json file
                     message_dict = {}
-                    message_dict['message'] = message
-                    message_dict['sent'] = None
-                    ### make json file
+                    # populate text field for the GCN circular-to-be
+                    message_dict['message'] = coinc_text.format(graceid, coinc_fap)
+                    message_dict['loaded_to_gracedb'] = 0
+                    # make json file
                     message_dict = json.dumps(message_dict)
-                    ### load json file to gracedb
+                    # was it an online or offline pipeline?
+                    if 'Online' in coinc_pipeline:
+                        event_dict.data[grb_online_json] = message_dict
+                    elif 'Offline' in coinc_pipeline:
+                        event_dict.data[grb_offline_json] = message_dict
+                    # XXX load json file to gracedb
                     ### alert via email
-                    os.system('echo \{0}' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
+                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
+            # is this the json file loaded into GraceDb?
+            # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
+            # when we send to observers, message_dict['sent_to_observers'] = 1
             else:
                 pass
         saveEventDicts(approval_processorMPfiles)
@@ -503,6 +507,23 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment) # extracting which VOEvent was re-sent
                     event_dict.data[response[0][1]].append(response[0][0])
                     saveEventDicts(approval_processorMPfiles)
+                elif 'Temporal coincidence with external trigger' in comment: # got comment structure from Alex U.
+                    exttrig, coinc_far = record_coinc_info(event_dict.data, comment, alert, logger)
+                    # create dictionary that will become json file
+                    message_dict = {}
+                    grb_instrument = eventDictionaries[exttrig][pipeline]
+                    message_dict['message'] = em_coinc_text.format(exttrig, grb_instrument, coinc_far)
+                    message_dict['loaded_to_gracedb'] = 0
+                    message_dict = json.dumps(message_dict)
+                    # update event dictionaries for both the gw and external trigger
+                    eventDictionaries[exttrig][em_coinc_json] = message_dict
+                    # XXX load json file to gracedb page of both gw and external trigger
+                    ### alert via email
+                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
+                    saveEventDicts(approval_processorMPfiles)
+            # elif is this the json file loaded into GraceDb?
+            # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
+            # when we send to observers, message_dict['sent_to_observers'] = 1
                 else:
                     pass
 
