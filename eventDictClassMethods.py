@@ -621,16 +621,31 @@ def checkLabels(labels, config):
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
-def record_coinc_info(event_dict, comment, issuer, logger):
+def record_coinc_info(event_dict, comment, alert, logger):
     graceid = event_dict['graceid']
-    coinc_info = re.findall('coinc between (.*) and (.*) with a far (.*)', comment)
-    gw_trigger = coinc_info[0][1]
-    coinc_far = coinc_info[0][2]
-    message = '{0} -- {1} -- GRB coincidence with {2} found with {3}. FAR is {4}.'.format(convertTime(), graceid, gw_trigger, issuer, coinc_far)
-    if loggerCheck(event_dict, message)==False:
-        logger.info(message)
+    # is this a log comment from PyGRB or X-pipeline for an external trigger?
+    if is_external_trigger(alert)==True:
+        coinc_info = re.findall('(.*): Significant event in on-source \(FAP = (.*) for the most significant event\)', comment)
+        coinc_pipeline = coinc_info[0][0]
+        coinc_fap = float(coinc_info[0][1])
+        message = '{0} -- {1} -- {2} coincidence found with FAP {3}.'.format(convertTime(), graceid, coinc_pipeline, coinc_fap)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
+        return coinc_pipeline, coinc_fap
+    # if this a log comment from RAVEN
     else:
-        pass
+        coinc_info = re.findall('Temporal coincidence with external trigger (.*) gives a coincident FAR = (.*) Hz', comment)
+        exttrig = coinc_info[0][0]
+        coinc_far = coinc_info[0][1]
+        message = '{0} -- {1} -- RAVEN coincidence found with FAR {2}. External trigger {3}.'.format(convertTime(), graceid, coinc_far, exttrig)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
+        return exttrig, coinc_far
+
 
 def record_label(event_dict, label):
     labels = event_dict['labels']
