@@ -646,7 +646,6 @@ def record_coinc_info(event_dict, comment, alert, logger):
             pass
         return exttrig, coinc_far
 
-
 def record_label(event_dict, label):
     labels = event_dict['labels']
     graceid = event_dict['graceid']
