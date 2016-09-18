@@ -636,9 +636,9 @@ def record_coinc_info(event_dict, comment, alert, logger):
         return coinc_pipeline, coinc_fap
     # if this a log comment from RAVEN
     else:
-        coinc_info = re.findall('Temporal coincidence with external trigger (.*) gives a coincident FAR = (.*) Hz', comment)
-        exttrig = coinc_info[0][0]
-        coinc_far = coinc_info[0][1]
+        coinc_info = re.findall('Temporal coincidence with external trigger (.*)>(.*)<(.*) gives a coincident FAR = (.*) Hz', comment) # this parsing looks messy but only because the raw string we need to parse contains html code
+        exttrig = coinc_info[0][1]
+        coinc_far = coinc_info[0][3]
         message = '{0} -- {1} -- RAVEN coincidence found with FAR {2}. External trigger {3}.'.format(convertTime(), graceid, coinc_far, exttrig)
         if loggerCheck(event_dict, message)==False:
             logger.info(message)
