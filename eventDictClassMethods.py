@@ -935,3 +935,15 @@ def resend_alert():
         exit()
     elif exit_option=='no':
         pass
+
+def createTestEventDict(graceid):
+    config = loadConfig()
+    client = config.get('general', 'client')
+    g = GraceDb(client)
+    configdict = makeConfigDict(config)
+    logger = loadLogger(config)
+    event_dict = EventDict()
+    event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger)
+    eventDicts[graceid] = event_dict
+    eventDictionaries[graceid] = event_dict.data
+    return event_dict.data
