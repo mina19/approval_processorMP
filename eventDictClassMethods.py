@@ -795,7 +795,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 
     injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
-        injectionCheck(event_dict, client, config, logger)
+        eventDicts[graceid].injectionCheck()
         hardware_inj = event_dict['injectionsfound']
     else:
         hardware_inj = injectionsfound
