@@ -14,24 +14,10 @@ from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
 import json
-import pickle
 import urllib
 import logging
-
-import ConfigParser
-
 import time
-import datetime
-
-import subprocess as sp
-
 import re
-
-import operator
-
-import functools
-
-import random
 
 #-----------------------------------------------------------------------
 # Activate a virtualenv in order to be able to use Comet.
@@ -102,15 +88,15 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     g = GraceDb(client)
 
     # get other childConfig settings; save in configdict
-    voeventerror_email      = config.get('general', 'voeventerror_email')
-    force_all_internal      = config.get('general', 'force_all_internal')
-    preliminary_internal    = config.get('general', 'preliminary_internal')
-    forgetmenow_timeout     = config.getfloat('general', 'forgetmenow_timeout')
+    voeventerror_email        = config.get('general', 'voeventerror_email')
+    force_all_internal        = config.get('general', 'force_all_internal')
+    preliminary_internal      = config.get('general', 'preliminary_internal')
+    forgetmenow_timeout       = config.getfloat('general', 'forgetmenow_timeout')
     approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
-    hardware_inj            = config.get('labelCheck', 'hardware_inj')
-    default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
-    time_duration           = config.getfloat('injectionCheck', 'time_duration')
-    humanscimons            = config.get('operator_signoffCheck', 'humanscimons')
+    hardware_inj              = config.get('labelCheck', 'hardware_inj')
+    default_farthresh         = config.getfloat('farCheck', 'default_farthresh')
+    time_duration             = config.getfloat('injectionCheck', 'time_duration')
+    humanscimons              = config.get('operator_signoffCheck', 'humanscimons')
 
     ### extract options about advocates
     advocates      = config.get('advocate_signoffCheck', 'advocates')
