@@ -832,6 +832,25 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     else:
         hardware_inj = injectionsfound
 
+    # did we identify a coincident GRB trigger?
+    if event_dict.has_key('external_trigger'):
+        CoincComment = 1
+    else:
+        CoincComment = 0
+    print 'CoincComment is {0}'.format(CoincComment)
+
+    # is EM-Bright information available? if so, include here
+    if event_dict.has_key('em_bright_probabilities'):
+        EM_Bright = event_dict['em_bright_probabilities']
+        ProbHasNS = EM_Bright['ProbHasNS']
+        ProbHasRemnant = EM_Bright['ProbHasRemnant']
+    else:
+        ProbHasNS = None
+        ProbHasRemnant = None
+
+    print 'ProbHasNS is: {0}'.format(ProbHasNS)        
+    print 'ProbHasRemnant is: {0}'.format(ProbHasRemnant)
+
     thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
     # check if we sent this voevent before
     if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
@@ -849,10 +868,10 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     voevent = None
     thisvoevent = '{0}-'.format(len(voevents) + 1) + thisvoevent
 
-    try:
-        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj)
+    try: 
+        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj, CoincComment = CoincComment, ProbHasNS = ProbHasNS, ProbHasRemnant = ProbHasRemnant)       
         voevent = r.json()['text']
-    except Exception, e:
+    except Exception, e:        
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
 
     number = str(random.random())
