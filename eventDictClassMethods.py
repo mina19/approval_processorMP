@@ -670,6 +670,7 @@ def record_coinc_info(event_dict, comment, alert, logger):
     else:
         coinc_info = re.findall('Temporal coincidence with external trigger (.*)>(.*)<(.*) gives a coincident FAR = (.*) Hz', comment) # this parsing looks messy but only because the raw string we need to parse contains html code
         exttrig = coinc_info[0][1]
+        event_dict['external_trigger'] = exttrig
         coinc_far = coinc_info[0][3]
         message = '{0} -- {1} -- RAVEN coincidence found with FAR {2}. External trigger {3}.'.format(convertTime(), graceid, coinc_far, exttrig)
         if loggerCheck(event_dict, message)==False:
@@ -677,6 +678,14 @@ def record_coinc_info(event_dict, comment, alert, logger):
         else:
             pass
         return exttrig, coinc_far
+
+def record_em_bright(event_dict, comment, logger):
+    #XXX: find out from Shaon what the messages to parse look like
+    em_bright_dict = {}
+#    em_bright_dict['ProbHasNS'] = ProbHasNS
+#    em_bright_dict['ProbHasRemnant'] = ProbHasRemnant
+#    event_dict['em_bright_probabilities'] = em_bright_dict
+    pass
 
 def record_label(event_dict, label):
     labels = event_dict['labels']
