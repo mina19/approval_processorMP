@@ -577,6 +577,54 @@ def loadConfig():
     return config
 
 #-----------------------------------------------------------------------
+# Make config_dict 
+#-----------------------------------------------------------------------
+def makeConfigDict(config):
+    voeventerror_email      = config.get('general', 'voeventerror_email')
+    force_all_internal      = config.get('general', 'force_all_internal')
+    preliminary_internal    = config.get('general', 'preliminary_internal')
+    forgetmenow_timeout     = config.getfloat('general', 'forgetmenow_timeout')
+    approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
+    hardware_inj            = config.get('labelCheck', 'hardware_inj')
+    default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
+    time_duration           = config.getfloat('injectionCheck', 'time_duration')
+    humanscimons            = config.get('operator_signoffCheck', 'humanscimons')
+
+    ### extract options about advocates
+    advocates      = config.get('advocate_signoffCheck', 'advocates')
+    advocate_text  = config.get('advocate_signoffCheck', 'advocate_text')
+    advocate_email = config.get('advocate_signoffCheck', 'advocate_email')
+
+    ### extract options for GRB alerts
+    em_coinc_text     = config.get('GRB_alerts', 'em_coinc_text')
+    coinc_text        = config.get('GRB_alerts', 'coinc_text')
+    grb_email         = config.get('GRB_alerts', 'grb_email')
+    notification_text = config.get('GRB_alerts', 'notification_text')
+
+    ### extract options about idq
+    ignore_idq        = config.get('idq_joint_fapCheck', 'ignore_idq')
+    default_idqthresh = config.getfloat('idq_joint_fapCheck', 'default_idqthresh')
+    idq_pipelines     = config.get('idq_joint_fapCheck', 'idq_pipelines')
+    idq_pipelines     = idq_pipelines.replace(' ','')
+    idq_pipelines     = idq_pipelines.split(',')
+
+    skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
+
+    ### set up configdict (passed to local data structure: eventDicts)
+    configdict = {
+        'force_all_internal'  : force_all_internal,
+        'preliminary_internal': preliminary_internal,
+        'hardware_inj'        : hardware_inj,
+        'default_farthresh'   : default_farthresh,
+        'humanscimons'        : humanscimons,
+        'advocates'           : advocates,
+        'ignore_idq'          : ignore_idq,
+        'default_idqthresh'   : default_idqthresh,
+        'client'              : client
+    }
+    return configdict
+
+#-----------------------------------------------------------------------
 # Utilities
 #-----------------------------------------------------------------------
 def convertTime(ts=None):

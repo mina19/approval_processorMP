@@ -133,17 +133,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     skymap_ignore_list = config.get('have_lvem_skymapCheck', 'skymap_ignore_list')
 
     ### set up configdict (passed to local data structure: eventDicts)
-    configdict = {
-        'force_all_internal'  : force_all_internal,
-        'preliminary_internal': preliminary_internal,
-        'hardware_inj'        : hardware_inj,
-        'default_farthresh'   : default_farthresh,
-        'humanscimons'        : humanscimons,
-        'advocates'           : advocates,
-        'ignore_idq'          : ignore_idq,
-        'default_idqthresh'   : default_idqthresh,
-        'client'              : client
-    }
+    configdict = makeConfigDict(config)
 
     # set up logging
     ### FIXME: why not open the logger each time parseAlert is called?
