@@ -878,7 +878,9 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     thisvoevent = '{0}-'.format(len(voevents) + 1) + thisvoevent
 
     try: 
-        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, hardware_inj = hardware_inj, CoincComment = CoincComment, ProbHasNS = ProbHasNS, ProbHasRemnant = ProbHasRemnant)       
+        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, 
+                skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, 
+                hardware_inj = hardware_inj, CoincComment = CoincComment, ProbHasNS = ProbHasNS, ProbHasRemnant = ProbHasRemnant)       
         voevent = r.json()['text']
     except Exception, e:        
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
