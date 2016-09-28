@@ -680,12 +680,18 @@ def record_coinc_info(event_dict, comment, alert, logger):
         return exttrig, coinc_far
 
 def record_em_bright(event_dict, comment, logger):
-    #XXX: find out from Shaon what the messages to parse look like
-    em_bright_dict = {}
-#    em_bright_dict['ProbHasNS'] = ProbHasNS
-#    em_bright_dict['ProbHasRemnant'] = ProbHasRemnant
-#    event_dict['em_bright_probabilities'] = em_bright_dict
-    pass
+    graceid = event_dict['graceid']
+    em_bright_info = {}
+    ProbHasNS, RemnantThresh, ProbHasRemnant = re.findall('Computed from detection pipeline: The probability of second object being a neutron star = (.*)% \n The probability of remnant mass outside the black hole in excess of (.*) M_sun = (.*)% \n', comment)[0]
+    em_bright_info['ProbHasNS'] = float(ProbHasNS)/100
+    em_bright_info['ProbHasRemnant'] = float(ProbHasRemnant)/100
+    em_bright_info['RemnantThreshInM_Sun'] = float(RemnantThresh)
+    event_dict['em_bright_info'] = em_bright_info
+    message = '{0} -- {1} -- EM Bright probabilities recorded.'.format(convertTime(), graceid)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
 
 def record_label(event_dict, label):
     labels = event_dict['labels']
@@ -849,8 +855,8 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     print 'CoincComment is {0}'.format(CoincComment)
 
     # is EM-Bright information available? if so, include here
-    if event_dict.has_key('em_bright_probabilities'):
-        EM_Bright = event_dict['em_bright_probabilities']
+    if event_dict.has_key('em_bright_info'):
+        EM_Bright = event_dict['em_bright_info']
         ProbHasNS = EM_Bright['ProbHasNS']
         ProbHasRemnant = EM_Bright['ProbHasRemnant']
     else:
