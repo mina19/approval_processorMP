@@ -685,7 +685,7 @@ def record_em_bright(event_dict, comment, logger):
     ProbHasNS, RemnantThresh, ProbHasRemnant = re.findall('Computed from detection pipeline: The probability of second object being a neutron star = (.*)% \n The probability of remnant mass outside the black hole in excess of (.*) M_sun = (.*)% \n', comment)[0]
     em_bright_info['ProbHasNS'] = float(ProbHasNS)/100
     em_bright_info['ProbHasRemnant'] = float(ProbHasRemnant)/100
-    em_bright_info['RemnantThreshInM_Sun'] = float(RemnantThresh)
+    em_bright_info['RemnantMassThreshInM_Sun'] = float(RemnantThresh)
     event_dict['em_bright_info'] = em_bright_info
     message = '{0} -- {1} -- EM Bright probabilities recorded.'.format(convertTime(), graceid)
     if loggerCheck(event_dict, message)==False:
