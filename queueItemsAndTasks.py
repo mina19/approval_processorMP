@@ -51,7 +51,7 @@ class RemoveFromEventDicts(utils.Task):
     """
     first task that gets called by ForgetMeNow; it removes the graceID  event dictionary from eventDicts
     """
-    name = 'remove from event dicts'
+    name = 'removeEventDict'
     description = 'removes graceID event dictionary from self.event_dicts'
 
     def __init__(self, graceid, event_dicts, timeout, logger):
@@ -60,7 +60,7 @@ class RemoveFromEventDicts(utils.Task):
         self.logger = logger ### used to redirect print statements
         super(RemoveFromEventDicts, self).__init__(timeout, self.removeEventDict) ### delegate to the parent class
 
-    def removeEventDict(self, verbose=False):
+    def removeEventDict(self, verbose=False, **kwargs):
         """
         removes graceID event dictionary from self.event_dicts
         """
@@ -72,7 +72,7 @@ class CleanUpQueue(utils.Task):
     """
     second task that gets called by ForgetMeNOw; it cleans up queueByGraceID and removes any Queue Item with self.graceid
     """
-    name = 'clean up queue'
+    name = 'cleanUpQueue'
     description = 'cleans up queueByGraceID'
 
     def __init__(self, graceid, queue, queueByGraceID, timeout):
@@ -81,7 +81,7 @@ class CleanUpQueue(utils.Task):
         self.queueByGraceID = queueByGraceID ### pointer to the queueByGraceID that is managed within interactiveQueue and passed to parseAlert
         super(CleanUpQueue, self).__init__(timeout, self.cleanUpQueue) ### delegate to parent class
 
-    def cleanUpQueue(self, verbose=False):
+    def cleanUpQueue(self, verbose=False, **kwargs):
         """
          cleans up queueByGraceID; removes any Queue Item with self.graceid
         """
@@ -271,7 +271,7 @@ class Throttle(utils.Task):
       when expired, we pop all events older than now-win and re-set expiration.
       if there are no events, we set expiration to -infty and this will be cleaned up within PipelineThrottle (complete is set to True)
     '''
-    name = 'throttle'
+    name = 'manageEvents'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
     def __init__(self, events, win, Nthr, requireManualReset=False):
@@ -401,7 +401,7 @@ class DefineGroup(utils.Task):
     When the Grouper object expires, this is called and will actually encapsulte the downselection logic.
     It also manages labeling in GraceDb, but does not modify local data structures. Instead, we expect those to be updated by the forthcoming alert_type="label" LVAlert messages.
     '''
-    name = 'define group'
+    name = 'decide'
     description = 'a task that defines a group and selects which element is preferred'
 
     def __init__(self, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
@@ -455,7 +455,7 @@ class DefineGroup(utils.Task):
         ### choose based on group_pipeline_search using the class that does this
         groupPipelineSearchA = GroupPipelineSearch(event_dictA['group'], event_dictA['pipeline'], event_dictA['search'])
         groupPipelineSearchB = GroupPipelineSearch(event_dictB['group'], event_dictB['pipeline'], event_dictB['search'])
-        if grouptPipelineSearchA != groupPipelineSearchB: ### we can make a decision based on this!
+        if groupPipelineSearchA != groupPipelineSearchB: ### we can make a decision based on this!
             if groupPipelineSearchA > groupPipelineSearchB:
                 return graceidA
             else:
