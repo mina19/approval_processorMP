@@ -630,7 +630,7 @@ def loggerCheck(event_dict, message):
 def is_external_trigger(alert):
     '''a function that looks to see if lvalert regards an external GRB trigger or not'''
     graceid  = alert['uid']
-    group    = alert['group']
+    group    = alert['object']['group']
     pipeline = alert['object']['pipeline']
     search   = alert['object']['search'] if alert['object'].has_key('search') else ''
     if re.match('E', graceid):
