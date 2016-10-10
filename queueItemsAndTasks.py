@@ -58,7 +58,7 @@ class RemoveFromEventDicts(utils.Task):
         self.graceid = graceid ### needed for lookup
         self.event_dicts = event_dicts ### pointer to the big "dictionary of dictionaries" which keeps local records of events' states
         self.logger = logger ### used to redirect print statements
-        super(RemoveFromEventDicts, self).__init__(timeout, self.removeEventDict) ### delegate to the parent class
+        super(RemoveFromEventDicts, self).__init__(timeout, removeEventDict = self.removeEventDict) ### delegate to the parent class
 
     def removeEventDict(self, verbose=False, **kwargs):
         """
