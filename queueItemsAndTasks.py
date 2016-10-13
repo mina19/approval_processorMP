@@ -79,7 +79,7 @@ class CleanUpQueue(utils.Task):
         self.graceid = graceid ### required for lookup
         self.queue = queue ### pointer for queue that is managed within interactiveQueue and passed to parseAlert
         self.queueByGraceID = queueByGraceID ### pointer to the queueByGraceID that is managed within interactiveQueue and passed to parseAlert
-        super(CleanUpQueue, self).__init__(timeout, self.cleanUpQueue) ### delegate to parent class
+        super(CleanUpQueue, self).__init__(timeout, cleanUpQueue = self.cleanUpQueue) ### delegate to parent class
 
     def cleanUpQueue(self, verbose=False, **kwargs):
         """
@@ -281,7 +281,7 @@ class Throttle(utils.Task):
 
         self.requireManualReset = requireManualReset
 
-        super(Throttle, self).__init__(win, self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+        super(Throttle, self).__init__(win, manageEvents = self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
         #                               ^win is stored as timeout via delegation to Parent
 
     def isThrottled(self):
@@ -408,7 +408,7 @@ class DefineGroup(utils.Task):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
         self.eventDicts = eventDicts ### shared reference pointing to the local data about events
         self.graceDB = GraceDb( graceDB_url )
-        super(DefineGroup, self).__init__(timeout, self.decide) ### delegate to parent
+        super(DefineGroup, self).__init__(timeout, decide = self.decide) ### delegate to parent
 
     def decide(self, verbose=False):
         '''
