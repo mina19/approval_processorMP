@@ -251,19 +251,24 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     # populate text field for the GCN circular-to-be
                     message_dict['message'] = coinc_text.format(graceid, coinc_fap)
                     message_dict['loaded_to_gracedb'] = 0
-                    # make json file
+                    # make json string
                     message_dict = json.dumps(message_dict)
+                    # XXX put string into a file form to load online, call it coinc.json
+                    # XXX make sure to load with a comment that we look for to check off that it's been loaded into gracedb
                     # was it an online or offline pipeline?
                     if 'Online' in coinc_pipeline:
                         event_dict.data[grb_online_json] = message_dict
                     elif 'Offline' in coinc_pipeline:
                         event_dict.data[grb_offline_json] = message_dict
-                    # XXX load json file to gracedb
+                    # XXX load coinc.json file to gracedb 
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
-            # is this the json file loaded into GraceDb?
-            # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
-            # when we send to observers, message_dict['sent_to_observers'] = 1
+                # is this the json file loaded into GraceDb?
+                if 'GRB-GW Coincidence JSON file' in comment:
+                    # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
+                    message_dict = alert['object']['file']
+                    print message_dict        
+                    # when we send to observers, message_dict['sent_to_observers'] = 1
             else:
                 pass
         saveEventDicts(approval_processorMPfiles)
@@ -483,7 +488,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment) # extracting which VOEvent was re-sent
                     event_dict.data[response[0][1]].append(response[0][0])
                     saveEventDicts(approval_processorMPfiles)
-                elif 'The probability of second object being a neutron star' in comment: # got comment structure from Shaon G.
+                elif 'EM-Bright probabilities' in comment: # got comment structure from Shaon G.
                     record_em_bright(event_dict.data, comment, logger)
                 elif 'Temporal coincidence with external trigger' in comment: # got comment structure from Alex U.
                     exttrig, coinc_far = record_coinc_info(event_dict.data, comment, alert, logger)
