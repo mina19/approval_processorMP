@@ -270,7 +270,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 if 'GRB-GW Coincidence JSON file' in comment:
                     # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
                     message_dict = alert['object']['file']
-                    print message_dict        
+                    print message_dict
+                    # message_dict = json.loads(message_dict)
+                    # message_dict['loaded_to_gracedb'] = 1
+                    # event_dict.data['em_coinc_json'] = message_dict # need to do this for online/offline grn analysis event_dicts
                     # when we send to observers, message_dict['sent_to_observers'] = 1
             else:
                 pass
@@ -502,7 +505,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message_dict['loaded_to_gracedb'] = 0
                     message_dict = json.dumps(message_dict)
                     # update event dictionaries for both the gw and external trigger
-                    eventDictionaries[exttrig][em_coinc_json] = message_dict
+                    eventDictionaries[exttrig]['em_coinc_json'] = message_dict
                     # load json file to the gw gracedb page
                     tmpfile = open('/tmp/coinc_{0}.json'.format(graceid), 'w')
                     tmpfile.write(message_dict)
