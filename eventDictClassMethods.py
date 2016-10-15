@@ -72,7 +72,7 @@ class EventDict():
             'gpstime'                    : float(self.dictionary['gpstime']),
             'graceid'                    : self.graceid,
             'group'                      : self.dictionary['group'],
-            'groupergroup'               : None,
+            'groupergroup'               : {},
             'have_lvem_skymapCheckresult': None,
             'idq_joint_fapCheckresult'   : None,
             'idqlogkey'                  : 'no',

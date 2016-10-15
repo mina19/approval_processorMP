@@ -251,16 +251,19 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     # populate text field for the GCN circular-to-be
                     message_dict['message'] = coinc_text.format(graceid, coinc_fap)
                     message_dict['loaded_to_gracedb'] = 0
-                    # make json string
+                    # make json string and file
                     message_dict = json.dumps(message_dict)
-                    # XXX put string into a file form to load online, call it coinc.json
-                    # XXX make sure to load with a comment that we look for to check off that it's been loaded into gracedb
+                    tmpfile = open('/tmp/coinc_{0}.json'.format(graceid), 'w')
+                    tmpfile.write(message_dict)
+                    tmpfile.close()
+                    # make sure to load with a comment that we look for to check off that it's been loaded into gracedb
+                    g.writeLog(graceid, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
+                    os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     # was it an online or offline pipeline?
                     if 'Online' in coinc_pipeline:
                         event_dict.data[grb_online_json] = message_dict
                     elif 'Offline' in coinc_pipeline:
                         event_dict.data[grb_offline_json] = message_dict
-                    # XXX load coinc.json file to gracedb 
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
                 # is this the json file loaded into GraceDb?
@@ -495,12 +498,23 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     # create dictionary that will become json file
                     message_dict = {}
                     grb_instrument = eventDictionaries[exttrig][pipeline]
-                    message_dict['message'] = em_coinc_text.format(exttrig, grb_instrument, coinc_far)
+                    message_dict['message'] = em_coinc_text.format(exttrig, grb_instrument, graceid, coinc_far)
                     message_dict['loaded_to_gracedb'] = 0
                     message_dict = json.dumps(message_dict)
                     # update event dictionaries for both the gw and external trigger
                     eventDictionaries[exttrig][em_coinc_json] = message_dict
-                    # XXX load json file to gracedb page of both gw and external trigger
+                    # load json file to the gw gracedb page
+                    tmpfile = open('/tmp/coinc_{0}.json'.format(graceid), 'w')
+                    tmpfile.write(message_dict)
+                    tmpfile.close()
+                    g.writeLog(graceid, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
+                    os.remove('/tmp/coinc_{0}.json'.format(graceid))
+                    # load json file to the external trigger
+                    tmpfile = open('/tmp/coinc_{0}.json'.format(exttrig), 'w')
+                    tmpfile.write(message_dict)
+                    tmpfile.close()
+                    g.writeLog(exttrig, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(exttrig), tagname = 'em_follow')
+                    os.remove('/tmp/coinc_{0}.json'.format(exttrig))
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
                     saveEventDicts(approval_processorMPfiles)
