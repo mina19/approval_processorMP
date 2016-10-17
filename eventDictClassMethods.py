@@ -633,18 +633,19 @@ def loggerCheck(event_dict, message):
 def is_external_trigger(alert):
     '''a function that looks to see if lvalert regards an external GRB trigger or not'''
     graceid  = alert['uid']
-    group    = alert['object']['group'] if alert['object'].has_key('group') else '' # lvalerts produced for uploaded comments dont have group,
-                   # pipeline, or search info
-    pipeline = alert['object']['pipeline'] if alert['object'].has_key('pipeline') else ''
-    search   = alert['object']['search'] if alert['object'].has_key('search') else ''
     if re.match('E', graceid):
         return True
-    elif group=='External':
-        return True
-    elif pipeline=='Swift' or pipeline=='Fermi' or pipeline=='SNEWS':
-        return True
-    elif search=='GRB':
-        return True
+    if alert.has_key('object'): # noticed that label alert_types do not have 'object' key
+        group    = alert['object']['group'] if alert['object'].has_key('group') else '' # lvalerts produced for uploaded comments dont have group,
+                   # pipeline, or search info
+        pipeline = alert['object']['pipeline'] if alert['object'].has_key('pipeline') else ''
+        search   = alert['object']['search'] if alert['object'].has_key('search') else ''
+        if group=='External':
+            return True
+        elif pipeline=='Swift' or pipeline=='Fermi' or pipeline=='SNEWS':
+            return True
+        elif search=='GRB':
+            return True
     else:
         return False
     
