@@ -484,7 +484,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 record_skymap(event_dict.data, filename, submitter, logger)
             else:
                 pass
-        # interested in iDQ information
+        # interested in iDQ information or other updates
         else:
             if 'comment' in alert['object'].keys():
                 comment = alert['object']['comment']
@@ -505,14 +505,15 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message_dict['loaded_to_gracedb'] = 0
                     message_dict = json.dumps(message_dict)
                     # update event dictionaries for both the gw and external trigger
-                    eventDictionaries[exttrig]['em_coinc_json'] = message_dict
+                    eventDictionaries[exttrig]['em_coinc_json'] = message_dict # this updates the external trigger event_dict.data
+                    event_dict.data['em_coinc_json'] = message_dict # this updates the gw trigger event_dict.data
                     # load json file to the gw gracedb page
                     tmpfile = open('/tmp/coinc_{0}.json'.format(graceid), 'w')
                     tmpfile.write(message_dict)
                     tmpfile.close()
                     g.writeLog(graceid, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(graceid))
-                    # load json file to the external trigger
+                    # load json file to the external trigger page
                     tmpfile = open('/tmp/coinc_{0}.json'.format(exttrig), 'w')
                     tmpfile.write(message_dict)
                     tmpfile.close()
@@ -521,9 +522,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
                     saveEventDicts(approval_processorMPfiles)
-            # elif is this the json file loaded into GraceDb?
-            # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
-            # when we send to observers, message_dict['sent_to_observers'] = 1
+                elif 'GRB-GW Coincidence JSON file' in comment: # this is the comment that accompanies a loaded coinc json file
+                    message_dict = event_dict.data['em_coinc_json']
+                    message_dict['loaded_to_gracedb'] = 1
+                    saveEventDicts(approval_processorMPfiles)
                 else:
                     pass
 
