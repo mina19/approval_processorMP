@@ -257,23 +257,22 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     tmpfile.write(message_dict)
                     tmpfile.close()
                     # make sure to load with a comment that we look for to check off that it's been loaded into gracedb
-                    g.writeLog(graceid, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
-                    os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     # was it an online or offline pipeline?
                     if 'Online' in coinc_pipeline:
-                        event_dict.data[grb_online_json] = message_dict
+                        event_dict.data['grb_online_json'] = message_dict
+                        g.writeLog(graceid, 'GRB-GW Coincidence JSON file: grb_online_json', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
                     elif 'Offline' in coinc_pipeline:
-                        event_dict.data[grb_offline_json] = message_dict
+                        event_dict.data['grb_offline_json'] = message_dict
+                        g.writeLog(graceid, 'GRB-GW Coincidence JSON file: grb_offline_json', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
+                    os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
                 # is this the json file loaded into GraceDb?
                 if 'GRB-GW Coincidence JSON file' in comment:
-                    # if it is, do json.loads(message_dict) and then message_dict['loaded_to_gracedb'] = 1
-                    message_dict = alert['object']['file']
-                    print message_dict
-                    # message_dict = json.loads(message_dict)
-                    # message_dict['loaded_to_gracedb'] = 1
-                    # event_dict.data['em_coinc_json'] = message_dict # need to do this for online/offline grn analysis event_dicts
+                    # if it is, find out which type of json it was and then message_dict['loaded_to_gracedb'] = 1
+                    json_type = re.findall('file: (.*)', comment)[0]
+                    message_dict = event_dict.data[json_type]
+                    message_dict['loaded_to_gracedb'] = 1
                     # when we send to observers, message_dict['sent_to_observers'] = 1
             else:
                 pass
@@ -511,13 +510,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     tmpfile = open('/tmp/coinc_{0}.json'.format(graceid), 'w')
                     tmpfile.write(message_dict)
                     tmpfile.close()
-                    g.writeLog(graceid, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
+                    g.writeLog(graceid, 'GRB-GW Coincidence JSON file: em_coinc_json', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     # load json file to the external trigger page
                     tmpfile = open('/tmp/coinc_{0}.json'.format(exttrig), 'w')
                     tmpfile.write(message_dict)
                     tmpfile.close()
-                    g.writeLog(exttrig, 'GRB-GW Coincidence JSON file', '/tmp/coinc_{0}.json'.format(exttrig), tagname = 'em_follow')
+                    g.writeLog(exttrig, 'GRB-GW Coincidence JSON file: em_coinc_json', '/tmp/coinc_{0}.json'.format(exttrig), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(exttrig))
                     ### alert via email
                     os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
