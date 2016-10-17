@@ -58,7 +58,7 @@ class RemoveFromEventDicts(utils.Task):
         self.graceid = graceid ### needed for lookup
         self.event_dicts = event_dicts ### pointer to the big "dictionary of dictionaries" which keeps local records of events' states
         self.logger = logger ### used to redirect print statements
-        super(RemoveFromEventDicts, self).__init__(timeout, removeEventDict = self.removeEventDict) ### delegate to the parent class
+        super(RemoveFromEventDicts, self).__init__(timeout)
 
     def removeEventDict(self, verbose=False, **kwargs):
         """
@@ -79,7 +79,7 @@ class CleanUpQueue(utils.Task):
         self.graceid = graceid ### required for lookup
         self.queue = queue ### pointer for queue that is managed within interactiveQueue and passed to parseAlert
         self.queueByGraceID = queueByGraceID ### pointer to the queueByGraceID that is managed within interactiveQueue and passed to parseAlert
-        super(CleanUpQueue, self).__init__(timeout, cleanUpQueue = self.cleanUpQueue) ### delegate to parent class
+        super(CleanUpQueue, self).__init__(timeout)
 
     def cleanUpQueue(self, verbose=False, **kwargs):
         """
@@ -281,7 +281,7 @@ class Throttle(utils.Task):
 
         self.requireManualReset = requireManualReset
 
-        super(Throttle, self).__init__(win, manageEvents = self.manageEvents) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
+        super(Throttle, self).__init__(win) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
         #                               ^win is stored as timeout via delegation to Parent
 
     def isThrottled(self):
@@ -408,8 +408,7 @@ class DefineGroup(utils.Task):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
         self.eventDicts = eventDicts ### shared reference pointing to the local data about events
         self.graceDB = GraceDb( graceDB_url )
-        super(DefineGroup, self).__init__(timeout, decide = self.decide) ### delegate to parent
-
+        super(DefineGroup, self).__init__(timeout)
     def decide(self, verbose=False):
         '''
         decide which event is preferred and "create the group" in GraceDb
