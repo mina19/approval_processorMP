@@ -11,7 +11,7 @@ import json
 import pickle
 import urllib
 import logging
-
+import pdb
 import ConfigParser
 
 import time
@@ -564,13 +564,14 @@ def loadLogger(config):
 #-----------------------------------------------------------------------
 # Load config
 #-----------------------------------------------------------------------
-def loadConfig():
+def loadConfig(default=None):
     '''
     loads the childConfig-approval_processorMP.ini
     it will prompt the user if they want to use the one on the gracedb.processor machine, or if they want to specify a specific one
     '''
     config = ConfigParser.SafeConfigParser()
-    default = raw_input('do you want to use the default childConfig-approval_processorMP.ini? options are yes or no\n')
+    if (default==None):
+        default = raw_input('do you want to use the default childConfig-approval_processorMP.ini? options are yes or no\n')
     if default=='yes':
         config.read('/home/gracedb.processor/public_html/monitor/approval_processorMP/files/childConfig-approval_processorMP.ini')
     elif default=='no':
@@ -891,7 +892,6 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     try:
 #        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type,
 #                skymap_image_filename = skymap_image_filename, internal = internal)
-
         r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, 
                 skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, 
                 hardware_inj = hardware_inj, CoincComment = CoincComment, ProbHasNS = ProbHasNS, ProbHasRemnant = ProbHasRemnant)       
@@ -981,7 +981,7 @@ def resend_alert():
         pass
 
 def createTestEventDict(graceid):
-    config = loadConfig()
+    config = loadConfig('yes')
     client = config.get('general', 'client')
     g = GraceDb(client)
     configdict = makeConfigDict(config)
