@@ -857,7 +857,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         CoincComment = 1
     else:
         CoincComment = 0
-    print 'CoincComment is {0}'.format(CoincComment)
+#    print 'CoincComment is {0}'.format(CoincComment)
 
     # is EM-Bright information available? if so, include here
     if event_dict.has_key('em_bright_info'):
@@ -868,8 +868,8 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         ProbHasNS = None
         ProbHasRemnant = None
 
-    print 'ProbHasNS is: {0}'.format(ProbHasNS)        
-    print 'ProbHasRemnant is: {0}'.format(ProbHasRemnant)
+#    print 'ProbHasNS is: {0}'.format(ProbHasNS)        
+#    print 'ProbHasRemnant is: {0}'.format(ProbHasRemnant)
 
     thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
     # check if we sent this voevent before
