@@ -1,3 +1,0 @@
-#!/bin/bash
-
-lvalert_listenMP -N /home/gracedb.processor/.netrc -s lvalert.cgca.uwm.edu -c /home/gracedb.processor/lvalert-dev/approval_processorMP/etc/lvalert_listenMP.ini
