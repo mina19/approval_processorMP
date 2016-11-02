@@ -169,7 +169,7 @@ class EventDict():
                 else:
                     pass
                 return False
-            elif far = None:
+            elif far==None:
                 self.client.writeLog(self.graceid, 'AP: Candidate event is missing FAR.', tagname='em_follow')
                 self.data['farlogkey'] = 'yes'
                 message = '{0} -- {1} -- Candidate event is missing FAR.'.format(convertTime(), self.graceid)
