@@ -5,6 +5,9 @@ thisDir=${PWD}
 cd /home/gracedb.processor/lvalert-dev
 source setup.sh
 
+cd /home/gracedb.processor/lvalert-dev/approval_processorMP/bin
+start_comet
+
 cd /home/gracedb.processor/public_html/monitor/approval_processorMP/files
 cp /home/gracedb.processor/lvalert-dev/approval_processorMP/etc/lvalert_listenMP.ini lvalert_listenMP.ini
 cp /home/gracedb.processor/lvalert-dev/approval_processorMP/etc/childConfig-approval_processorMP.ini childConfig-approval_processorMP.ini
