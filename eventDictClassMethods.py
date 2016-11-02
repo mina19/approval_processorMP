@@ -175,7 +175,7 @@ class EventDict():
                 message = '{0} -- {1} -- Candidate event is missing FAR.'.format(convertTime(), self.graceid)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
-                    self.data['farCheckresult'] = True
+                    self.data['farCheckresult'] = False
                 else:
                     pass
                 return False
