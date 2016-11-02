@@ -169,6 +169,16 @@ class EventDict():
                 else:
                     pass
                 return False
+            elif far = None:
+                self.client.writeLog(self.graceid, 'AP: Candidate event is missing FAR.', tagname='em_follow')
+                self.data['farlogkey'] = 'yes'
+                message = '{0} -- {1} -- Candidate event is missing FAR.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['farCheckresult'] = True
+                else:
+                    pass
+                return False
             elif far < farthresh:
                 self.client.writeLog(self.graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
                 self.data['farlogkey'] = 'yes'
