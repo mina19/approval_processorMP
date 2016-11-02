@@ -180,7 +180,7 @@ class EventDict():
                     pass
                 return False
             elif far < farthresh:
-                self.client.writeLog(self.graceid, 'AP: Candidate event has low enough FAR.{0} < {1}'.format(far, farthresh), tagname='em_follow')
+                self.client.writeLog(self.graceid, 'AP: Candidate event has low enough FAR. {0} < {1}'.format(far, farthresh), tagname='em_follow')
                 self.data['farlogkey'] = 'yes'
                 message = '{0} -- {1} -- Low enough FAR. {2} < {3}'.format(convertTime(), self.graceid, far, farthresh)
                 if loggerCheck(self.data, message)==False:
