@@ -664,9 +664,9 @@ def is_external_trigger(alert):
 def checkLabels(labels, config):
     hardware_inj = config.get('labelCheck', 'hardware_inj')
     if hardware_inj == 'yes':
-        badlabels = ['DQV', 'Throttled', 'Superseded', 'H1NO', 'L1NO']
+        badlabels = ['DQV', 'Throttled', 'Superseded', 'H1NO', 'L1NO', 'ADVNO']
     else:
-        badlabels = ['DQV', 'Throttled', 'Superseded', 'INJ', 'H1NO', 'L1NO']
+        badlabels = ['DQV', 'Throttled', 'Superseded', 'INJ', 'H1NO', 'L1NO', 'ADVNO']
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
