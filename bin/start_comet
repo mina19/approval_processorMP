@@ -1,0 +1,2 @@
+#!/bin/sh
+twistd --logfile=${HOME}/working/twistd.log --pidfile=${HOME}/working/twistd.pid comet --receive --receive-port=5340 --whitelist=127.0.0.1/32 --broadcast --broadcast-port=5341 --local-ivo=ivo://gwnet/gcn_sender
