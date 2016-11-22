@@ -4,7 +4,7 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 #-------------------------------------------------
 
 from eventDictClassMethods import *
-from ligoMP.lvalert import lvalertMPutils as utils
+from lvalertMP.lvalert import lvalertMPutils as utils
 from ligo.gracedb.rest import GraceDb
 
 import time
