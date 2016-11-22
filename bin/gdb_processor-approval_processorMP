@@ -25,7 +25,7 @@ parser.add_argument('--config', required=True,
     help='path to config file for approval_processorMP' )
 
 parser.add_argument('--resource', default='approval_processorMP', required=False,
-    help='resource name for lvalert_listenMP. DEFAULT=eventSupervisor' )
+    help='resource name for lvalert_listenMP. DEFAULT=approval_processorMP' )
 
 parser.add_argument('--username', default='gdb_processor', required=False,
     help='username for lvalert_listenMP. DEFAULT=gdb_processor' )
