@@ -115,8 +115,10 @@ class EventDict():
         for message in log_dicts:
             if re.match('minimum glitch-FAP', message['comment']):
                 record_idqvalues(self.data, message['comment'], logger)
+            elif 'lvem' in message['tag_names'] and '.fits' in message['filename']:
+                record_skymap(self.data, message['filename'], message['issuer']['display_name'], logger)
             else:
-                pass
+                pass               
 
     #-----------------------------------------------------------------------
     # external GRB trigger local data bookkeeping
@@ -998,6 +1000,7 @@ def createTestEventDict(graceid):
     logger = loadLogger(config)
     event_dict = EventDict()
     event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger)
+    event_dict.update()
     eventDicts[graceid] = event_dict
     eventDictionaries[graceid] = event_dict.data
     return event_dict.data
