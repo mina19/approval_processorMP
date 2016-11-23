@@ -121,8 +121,6 @@ class EventDict():
                 voevent_type = 'update'
             elif voevent_type=='RE':
                 voevent_type = 'retraction'
-            thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
-            self.data['voevents'].append(thisvoevent)
             # update sent skymaps if any from the voevent
             skymap = re.findall(r'skymap_fits_basic\" dataType=\"string\" value=\"(\S+)\"', voevent_text)
             # update event_dict in the case there were any skymaps
@@ -132,6 +130,12 @@ class EventDict():
                     self.data['lastsentpreliminaryskymap'] = skymap
                 elif voevent_type=='initial' or voevent_type=='update':
                     self.data['lastsentskymap'] = skymap
+            elif len(skymap)==0:
+                skymap = None
+            thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap) + voevent_type
+            thisvoevent = '{0}-'.format(len(self.data['voevents']) + 1) + thisvoevent
+            self.data['voevents'].append(thisvoevent)
+
 
         # update signoff information if available
         url = self.client.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
@@ -898,7 +902,6 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         CoincComment = 1
     else:
         CoincComment = 0
-#    print 'CoincComment is {0}'.format(CoincComment)
 
     # is EM-Bright information available? if so, include here
     if event_dict.has_key('em_bright_info'):
@@ -909,10 +912,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         ProbHasNS = None
         ProbHasRemnant = None
 
-#    print 'ProbHasNS is: {0}'.format(ProbHasNS)        
-#    print 'ProbHasRemnant is: {0}'.format(ProbHasRemnant)
-
-    thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
+    thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
     # check if we sent this voevent before
     if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
         if voevent_type=='preliminary':
@@ -930,9 +930,6 @@ def process_alert(event_dict, voevent_type, client, config, logger):
     thisvoevent = '{0}-'.format(len(voevents) + 1) + thisvoevent
 
     try:
-#        r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type,
-#                skymap_image_filename = skymap_image_filename, internal = internal)
-
         r = client.createVOEvent(graceid, voevent_type, skymap_filename = skymap_filename, skymap_type = skymap_type, 
                 skymap_image_filename = skymap_image_filename, internal = internal, vetted = vetted, open_alert = open_alert, 
                 hardware_inj = hardware_inj, CoincComment = CoincComment, ProbHasNS = ProbHasNS, ProbHasRemnant = ProbHasRemnant)       
@@ -976,7 +973,7 @@ def process_alert(event_dict, voevent_type, client, config, logger):
             else:
                 voeventerror_email = config.get('general', 'voeventerror_email')
                 os.system('echo \'{0}\' | mail -s \'Problem sending {1} VOEvent: {2}\' {3}'.format(message, graceid, voevent_type, voeventerror_email))
-            thisvoevent = '{0}-(internal,vetted,open_alert,hardware_inj):({1},{2},{3},{4})-'.format(len(voeventerrors) + 1, internal, vetted, open_alert, hardware_inj) + voevent_type
+            thisvoevent = '{0}-(internal,vetted,open_alert,hardware_inj,skymap):({1},{2},{3},{4},{5})-'.format(len(voeventerrors) + 1, internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
             voeventerrors.append(thisvoevent)
             return 'voeventerrors, {0}'.format(thisvoevent)
 
