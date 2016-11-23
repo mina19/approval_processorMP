@@ -8,8 +8,8 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 from queueItemsAndTasks import * ### DANGEROUS! but should be ok here...
 from eventDictClassMethods import *
 
-from ligoMP.lvalert import lvalertMPutils as utils
-from ligoMP.lvalert.commands import parseCommand
+from lvalertMP.lvalert import lvalertMPutils as utils
+from lvalertMP.lvalert.commands import parseCommand
 from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
