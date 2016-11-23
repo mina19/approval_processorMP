@@ -8,8 +8,8 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 from queueItemsAndTasks import * ### DANGEROUS! but should be ok here...
 from eventDictClassMethods import *
 
-from lvalertMP.lvalert import lvalertMPutils as utils
-from lvalertMP.lvalert.commands import parseCommand
+from ligoMP.lvalert import lvalertMPutils as utils
+from ligoMP.lvalert.commands import parseCommand
 from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
@@ -579,28 +579,35 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 event_dict.data['currentstate'] = 'preliminary_to_initial'
             else:
                 pass
-            # notify the operators
+            labels = event_dict.data['labels']
+            # notify the operators if we haven't previously processed this event
             instruments = event_dict.data['instruments']
             for instrument in instruments:
-                message = '{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument)
+                if instrument in str(labels):
+                    pass
+                else:
+                    message = '{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument)
+                    if loggerCheck(event_dict.data, message)==False:
+                        logger.info(message)
+                        g.writeLabel(graceid, '{0}OPS'.format(instrument))
+                    else:
+                        pass
+            # notify the advocates if we haven't previously processed this event
+            if 'ADV' in str(labels):
+                pass
+            else:
+                message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
-                    g.writeLabel(graceid, '{0}OPS'.format(instrument))
+                    g.writeLabel(graceid, 'ADVREQ')
+                    os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
+                    # expose event to LV-EM
+                    url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
+                    for perm in ['view', 'change']:
+                        url = url_perm_base + perm
+                        #g.put(url)
                 else:
                     pass
-            # notify the advocates
-            message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
-            if loggerCheck(event_dict.data, message)==False:
-                logger.info(message)
-                g.writeLabel(graceid, 'ADVREQ')
-                os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
-                # expose event to LV-EM
-                url_perm_base = g.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
-                for perm in ['view', 'change']:
-                    url = url_perm_base + perm
-                    #g.put(url)
-            else:
-                pass
         saveEventDicts(approval_processorMPfiles)
         return 0
 
