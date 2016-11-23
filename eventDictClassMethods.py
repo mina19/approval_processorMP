@@ -914,16 +914,20 @@ def process_alert(event_dict, voevent_type, client, config, logger):
 
     thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
     # check if we sent this voevent before
-    if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
-        if voevent_type=='preliminary':
-            if skymap_filename!=event_dict['lastsentpreliminaryskymap']:
-                pass # we have not sent a preliminary alert with this skymap
-            else:
-                return
-        else:
-            return
+    if thisvoevent in str(voevents):
+        return
     else:
         pass
+#    if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
+#        if voevent_type=='preliminary':
+#            if skymap_filename!=event_dict['lastsentpreliminaryskymap']:
+#                pass # we have not sent a preliminary alert with this skymap
+#            else:
+#                return
+#        else:
+#            return
+#    else:
+#        pass
 
     logger.info('{0} -- {1} -- Creating {2} VOEvent file locally.'.format(convertTime(), graceid, voevent_type))
     voevent = None
