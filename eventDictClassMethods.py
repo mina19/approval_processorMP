@@ -104,6 +104,35 @@ class EventDict():
         creates an event_dict with signoff and iDQ information for self.graceid
         this event_dict starts off with currentstate new_to_preliminary
         '''
+        # get the most recent voevent information
+        voevent_dicts = self.client.voevents(self.graceid).json()['voevents']
+        for voevent in voevent_dicts:
+            voevent_text = voevent['text'] # this is the actual xml text
+            internal     = re.findall(r'internal\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0]
+            vetted       = re.findall(r'Vetted\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0] 
+            open_alert   = re.findall(r'OpenAlert\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0] 
+            hardware_inj = re.findall(r'HardwareInj\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0]
+            voevent_type = voevent['voevent_type']
+            if voevent_type=='PR':
+                voevent_type = 'preliminary'
+            elif voevent_type=='IN':
+                voevent_type = 'initial'
+            elif voevent_type=='UP':
+                voevent_type = 'update'
+            elif voevent_type=='RE':
+                voevent_type = 'retraction'
+            thisvoevent = '(internal,vetted,open_alert,hardware_inj):({0},{1},{2},{3})-'.format(internal, vetted, open_alert, hardware_inj) + voevent_type
+            self.data['voevents'].append(thisvoevent)
+            # update sent skymaps if any from the voevent
+            skymap = re.findall(r'skymap_fits_basic\" dataType=\"string\" value=\"(\S+)\"', voevent_text)
+            # update event_dict in the case there were any skymaps
+            if len(skymap)==1:
+                skymap = re.findall(r'files/(\S+)', skymap[0])[0]
+                if voevent_type=='preliminary':
+                    self.data['lastsentpreliminaryskymap'] = skymap
+                elif voevent_type=='initial' or voevent_type=='update':
+                    self.data['lastsentskymap'] = skymap
+
         # update signoff information if available
         url = self.client.templates['signoff-list-template'].format(graceid=self.graceid) # construct url for the operator/advocate signoff list
         signoff_list = self.client.get(url).json()['signoff'] # pull down signoff list
