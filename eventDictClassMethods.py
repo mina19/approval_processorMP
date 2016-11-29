@@ -615,9 +615,10 @@ def loadConfig():
     it will prompt the user if they want to use the one on the gracedb.processor machine, or if they want to specify a specific one
     '''
     config = ConfigParser.SafeConfigParser()
-    default = raw_input('do you want to use the default childConfig-approval_processorMP.ini? options are yes or no\n')
+    default = raw_input('do you want to use the default childConfig-approval_processorMP.ini in the grinch installation? options are yes or no\n')
     if default=='yes':
-        config.read('/home/gracedb.processor/public_html/monitor/approval_processorMP/files/childConfig-approval_processorMP.ini')
+        #config.read('/home/gracedb.processor/public_html/monitor/approval_processorMP/files/childConfig-approval_processorMP.ini')
+        config.read('/home/gracedb.processor/opt/etc/childConfig-approval_processorMP.ini')
     elif default=='no':
         config.read('{0}/childConfig-approval_processorMP.ini'.format(raw_input('childConfig-approval_processorMP.ini file directory? *do not include forward slash at end*\n')))
     else:
