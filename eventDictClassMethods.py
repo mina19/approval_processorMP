@@ -733,7 +733,7 @@ def record_coinc_info(event_dict, comment, alert, logger):
 def record_em_bright(event_dict, comment, logger):
     graceid = event_dict['graceid']
     em_bright_info = {}
-    ProbHasNS, RemnantThresh, ProbHasRemnant = re.findall('Computed from detection pipeline: The probability of second object being a neutron star = (.*)% \n The probability of remnant mass outside the black hole in excess of (.*) M_sun = (.*)% \n', comment)[0]
+    ProbHasNS, RemnantThresh, ProbHasRemnant = re.findall('computed from detection pipeline: The probability of second object being a neutron star = (.*)% \n The probability of remnant mass outside the black hole in excess of (.*) M_sun = (.*)% \n', comment)[0]
     em_bright_info['ProbHasNS'] = float(ProbHasNS)/100
     em_bright_info['ProbHasRemnant'] = float(ProbHasRemnant)/100
     em_bright_info['RemnantMassThreshInM_Sun'] = float(RemnantThresh)
