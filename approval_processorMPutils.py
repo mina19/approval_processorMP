@@ -94,6 +94,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     forgetmenow_timeout       = config.getfloat('general', 'forgetmenow_timeout')
     approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     hardware_inj              = config.get('labelCheck', 'hardware_inj')
+    wait_for_hardware_inj     = config.getfloat('labelCheck', 'wait_for_hardware_inj')
     default_farthresh         = config.getfloat('farCheck', 'default_farthresh')
     time_duration             = config.getfloat('injectionCheck', 'time_duration')
     humanscimons              = config.get('operator_signoffCheck', 'humanscimons')
@@ -539,6 +540,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     passedcheckcount = 0
 
     if currentstate=='new_to_preliminary':
+        time.sleep(wait_for_hardware_inj) #this is for those cases where we dont have the INJ label right away
+        queried_dict = g.events(graceid).next() #query gracedb for the graceid
+        event_dict.data['labels'] = queried_dict['labels'].keys() #get the latest labels before running checks
         for Check in new_to_preliminary:
             eval('event_dict.{0}()'.format(Check))
             checkresult = event_dict.data[Check + 'result']
