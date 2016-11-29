@@ -494,7 +494,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     response = re.findall(r'resent VOEvent (.*) in (.*)', comment) # extracting which VOEvent was re-sent
                     event_dict.data[response[0][1]].append(response[0][0])
                     saveEventDicts(approval_processorMPfiles)
-                elif 'EM-Bright probabilities' in comment: # got comment structure from Shaon G.
+                elif 'EM-Bright probabilities computed from detection pipeline' in comment: # got comment structure from Shaon G.
                     record_em_bright(event_dict.data, comment, logger)
                 elif 'Temporal coincidence with external trigger' in comment: # got comment structure from Alex U.
                     exttrig, coinc_far = record_coinc_info(event_dict.data, comment, alert, logger)
