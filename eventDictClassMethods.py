@@ -143,7 +143,7 @@ class EventDict():
         for signoff_object in signoff_list:
             record_signoff(self.data, signoff_object)
 
-        # update iDQ information, skymaps, and EM-Bright information if available
+        # update iDQ information, skymaps, EM-Bright information, and past farCheck results if available
         log_dicts = self.client.logs(self.graceid).json()['log']
         for message in log_dicts:
             if re.match('minimum glitch-FAP', message['comment']):
@@ -152,6 +152,8 @@ class EventDict():
                 record_skymap(self.data, message['filename'], message['issuer']['display_name'], logger)
             elif re.match('EM-Bright probabilities computed from detection pipeline', message['comment']):
                 record_em_bright(self.data, message['comment'], logger)
+            elif re.match('AP: Candidate event rejected due to large FAR', message['comment']):
+                self.data['farCheckresult'] = False
             else:
                 pass               
 
