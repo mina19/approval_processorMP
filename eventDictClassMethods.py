@@ -156,7 +156,14 @@ class EventDict():
                 default_farthresh = float(re.findall(r'>= (.*)', message['comment'])[0])
                 self.configdict['default_farthresh'] = default_farthresh
                 self.data['configuration'] = self.configdict
+                self.data['farlogkey'] = 'yes'
                 self.data['farCheckresult'] = False
+            elif re.match('AP: Candidate event has low enough FAR', message['comment']):
+                default_farthresh = float(re.findall(r'< (.*)', message['comment'])[0])
+                self.configdict['default_farthresh'] = default_farthresh
+                self.data['configuration'] = self.configdict
+                self.data['farlogkey'] = 'yes'
+                self.data['farCheckresult'] = True
             else:
                 pass               
 
