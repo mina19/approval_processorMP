@@ -145,7 +145,7 @@ class EventDict():
 
         # update iDQ information, skymaps, EM-Bright information, and past farCheck results if available
         log_dicts = self.client.logs(self.graceid).json()['log']
-        for message in log_dicts:
+        for message in reversed(log_dicts): # going through the log from most recent to oldest message
             if re.match('minimum glitch-FAP', message['comment']):
                 record_idqvalues(self.data, message['comment'], logger)
             elif 'lvem' in message['tag_names'] and '.fits' in message['filename']:
@@ -153,6 +153,9 @@ class EventDict():
             elif re.match('EM-Bright probabilities computed from detection pipeline', message['comment']):
                 record_em_bright(self.data, message['comment'], logger)
             elif re.match('AP: Candidate event rejected due to large FAR', message['comment']):
+                default_farthresh = float(re.findall(r'>= (.*)', message['comment'])[0])
+                self.configdict['default_farthresh'] = default_farthresh
+                self.data['configuration'] = self.configdict
                 self.data['farCheckresult'] = False
             else:
                 pass               
