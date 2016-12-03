@@ -500,7 +500,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     exttrig, coinc_far = record_coinc_info(event_dict.data, comment, alert, logger)
                     # create dictionary that will become json file
                     message_dict = {}
-                    grb_instrument = eventDictionaries[exttrig][pipeline]
+                    grb_instrument = eventDictionaries[exttrig]['pipeline']
                     message_dict['message'] = em_coinc_text.format(exttrig, grb_instrument, graceid, coinc_far)
                     message_dict['loaded_to_gracedb'] = 0
                     message_dict = json.dumps(message_dict)
