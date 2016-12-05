@@ -273,6 +273,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     # if it is, find out which type of json it was and then message_dict['loaded_to_gracedb'] = 1
                     json_type = re.findall('file: (.*)', comment)[0]
                     message_dict = event_dict.data[json_type]
+                    message_dict = json.loads(message_dict) # converts string to dictionary
                     message_dict['loaded_to_gracedb'] = 1
                     # when we send to observers, message_dict['sent_to_observers'] = 1
             else:
