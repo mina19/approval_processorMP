@@ -244,7 +244,7 @@ class EventDict():
     #-----------------------------------------------------------------------
     def labelCheck(self):
         '''
-        checks whether event has either INJ or DQV label. it will trest INJ as a real event or not depending on config setting
+        checks whether event has either INJ or DQV label. it will treat INJ as a real event or not depending on config setting
         '''
         labels = self.data['labels']
         if checkLabels(labels, self.config) > 0:
@@ -827,7 +827,7 @@ def record_signoff(event_dict, signoff_object):
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
-def process_alert(event_dict, voevent_type, client, config, logger):
+def process_alert(event_dict, voevent_type, client, config, logger, set_internal='do nothing'):
     graceid = event_dict['graceid']
     pipeline = event_dict['pipeline']
     voeventerrors = event_dict['voeventerrors']
@@ -927,6 +927,13 @@ def process_alert(event_dict, voevent_type, client, config, logger):
         ProbHasNS = None
         ProbHasRemnant = None
 
+    if set_internal=='yes': # this will override all 'internal' logic above and set internal = 1
+        internal = 1
+    elif set_internal=='no': # this will override all 'internal' logic above and set internal = 0
+        internal = 0
+    elif set_internal=='do nothing': # this will set 'internal' as whatever the config logic has it to be above
+        internal = internal
+
     thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
     # check if we sent this voevent before
     if thisvoevent in str(voevents):
@@ -1019,10 +1026,20 @@ def resend_alert():
     # prompt for voevent_type
     voevent_type = str(raw_input('voevent_type: (options are preliminary, initial, update, retraction)\n'))
 
+    # prompt for what the 'internal' value should be -- whether the alert should be kept internal or not
+    set_internal = str(raw_input('set_internal: (options are yes, no, do nothing)\nyes means alert will be kept internal\nno means alert will be sent out\ndo nothing means approval_processorMP will use specifications from the config file to determine what internal should be'))
+
     # load event dictionaries, get dictionary, send alert
     loadEventDicts(approval_processorMPfiles)
     event_dict = eventDicts['{0}'.format(graceid)]
-    response = process_alert(event_dict, voevent_type, g, config, logger)
+    if set_internal=='yes':
+        print 'internal will be set to 1'
+        response = process_alert(event_dict, voevent_type, g, config, logger, set_internal='yes')
+    elif set_internal=='no':
+        print 'internal will be set to 0'
+        response = process_alert(event_dict, voevent_type, g, config, logger, set_internal='no')
+    else:
+        response = process_alert(event_dict, voevent_type, g, config, logger)
     # to edit event_dict in parseAlert later
     response = re.findall(r'(.*), (.*)', response)
 
