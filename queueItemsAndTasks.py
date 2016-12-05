@@ -420,19 +420,19 @@ class DefineGroup(utils.Task):
               As we make decisions based on more complicated logic requiring more information, we'll also need to update Grouper.canDecide() to reflect this.
         '''
         selected = self.events[0] ### we assume there is at least one event...
-        superceded = []
+        superseded = []
         ### iterate through remaining events and decide if we like any of them better than selected
         for graceid in self.events[1:]:
 
             if selected == self.choose( selected, graceid ): ### we reject graceid
-                supreceded.append( graceid )
+                superseded.append( graceid )
             else: ### we reject the old selected and now prefer the new graceid
-                superceded.append( selected )
+                superseded.append( selected )
                 selected = graceid
 
         ### label events in GraceDb. This will initiate all the necessary processing when alert_type='label' messages are received
         self.labelAsSelected( selected )
-        for graceid in superceded:
+        for graceid in superseded:
             self.labelAsSuperseded( graceid )
 
     def choose(self, graceidA, graceidB ):
