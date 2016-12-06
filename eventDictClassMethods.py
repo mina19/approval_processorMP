@@ -1045,7 +1045,7 @@ def resend_alert():
     # to edit event_dict in parseAlert later
     response = re.findall(r'(.*), (.*)', response)
 
-#    sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
+    sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
     print 'voeventerrors: {0}'.format(event_dict['voeventerrors'])
     # prompt for exit
     exit_option = raw_input('exit: (options are yes or no)\n')
