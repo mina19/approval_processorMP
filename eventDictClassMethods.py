@@ -1027,7 +1027,7 @@ def resend_alert():
     voevent_type = str(raw_input('voevent_type: (options are preliminary, initial, update, retraction)\n'))
 
     # prompt for what the 'internal' value should be -- whether the alert should be kept internal or not
-    set_internal = str(raw_input('set_internal: (options are yes, no, do nothing)\nyes means alert will be kept internal\nno means alert will be sent out\ndo nothing means approval_processorMP will use specifications from the config file to determine what internal should be'))
+    set_internal = str(raw_input('set_internal: (options are yes, no, do nothing)\nyes means alert will be kept internal\nno means alert will be sent out\ndo nothing means approval_processorMP will use specifications from the config file to determine what internal should be\n'))
 
     # load event dictionaries, get dictionary, send alert
     loadEventDicts(approval_processorMPfiles)
