@@ -525,6 +525,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     saveEventDicts(approval_processorMPfiles)
                 elif 'GRB-GW Coincidence JSON file' in comment: # this is the comment that accompanies a loaded coinc json file
                     message_dict = event_dict.data['em_coinc_json']
+                    message_dict = json.loads(message_dict) # converts string to dictionary
                     message_dict['loaded_to_gracedb'] = 1
                     saveEventDicts(approval_processorMPfiles)
                 else:
