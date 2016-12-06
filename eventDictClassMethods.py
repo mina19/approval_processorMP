@@ -588,17 +588,15 @@ def saveEventDicts(approval_processorMPfiles):
 #-----------------------------------------------------------------------
 def loadEventDicts(approval_processorMPfiles):
     '''
-    loads eventDicts (the dictionary of event dictionaries) to do things like resend VOEvents for an event candidate
+    loads eventDictionaries (the dictionary of event dictionaries) to do things like resend VOEvents for an event candidate
     '''
-    ### figure out filenames
-    ### FIXME: THIS SHOULD NOT BE HARD CODED! Instead, use input arguments
     homedir = os.path.expanduser('~')
     pklname = '{0}{1}/EventDicts.p'.format(homedir, approval_processorMPfiles)
 
     if os.path.exists(pklname): ### check to see if the file actually exists
         file_obj = open(pklname, 'rb')
-        global eventDicts
-        eventDicts = pickle.load(file_obj) ### if something fails here, we want to know about it!
+        global eventDictionaries
+        eventDictionaries = pickle.load(file_obj) ### if something fails here, we want to know about it!
         file_obj.close()
 
 #-----------------------------------------------------------------------
@@ -1029,24 +1027,25 @@ def resend_alert():
     # prompt for what the 'internal' value should be -- whether the alert should be kept internal or not
     set_internal = str(raw_input('set_internal: (options are yes, no, do nothing)\nyes means alert will be kept internal\nno means alert will be sent out\ndo nothing means approval_processorMP will use specifications from the config file to determine what internal should be\n'))
 
-    # load event dictionaries, get dictionary, send alert
-    loadEventDicts(approval_processorMPfiles)
-    event_dict = eventDicts['{0}'.format(graceid)]
+    # make a fresh dictionary, send alert
+    event_dict = EventDict() # create a new instance of the EventDict class with is a blank event_dict
+    configdict = makeConfigDict(config) # make a configdict needed for the setup
+    event_dict.setup(g.events(graceid).next(), graceid, configdict, g, config, logger) # filling in the basics about the event
+    event_dict.update() # update the event_dict with signoffs and iDQ info, etc
+    eventDicts[graceid] = event_dict
+    eventDictionaries[graceid] = event_dict.data
     if set_internal=='yes':
         print 'internal will be set to 1'
-        response = process_alert(event_dict, voevent_type, g, config, logger, set_internal='yes')
+        response = process_alert(event_dict.data, voevent_type, g, config, logger, set_internal='yes')
     elif set_internal=='no':
         print 'internal will be set to 0'
-        response = process_alert(event_dict, voevent_type, g, config, logger, set_internal='no')
-    else:
-        response = process_alert(event_dict, voevent_type, g, config, logger)
+        response = process_alert(event_dict.data, voevent_type, g, config, logger, set_internal='no')
+    elif set_internal=='do nothing':
+        response = process_alert(event_dict.data, voevent_type, g, config, logger)
     # to edit event_dict in parseAlert later
     response = re.findall(r'(.*), (.*)', response)
 
-    # save event dictionaries
-    saveEventDicts(approval_processorMPfiles)
-    sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
-    print 'saved event dicts'
+#    sp.Popen('/usr/bin/gracedb log --tag-name=\'analyst_comments\' {0} \'resent VOEvent {1} in {2}\''.format(graceid, response[0][1], response[0][0]), stdout=sp.PIPE, shell=True)
     print 'voeventerrors: {0}'.format(event_dict['voeventerrors'])
     # prompt for exit
     exit_option = raw_input('exit: (options are yes or no)\n')
