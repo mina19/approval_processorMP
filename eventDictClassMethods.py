@@ -935,9 +935,13 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
     thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
     # check if we sent this voevent before
     if thisvoevent in str(voevents):
-        logger.info('{0} -- {1} -- This {2} VOEvent has been sent previously.'.format(convertTime(), graceid, voevent_type))
+        message = '{0} -- {1} -- This {2} VOEvent has been sent previously.'.format(convertTime(), graceid, voevent_type)
+        if loggerCheck(event_dict, message)==False:
+            logger.info(message)
+        else:
+            pass
         return
-    else:
+    else: # we have not sent this alert before so continue
         pass
 #    if (len(voevents) > 0) and (thisvoevent in sorted(voevents)[-1]):
 #        if voevent_type=='preliminary':
