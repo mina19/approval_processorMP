@@ -624,7 +624,6 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             if checkresult==None:
                 pass
             elif checkresult==False:
-               # need to set DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
@@ -636,12 +635,20 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
-                message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
-                if loggerCheck(event_dict.data, message)==False:
-                    logger.info(message)
-                    g.writeLabel(graceid, 'DQV')
+                # need to set DQV label so long as it isn't the operator_signoffCheck or advocate_signoffCheck
+                if 'signoffCheck' in Check:
+                    message = '{0} -- {1} -- Not labeling DQV because signoffCheck is separate from explicit data quality checks.'.format(convertTime(), graceid)
+                    if loggerCheck(event_dict.data, message)==False:
+                        logger.info(message)
+                    else:
+                        pass
                 else:
-                    pass
+                    message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
+                    if loggerCheck(event_dict.data, message)==False:
+                        logger.info(message)
+                        g.writeLabel(graceid, 'DQV')
+                    else:
+                        pass
                 saveEventDicts(approval_processorMPfiles)
                 return 0
             elif checkresult==True:
