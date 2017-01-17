@@ -106,7 +106,7 @@ class EventDict():
         '''
         # get the most recent voevent information
         voevent_dicts = self.client.voevents(self.graceid).json()['voevents']
-        for voevent in voevent_dicts:
+        for voevent in voevent_dicts: # this traverses voevents in the order they were sent
             voevent_text = voevent['text'] # this is the actual xml text
             internal     = re.findall(r'internal\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0]
             vetted       = re.findall(r'Vetted\" dataType=\"int\" value=\"(\S+)\"', voevent_text)[0] 
@@ -145,11 +145,15 @@ class EventDict():
 
         # update iDQ information, skymaps, EM-Bright information, and past farCheck results if available
         log_dicts = self.client.logs(self.graceid).json()['log']
+        for message in log_dicts: # going through the log from oldest to most recent for recording skymaps
+            if 'lvem' in message['tag_names'] and '.fits' in message['filename']:
+                record_skymap(self.data, message['filename'], message['issuer']['display_name'], logger) # this way, the ordering in which the skymaps came in is properly noted
+            else:
+                pass
+
         for message in reversed(log_dicts): # going through the log from most recent to oldest message
             if re.match('minimum glitch-FAP', message['comment']):
                 record_idqvalues(self.data, message['comment'], logger)
-            elif 'lvem' in message['tag_names'] and '.fits' in message['filename']:
-                record_skymap(self.data, message['filename'], message['issuer']['display_name'], logger)
             elif re.match('EM-Bright probabilities computed from detection pipeline', message['comment']):
                 record_em_bright(self.data, message['comment'], logger)
             elif re.match('AP: Candidate event rejected due to large FAR', message['comment']):
