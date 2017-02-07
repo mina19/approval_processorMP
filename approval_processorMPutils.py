@@ -171,8 +171,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         saveEventDicts(approval_processorMPfiles) # trying to see if expirationtime is updated from None
 
         message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
-        if loggerCheck(event_dict.data, message)==False: ### FIXME? Reed still isn't convinced 'loggerCheck' is a good idea and thinks we should just print everything, always. ### Mina disagrees here; without the loggerCheck there are sometimes the same messages printed ten, twenty times but out of order. very hard to read the logger and understand the event candidate
+        if loggerCheck(event_dict.data, message)==False:
             logger.info(message)
+            g.writeLog(graceid, 'AP: Created event dictionary.', tagname='em_follow')
         else:
             pass
 
@@ -217,6 +218,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Created event dictionary for {1}.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Created event dictionary.', tagname='em_follow')
             else:
                 pass
 
@@ -229,6 +231,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         message = '{0} -- {1} -- Mock data challenge or simulation. Ignoring.'.format(convertTime(), graceid)
         if loggerCheck(event_dict.data, message)==False:
             logger.info(message)
+            g.writeLog(graceid, 'AP: Mock data challenge or simulation. Ignoring.', tagname='em_follow')
         else:
             pass
         saveEventDicts(approval_processorMPfiles)
@@ -394,6 +397,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Sending update VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Received PE_READY label. Sending update VOEvent.', tagname='em_follow')
                 process_alert(event_dict.data, 'update', g, config, logger)
 
             else:
@@ -402,6 +406,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- State: {2} --> complete.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: State: {0} --> complete.'.format(currentstate), tagname='em_follow')
                 event_dict.data['currentstate'] = 'complete'
 
             else:
@@ -411,6 +416,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Sending initial VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Received EM_READY label. Sending initial VOEvent.', tagname='em_follow')
                 process_alert(event_dict.data, 'initial', g, config, logger)
 
             else:
@@ -419,6 +425,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- State: {2} --> initial_to_update.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: State: {0} --> initial_to_update.'.format(currentstate), tagname='em_follow')
                 event_dict.data['currentstate'] = 'initial_to_update'
 
             else:
@@ -555,11 +562,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: Failed {0} in currentstate: {1}.'.format(Check, currentstate), tagname='em_follow')
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: State: {0} --> rejected.'.format(currentstate), tagname='em_follow')
                     event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
@@ -571,17 +580,20 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Passed all {0} checks.'.format(currentstate), tagname='em_follow')
             else:
                 pass
             message = '{0} -- {1} -- Sending preliminary VOEvent.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Sending preliminary VOEvent.', tagname='em_follow')
                 process_alert(event_dict.data, 'preliminary', g, config, logger)
             else:
                 pass
             message = '{0} -- {1} -- State: {2} --> preliminary_to_initial.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: State: {0} --> preliminary_to_initial.'.format(currentstate), tagname='em_follow')
                 event_dict.data['currentstate'] = 'preliminary_to_initial'
             else:
                 pass
@@ -595,6 +607,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message = '{0} -- {1} -- Labeling {2}OPS.'.format(convertTime(), graceid, instrument)
                     if loggerCheck(event_dict.data, message)==False:
                         logger.info(message)
+                        g.writeLog(graceid, 'AP: Labeling {0}OPS.'.format(instrument), tagname='em_follow')
                         g.writeLabel(graceid, '{0}OPS'.format(instrument))
                     else:
                         pass
@@ -602,9 +615,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             if 'ADV' in str(labels):
                 pass
             else:
-                message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid, instrument)
+                message = '{0} -- {1} -- Labeling ADVREQ.'.format(convertTime(), graceid)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: Labeling ADVREQ.', tagname='em_follow')
                     g.writeLabel(graceid, 'ADVREQ')
                     os.system('echo \'{0}\' | mail -s \'{1} passed criteria for follow-up\' {2}'.format(advocate_text, graceid, advocate_email))
                     # expose event to LV-EM
@@ -627,11 +641,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: Failed {0} in currentstate: {1}.'.format(Check, currentstate), tagname='em_follow')
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: State: {0} --> rejected.'.format(currentstate), tagname='em_follow')
                     event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
@@ -640,12 +656,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message = '{0} -- {1} -- Not labeling DQV because signoffCheck is separate from explicit data quality checks.'.format(convertTime(), graceid)
                     if loggerCheck(event_dict.data, message)==False:
                         logger.info(message)
+                        g.writeLog(graceid, 'AP: Not labeling DQV because signoffCheck is separate from explicit data quality checks.', tagname='em_follow')
                     else:
                         pass
                 else:
                     message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
                     if loggerCheck(event_dict.data, message)==False:
                         logger.info(message)
+                        g.writeLog(graceid, 'AP: Labeling DQV.', tagname='em_follow')
                         g.writeLabel(graceid, 'DQV')
                     else:
                         pass
@@ -659,11 +677,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Passed all {0} checks.'.format(currenstate), tagname='em_follow')
             else:
                 pass
             message = '{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Labeling EM_READY.', tagname='em_follow')
                 g.writeLabel(graceid, 'EM_READY')
             else:
                 pass
@@ -681,17 +701,20 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: Failed {0} in currentstate: {1}.'.format(Check, currentstate), tagname='em_follow')
                 else:
                     pass
                 message = '{0} -- {1} -- State: {2} --> rejected.'.format(convertTime(), graceid, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: State: {0} --> rejected.'.format(currentstate), tagname='em_follow')
                     event_dict.data['currentstate'] = 'rejected'
                 else:
                     pass
                 message = '{0} -- {1} -- Labeling DQV.'.format(convertTime(), graceid)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
+                    g.writeLog(graceid, 'AP: Labeling DQV.', tagname='em_follow')
                     g.writeLabel(graceid, 'DQV')
                 else:
                     pass
@@ -703,11 +726,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Passed all {0} checks.'.format(currentstate), tagname='em_follow')
             else:
                 pass
             message = '{0} -- {1} -- Labeling PE_READY.'.format(convertTime(), graceid)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
+                g.writeLog(graceid, 'AP: Labeling PE_READY.', tagname='em_follow')
                 g.writeLabel(graceid, 'PE_READY')
             else:
                 pass
