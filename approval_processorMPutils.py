@@ -677,7 +677,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
-                g.writeLog(graceid, 'AP: Passed all {0} checks.'.format(currenstate), tagname='em_follow')
+                g.writeLog(graceid, 'AP: Passed all {0} checks.'.format(currentstate), tagname='em_follow')
             else:
                 pass
             message = '{0} -- {1} -- Labeling EM_READY.'.format(convertTime(), graceid)
