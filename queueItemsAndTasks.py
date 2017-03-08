@@ -240,7 +240,7 @@ class PipelineThrottle(utils.QueueItem):
         attempts to label the graceid as "EM_Throttled"
         """
         try:
-            self.gdb.writeLabel( graceid, "EM_Throttled" )
+            self.graceDB.writeLabel( graceid, "EM_Throttled" )
         except:
             pass ### FIXME: print some intelligent error message here!
 
