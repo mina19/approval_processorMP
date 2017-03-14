@@ -476,19 +476,19 @@ class DefineGroup(utils.Task):
 
     def labelAsSelected(self, graceid):
         """
-        attempts to label the graceid as "Selected"
+        attempts to label the graceid as "EM_Selected"
         """
         try:
-            self.gdb.writeLable( graceid, "Selected" )
+            self.gdb.writeLabel( graceid, "EM_Selected" )
         except:
             pass ### FIXME: print some intelligent error message here!
 
     def labelAsSuperseded(self, graceid):
         """
-        attempts to label the graceid as "Superseded"
+        attempts to label the graceid as "EM_Superseded"
         """
         try:
-            self.gdb.writeLable( graceid, "Superseded" )
+            self.gdb.writeLabel( graceid, "EM_Superseded" )
         except:
             pass ### FIXME: print some intelligent error message here!
 
