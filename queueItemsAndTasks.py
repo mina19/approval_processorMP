@@ -509,19 +509,19 @@ class GroupPipelineSearch():
     WARNING: if we do not know about a pariticular group, pipeline, or search, we assign a rank of -infty because we don't know about this type of event
     '''
     ### dictionaries that map group, pipeline, search into 
-    __groupRank__    = {'cbc'  :1, ### cbc events are preferred over burst
-                        'burst':0,
+    __groupRank__    = {'CBC'  :1, ### cbc events are preferred over burst
+                        'Burst':0,
                        }
     __pipelineRank__ = {'gstlal'      :0, ### all pipelines are equal
-                        'mbtaonline'  :0,
+                        'MBTAOnline'  :0,
                         'pycbc'       :0,
                         'gstlal-spiir':0,
-                        'cwb'         :0,
-                        'lib'         :0,
+                        'CWB'         :0,
+                        'LIB'         :0,
                        } ### all pipelines are equal
-    __searchRank__   = {'lowmass' :1,   ### events with "search" specified are preferred over events without "search" specified
-                        'highmass':1,
-                        'allsky'  :1,
+    __searchRank__   = {'LowMass' :1,   ### events with "search" specified are preferred over events without "search" specified
+                        'HighMass':1,
+                        'AllSky'  :1,
                         ''        :0,
                         None      :0,
                        }
