@@ -309,43 +309,47 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         ### pass event through PipelineThrottle
         #----------------
 
-        ### check if a PipelineThrottle exists for this node
-        group    = event_dict.data['group']
-        pipeline = event_dict.data['pipeline']
-        search   = event_dict.data['search']
-        key = generate_ThrottleKey(group, pipeline, search=search)
-        if queueByGraceID.has_key(key): ### a throttle already exists
-            if len(queueByGraceID[key]) > 1:
-                raise ValueError('too many QueueItems in SortedQueue for pipelineThrottle key=%s'%key)
-            item = queueByGraceID[key][0] ### we expect there to be only one item in this SortedQueue
-
-        else: ### we need to make a throttle!
-            # pull PipelineThrottle parameters from the config
-            if config.has_section(key):
-                throttleWin          = config.getfloat(key, 'throttleWin')
-                targetRate           = config.getfloat(key, 'targetRate')
-                requireManualReset   = config.get(key, 'requireManualReset')
-                conf                 = config.getfloat(key, 'conf')
-
-            else:
-                throttleWin          = config.getfloat('default_PipelineThrottle', 'throttleWin')
-                targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
-                requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
-                conf                 = config.getfloat('default_PipelineThrottle', 'conf')
-            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
-
-            queue.insert( item ) ### add to overall queue
-
-            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
-            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
-            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
-
-        item.addEvent( graceid, t0 ) ### add new event to throttle
-                                       ### this takes care of labeling in gracedb as necessary
-
-        if item.isThrottled(): 
-            ### send some warning message?
-            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
+#-------------------------------------------------
+### commented out by R. Essick on Mar 22, 2017 because this code is known to be buggy
+#
+#        ### check if a PipelineThrottle exists for this node
+#        group    = event_dict.data['group']
+#        pipeline = event_dict.data['pipeline']
+#        search   = event_dict.data['search']
+#        key = generate_ThrottleKey(group, pipeline, search=search)
+#        if queueByGraceID.has_key(key): ### a throttle already exists
+#            if len(queueByGraceID[key]) > 1:
+#                raise ValueError('too many QueueItems in SortedQueue for pipelineThrottle key=%s'%key)
+#            item = queueByGraceID[key][0] ### we expect there to be only one item in this SortedQueue
+#
+#        else: ### we need to make a throttle!
+#            # pull PipelineThrottle parameters from the config
+#            if config.has_section(key):
+#                throttleWin          = config.getfloat(key, 'throttleWin')
+#                targetRate           = config.getfloat(key, 'targetRate')
+#                requireManualReset   = config.get(key, 'requireManualReset')
+#                conf                 = config.getfloat(key, 'conf')
+#
+#            else:
+#                throttleWin          = config.getfloat('default_PipelineThrottle', 'throttleWin')
+#                targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
+#                requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
+#                conf                 = config.getfloat('default_PipelineThrottle', 'conf')
+#            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=False, conf=0.9, graceDB_url=client)
+#
+#            queue.insert( item ) ### add to overall queue
+#
+#            newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
+#            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+#            queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
+#
+#        item.addEvent( graceid, t0 ) ### add new event to throttle
+#                                       ### this takes care of labeling in gracedb as necessary
+#
+#        if item.isThrottled(): 
+#            ### send some warning message?
+#            return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
+#-------------------------------------------------
 
 #        #----------------
 #        ### pass data to Grouper
