@@ -1073,6 +1073,11 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
         internal = 1
     elif set_internal=='no': # this will override all 'internal' logic above and set internal = 0
         internal = 0
+        # expose event to LV-EM
+        url_perm_base = client.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
+        for perm in ['view', 'change']:
+            url = url_perm_base + perm
+            client.put(url)
     elif set_internal=='do nothing': # this will set 'internal' as whatever the config logic has it to be above
         internal = internal
 
