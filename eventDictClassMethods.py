@@ -154,8 +154,11 @@ class EventDict():
         for message in reversed(log_dicts): # going through the log from most recent to oldest message
             if re.match('minimum glitch-FAP', message['comment']):
                 record_idqvalues(self.data, message['comment'], logger)
-            elif re.match('EM-Bright probabilities computed from detection pipeline', message['comment']):
-                record_em_bright(self.data, message['comment'], logger)
+            elif re.match('Source-classification probabilities computed from detection pipeline', message['comment']):
+                embrightUrl = '{0}events/{1}/files/Source_Classification_{1}.json'.format(self.configdict['client'], self.graceid)
+                embrightDict = self.client.get(embrightUrl).read()
+                embrightDict = json.loads(embrightDict)
+                record_em_bright(self.data, embrightDict, logger)
             elif re.match('AP: Candidate event rejected due to large FAR', message['comment']):
                 default_farthresh = float(re.findall(r'>= (.*)', message['comment'])[0])
                 self.configdict['default_farthresh'] = default_farthresh
@@ -746,13 +749,11 @@ def record_coinc_info(event_dict, comment, alert, logger):
             pass
         return exttrig, coinc_far
 
-def record_em_bright(event_dict, comment, logger):
+def record_em_bright(event_dict, embrightDict, logger):
     graceid = event_dict['graceid']
     em_bright_info = {}
-    ProbHasNS, RemnantThresh, ProbHasRemnant = re.findall('The probability of second object being a neutron star  = (.*)% \n  The probability of remnant mass outside the black hole in excess of (.*) M_sun = (.*)% \n', comment)[0]
-    em_bright_info['ProbHasNS'] = float(ProbHasNS)/100
-    em_bright_info['ProbHasRemnant'] = float(ProbHasRemnant)/100
-    em_bright_info['RemnantMassThreshInM_Sun'] = float(RemnantThresh)
+    em_bright_info['Prob Mass2_less_than 3M_sun'] = float(embrightDict['Prob Mass2_less_than 3M_sun'])/100
+    em_bright_info['Prob remnant_mass_greater_than 0M_sun'] = float(embrightDict['Prob remnant_mass_greater_than 0M_sun'])/100
     event_dict['em_bright_info'] = em_bright_info
     message = '{0} -- {1} -- EM Bright probabilities recorded.'.format(convertTime(), graceid)
     if loggerCheck(event_dict, message)==False:
@@ -923,8 +924,8 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
     # is EM-Bright information available? if so, include here
     if event_dict.has_key('em_bright_info'):
         EM_Bright = event_dict['em_bright_info']
-        ProbHasNS = EM_Bright['ProbHasNS']
-        ProbHasRemnant = EM_Bright['ProbHasRemnant']
+        ProbHasNS = EM_Bright['Prob Mass2_less_than 3M_sun']
+        ProbHasRemnant = EM_Bright['Prob remnant_mass_greater_than 0M_sun']
     else:
         ProbHasNS = None
         ProbHasRemnant = None
