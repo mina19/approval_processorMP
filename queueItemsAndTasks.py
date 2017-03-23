@@ -228,7 +228,7 @@ class PipelineThrottle(utils.QueueItem):
         if wasThrottled: ### we are already throttled, so we just label the new graceid
             self.labelAsThrottled( graceid )
  
-        elif self.isThrottled: ### we were not throttled, but now we are, so we label everything as throttled.
+        elif self.isThrottled(): ### we were not throttled, but now we are, so we label everything as throttled.
             for graceid, _ in self.events:
                 self.labelAsThrottled( graceid )
  
