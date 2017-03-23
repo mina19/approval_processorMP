@@ -292,7 +292,7 @@ class Throttle(utils.Task):
         '''
         ### if we are not already throttled and require manual reset, we forget about events that are old enough
         if not (self.isThrottled() and self.requireManualReset):
-            t = time.time() - self.win ### cut off for what is "too old"
+            t = time.time() - self.timeout ### cut off for what is "too old"
             while len(self.events):
                 graceid, t0 = self.events.pop(0)
                 if t0 > t: ### event is recent enough that we still care about it
