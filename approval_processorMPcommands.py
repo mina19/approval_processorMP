@@ -12,7 +12,11 @@ import types
 import time
 import logging
 
-### XXX: IMPORTANT NOTE! Had to explicitly copy over Command, CommandQueueItem, and CommandTask objects because the script approvalprocessor_commandMP makes calls to the Command write() method, which in turn calls to __cid__. But, if you import over the Command object, your __cid__ in the lvalertMP.lvalert.commands file does not have the resetThrottle command in it.
+### XXX: IMPORTANT NOTE! Had to explicitly copy over Command, CommandQueueItem,
+### and CommandTask objects because the script approvalprocessor_commandMP makes
+### calls to the Command write() method, which in turn calls to __cid__. But, if
+### you import over the Command object, your __cid__ in the lvalertMP.lvalert.commands
+### file does not have the resetThrottle command in it.
 
 class Command(object):
     '''
@@ -175,10 +179,14 @@ class ResetThrottleTask(CommandTask):
             item.reset()
             logger.info('After reset, events list: {0}'.format(item.events))
             logger.info('Resorting the queue after setting expiration time to -infty')
-            ### here we just set the expiration times to -infty and then the sorted queue object will take care of executing the task and clearing the queueItem from the sorted queue and queueByGraceID
+            ### here we just set the expiration times to -infty and then the
+            ### sortedqueue object will take care of executing the task and 
+            ### clearing the queueItem from the sorted queue and queueByGraceID
             item.expiration = -infty
             item.tasks[0].expiration = -infty
             self.queue.resort()
+            ### Nothing more to do here! features of interactive queue will take
+            ### care of getting rid of the empty sortedqueue list in the queueByGraceID
         else:
             logger.info('Did not find PipelineThrottle QueueItem in QueueByGraceid')
 
