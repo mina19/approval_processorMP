@@ -1,0 +1,162 @@
+#!/bin/python
+usage       = "lvalert_commandMP [--options] --node=NODE [key,val key,val ...] cmd"
+description = "an example of how we can send commands to running instances of lvalert_listenMP. This works with process_type=test"
+author      = "reed.essick@ligo.org"
+
+#-------------------------------------------------
+
+import os
+import subprocess as sp
+
+import random
+
+from optparse import OptionParser
+
+#-------------------------------------------------
+
+def generateTmpFilename( directory='.', suffix='tmp', num=10, choices="a b c d e f g h i j k l m n o p q r s t u v w x y z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 0 1 2 3 4 5 6 7 8 9".split() ):
+    return "%s/%s.%s"%(directory, "".join(random.choice(choices) for _ in xrange(num)), suffix)
+
+def send( string, node, username=None, netrc=None, server='lvalert.cgca.uwm.edu', resource='sender', max_attempts=10, verbose=False, debug=False ):
+    '''
+    sends a json string to an lvalert node
+    writes json string to a file and then cleans it up upon completion
+    '''
+    filename = generateTmpFilename()
+    if verbose:
+        print "    writing string into temporary file : %s"%filename
+    file_obj = open(filename, 'w')
+    file_obj.write( string )
+    file_obj.close()
+
+    ### construct command line for lvalert_send
+    cmdLine = 'lvalert_send --server %(server)s --resource %(resource)s --node %(node)s --file %(file)s --max_attempts %(retry)d'%\
+        { 'server'   : server,
+          'resource' : resource,
+          'node'     : node,
+          'file'     : filename,
+          'retry'    : max_attempts,
+        }
+    if username:
+        cmdLine += " --username %s"%username
+    if netrc:
+        cmdLine += " --netrc %s"%netrc
+    if verbose:
+        cmdLine += " --verbose"
+    if debug:
+        cmdLine += " --debug"
+
+    ### submit lvalert_send command
+    if opts.verbose:
+        print "    sending via lvalert_send:\n        %s"%(cmdLine)
+    returncode = sp.Popen(cmdLine.split()).wait()
+
+    if returncode: ### something failed within lvalert_send
+        raise RuntimeError('lvalert_send exited with returncode=%d\nPreserving temp file : %s for inspection'%(returncode, filename))
+    else:
+        os.remove(filename)
+
+#------------------------
+
+def parseCommandLine():
+    '''
+    parses the command line
+    We write this specialty function because both OptionParser and ArgumentParser are not flexible enough for our needs (arbitrarily defined command line options) out of the box
+    '''
+
+    ### we have a few common options for which we use OptionParser
+    parser = OptionParser(usage=usage, description=description)
+
+    # library containing commands.py
+    parser.add_option("-l", "--library", default="lvalertMP", type='string', help='the library from which we import commands.py. Currently, only --library=lvalertMP is supported')
+
+    # options about command key,val pairs
+    parser.add_option('', '--show-commands', action='store_true', default=False, help='print the known commands')
+    parser.add_option('', '--show-kwargs', action='store_true', default=False, help='print the required and forbidden kwargs for this command')
+
+    # username and password
+    parser.add_option('-a', "--username", default=None, help="the username of the publisher or listener")
+    parser.add_option('-s', "--server",   default="lvalert.cgca.uwm.edu", help="the pubsub server")
+    parser.add_option('-r', "--resource", default="sender", help="resource to use in JID")
+
+    parser.add_option("-N", "--netrc", default=None, help="read username and password from this file. Passed to lvalert_send if supplied")
+
+    # access information about root nodes
+    parser.add_option('-n', "--node", default=None, help="name of the node on the pubsub server")
+
+    # debugging options
+    parser.add_option('-v', "--verbose", action="store_true", default=False, help="be verbose as you process the request")
+    parser.add_option('-g', "--debug",   action="store_true", default=False, help="should print out lots of information")
+
+    # timeout attempts
+    parser.add_option('-m', "--max_attempts", default=10, help="max number of timeouts allowed")
+
+    opts, args = parser.parse_args()
+
+    ### ensure we have --node defined
+    if not (opts.node or opts.show_commands or opts.show_kwargs): ### we don't require a node if we're just showing commands or kwargs
+        opts.node = raw_input('--node=')
+
+    cmd  = None
+    data = {}
+    for arg in args:
+        try:
+            key, val = arg.split(',') ### try to parse as if it were a key,val pair
+            try: ### try to cast val as a float
+                val = float(val)
+            except: ### if this fails, we just leave it as a string
+                pass
+            finally:
+                data[key] = val ### add this to data
+        except:
+            if cmd: ### command is already defined
+                raise ValueError('please supply exactly one command\n%s'%usage)
+            cmd = arg
+
+    if not (cmd or opts.show_commands): ### this was never set and we aren't just showing commands
+        raise ValueError('please supply exactly one command\n%s'%usage)
+
+    return opts, data, cmd
+
+#-------------------------------------------------
+
+if __name__=="__main__":
+    ### parse the command line
+    opts, data, cmd = parseCommandLine()
+
+    ### import commands based on library option
+    ### we may make this even more flexible by using eval, but I'd like to avoid that if possible
+    if opts.library=='lvalertMP':
+        from approval_processorMP import approval_processorMPcommands as commands
+    else:
+        raise ValueError("I don't know how to import commands for --library=%s"%opts.libarary)
+
+    if opts.show_commands: ### print the known commands
+        print "known commands are :\n\t%s"%("\n\t".join(commands.knownCommands()))
+        import sys
+        sys.exit(0)
+        
+    if opts.show_kwargs: ### print the required and forbidden kwargs
+        print "cmd=%s\n  requires\n\t%s\n  forbids\n\t%s"%(cmd, "\n\t".join(commands.requiredKWargs(cmd)), "\n\t".join(commands.forbiddenKWargs(cmd)))
+        import sys
+        sys.exit(0)
+
+    ### ensure we know how to actually set up this command
+    if cmd not in commands.knownCommands():
+        raise ValueError( "I do not know how to format (or interpret) cmd=%s\nKnown commands are : %s"%( cmd, ", ".join(commands.knownCommands()) ) )
+
+    ### construct the object
+    if opts.verbose:
+        print 'constructing %s Command object with data:\n\t%s'%( cmd, "\n\t".join("%s\t: %s"%(key, str(data[key])) for key in sorted(data.keys())) )
+    cmdObj = commands.initCommand( cmd, **data )
+
+    ### note: for what it's worth, we pass along any and all key,val pairs supplied at the command line. 
+    ### It is the responsibility of the CommandTask to ignore what it doesn't need and to set defaults if they are missing.
+
+    ### generate the json string
+    cmdStr = cmdObj.write()
+
+    ### send the json string
+    if opts.verbose:
+        print 'sending json string to node=%s\n%s'%(opts.node, cmdStr)
+    send( cmdStr, opts.node, opts.username, netrc=opts.netrc, server=opts.server, resource=opts.resource, max_attempts=opts.max_attempts, verbose=opts.verbose, debug=opts.debug )
