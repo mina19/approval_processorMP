@@ -254,6 +254,7 @@ class PipelineThrottle(utils.QueueItem):
         An equivalent proceedure is to reset() is to remove the QueueItem from all SortedQueues. If a new event comes in, we will create a replacement
         '''
         self.events = []
+        self.tasks[0].events = [] #also clear the events attribute for Throttle task as it doesn't get cleared automatically with previous line
         self.execute( verbose=False )
 
 class Throttle(utils.Task):
