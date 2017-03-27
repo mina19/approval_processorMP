@@ -1,0 +1,331 @@
+2017-03-27 14:40:57,671 | iQ : INFO : using config : /home/min-a.cho/lvalert-dev/pipelineThrottle/etc/childConfig-approval_processorMP.ini
+2017-03-27 14:40:57,671 | iQ : INFO : initializing process_type : approval_processorMP
+2017-03-27 14:41:05,028 | iQ : INFO : received : {"object": {"graceid": "T279498", "gpstime": "1174686081.1200", "pipeline": "CWB2G", "group": "Test", "links": {"neighbors": "https://gracedb.ligo.org/api/events/T279498/neighbors/", "files": "https://gracedb.ligo.org/api/events/T279498/files/", "log": "https://gracedb.ligo.org/api/events/T279498/log/", "filemeta": "https://gracedb.ligo.org/api/events/T279498/filemeta/", "self": "https://gracedb.ligo.org/api/events/T279498", "labels": "https://gracedb.ligo.org/api/events/T279498/labels/", "emobservations": "https://gracedb.ligo.org/api/events/T279498/emobservation/", "tags": "https://gracedb.ligo.org/api/events/T279498/tag/"}, "created": "2017-03-27 21:41:04 UTC", "far": 1e-08, "instruments": "H1,L1", "labels": {}, "extra_attributes": {"MultiBurst": {"central_freq": "0.000000", "false_alarm_rate": null, "confidence": null, "start_time_ns": 120000000, "start_time": 1174686081, "ligo_angle_sig": null, "bandwidth": "0.000000", "single_ifo_times": "1174686081.1200,1174686081.1200", "snr": 0.0, "ligo_angle": null, "amplitude": "0.000000", "ligo_axis_ra": "0.000000", "duration": "0.000000", "ligo_axis_dec": "0.000000", "peak_time_ns": null, "peak_time": null, "ifos": "H1,L1"}}, "nevents": null, "submitter": "min-a.cho@LIGO.ORG", "likelihood": 0, "far_is_upper_limit": false}, "alert_type": "new", "uid": "T279498", "file": "https://gracedb.ligo.org/events/T279498/files/trigger_submitted.txt", "description": ""}
+2017-03-27 14:41:06,336 | iQ : INFO : received : {"object": {"comment": "AP: Created event dictionary.", "file_version": null, "tag_names": ["em_follow"], "file": null, "created": "2017-03-27T21:41:06.156008+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/3", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/3/tag/", "N": 3}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: AP: Created event dictionary."}
+2017-03-27 14:41:19,137 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:41:19,138 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:41:19,206 | iQ : INFO : received : {"object": {"comment": "This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled", "file_version": null, "tag_names": ["analyst_comments"], "file": null, "created": "2017-03-27T21:41:06.453067+00:00", "self": "https://gracedb.ligo.org/gracedb/api/events/T279498/log/5", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/gracedb/api/events/T279498/log/5/tag/", "N": 5}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled"}
+2017-03-27 14:41:30,290 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:41:30,291 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:41:30,326 | iQ : INFO : received : {"object": {"graceid": "T279499", "gpstime": "1174686081.1200", "pipeline": "CWB2G", "group": "Test", "links": {"neighbors": "https://gracedb.ligo.org/api/events/T279499/neighbors/", "files": "https://gracedb.ligo.org/api/events/T279499/files/", "log": "https://gracedb.ligo.org/api/events/T279499/log/", "filemeta": "https://gracedb.ligo.org/api/events/T279499/filemeta/", "self": "https://gracedb.ligo.org/api/events/T279499", "labels": "https://gracedb.ligo.org/api/events/T279499/labels/", "emobservations": "https://gracedb.ligo.org/api/events/T279499/emobservation/", "tags": "https://gracedb.ligo.org/api/events/T279499/tag/"}, "created": "2017-03-27 21:41:12 UTC", "far": 1e-08, "instruments": "H1,L1", "labels": {}, "extra_attributes": {"MultiBurst": {"central_freq": "0.000000", "false_alarm_rate": null, "confidence": null, "start_time_ns": 120000000, "start_time": 1174686081, "ligo_angle_sig": null, "bandwidth": "0.000000", "single_ifo_times": "1174686081.1200,1174686081.1200", "snr": 0.0, "ligo_angle": null, "amplitude": "0.000000", "ligo_axis_ra": "0.000000", "duration": "0.000000", "ligo_axis_dec": "0.000000", "peak_time_ns": null, "peak_time": null, "ifos": "H1,L1"}}, "nevents": null, "submitter": "min-a.cho@LIGO.ORG", "likelihood": 0, "far_is_upper_limit": false}, "alert_type": "new", "uid": "T279499", "file": "https://gracedb.ligo.org/events/T279499/files/trigger_submitted.txt", "description": ""}
+2017-03-27 14:41:31,610 | iQ : INFO : received : {"object": {"comment": "RAVEN: Initiating coincidence search", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:14.626533+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/7", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/7/tag/", "N": 7}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: RAVEN: Initiating coincidence search"}
+2017-03-27 14:41:42,710 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:41:42,711 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:41:42,752 | iQ : INFO : received : {"object": {"comment": "This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled", "file_version": null, "tag_names": ["analyst_comments"], "file": null, "created": "2017-03-27T21:41:14.791521+00:00", "self": "https://gracedb.ligo.org/gracedb/api/events/T279499/log/3", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/gracedb/api/events/T279499/log/3/tag/", "N": 3}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled"}
+2017-03-27 14:41:58,407 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:41:58,408 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:41:58,452 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-1, +5] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:16.483321+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/8", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/8/tag/", "N": 8}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-1, +5] seconds"}
+2017-03-27 14:42:09,575 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:42:09,575 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:42:09,615 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-60, +600] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:17.801755+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/10", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/10/tag/", "N": 10}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-60, +600] seconds"}
+2017-03-27 14:42:22,418 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:42:22,418 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:42:22,451 | iQ : INFO : received : {"object": {"comment": "AP: Candidate event has low enough FAR. 1e-08 < 1.9e-07", "file_version": null, "tag_names": ["em_follow"], "file": null, "created": "2017-03-27T21:41:18.006322+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/12", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/12/tag/", "N": 12}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: AP: Candidate event has low enough FAR. 1e-08 < 1.9e-07"}
+2017-03-27 14:42:33,577 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:42:33,577 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:42:33,618 | iQ : INFO : received : {"object": {"comment": "RAVEN: Coincidence search complete", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:18.608472+00:00", "self": "https://gracedb.ligo.org/api/events/T279498/log/14", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279498/log/14/tag/", "N": 14}, "alert_type": "update", "uid": "T279498", "file": "", "description": "LOG: RAVEN: Coincidence search complete"}
+2017-03-27 14:42:44,722 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:42:44,722 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:42:44,760 | iQ : INFO : received : {"object": {"graceid": "T279500", "gpstime": "1174686081.1200", "pipeline": "CWB2G", "group": "Test", "links": {"neighbors": "https://gracedb.ligo.org/api/events/T279500/neighbors/", "files": "https://gracedb.ligo.org/api/events/T279500/files/", "log": "https://gracedb.ligo.org/api/events/T279500/log/", "filemeta": "https://gracedb.ligo.org/api/events/T279500/filemeta/", "self": "https://gracedb.ligo.org/api/events/T279500", "labels": "https://gracedb.ligo.org/api/events/T279500/labels/", "emobservations": "https://gracedb.ligo.org/api/events/T279500/emobservation/", "tags": "https://gracedb.ligo.org/api/events/T279500/tag/"}, "created": "2017-03-27 21:41:21 UTC", "far": 1e-08, "instruments": "H1,L1", "labels": {}, "extra_attributes": {"MultiBurst": {"central_freq": "0.000000", "false_alarm_rate": null, "confidence": null, "start_time_ns": 120000000, "start_time": 1174686081, "ligo_angle_sig": null, "bandwidth": "0.000000", "single_ifo_times": "1174686081.1200,1174686081.1200", "snr": 0.0, "ligo_angle": null, "amplitude": "0.000000", "ligo_axis_ra": "0.000000", "duration": "0.000000", "ligo_axis_dec": "0.000000", "peak_time_ns": null, "peak_time": null, "ifos": "H1,L1"}}, "nevents": null, "submitter": "min-a.cho@LIGO.ORG", "likelihood": 0, "far_is_upper_limit": false}, "alert_type": "new", "uid": "T279500", "file": "https://gracedb.ligo.org/events/T279500/files/trigger_submitted.txt", "description": ""}
+2017-03-27 14:42:49,459 | iQ : INFO : received : {"object": {"comment": "This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled", "file_version": null, "tag_names": ["analyst_comments"], "file": null, "created": "2017-03-27T21:41:23.077944+00:00", "self": "https://gracedb.ligo.org/gracedb/api/events/T279500/log/3", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/gracedb/api/events/T279500/log/3/tag/", "N": 3}, "alert_type": "update", "uid": "T279500", "file": "", "description": "LOG: This is a fake event for testing PipelineThrottle. Event should be labeled as EM_Throttled"}
+2017-03-27 14:43:01,390 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:01,391 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:01,437 | iQ : INFO : received : {"object": {"comment": "RAVEN: Initiating coincidence search", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:24.929429+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/5", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/5/tag/", "N": 5}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: RAVEN: Initiating coincidence search"}
+2017-03-27 14:43:12,536 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:12,536 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:12,573 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-1, +5] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:26.779404+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/6", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/6/tag/", "N": 6}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-1, +5] seconds"}
+2017-03-27 14:43:23,662 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:23,663 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:23,703 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-60, +600] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:28.499759+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/8", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/8/tag/", "N": 8}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-60, +600] seconds"}
+2017-03-27 14:43:36,779 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:36,780 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:36,812 | iQ : INFO : received : {"object": {"comment": "RAVEN: Coincidence search complete", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:29.359269+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/10", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/10/tag/", "N": 10}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: RAVEN: Coincidence search complete"}
+2017-03-27 14:43:47,898 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:47,898 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:47,937 | iQ : INFO : received : {"object": {"comment": "AP: Created event dictionary.", "file_version": null, "tag_names": ["em_follow"], "file": null, "created": "2017-03-27T21:41:31.434788+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/11", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/11/tag/", "N": 11}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: AP: Created event dictionary."}
+2017-03-27 14:43:59,362 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:43:59,363 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:43:59,405 | iQ : INFO : received : {"object": {"comment": "RAVEN: Initiating coincidence search", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:36.035064+00:00", "self": "https://gracedb.ligo.org/api/events/T279500/log/5", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279500/log/5/tag/", "N": 5}, "alert_type": "update", "uid": "T279500", "file": "", "description": "LOG: RAVEN: Initiating coincidence search"}
+2017-03-27 14:44:12,979 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:44:12,979 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:44:13,023 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-1, +5] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:37.979126+00:00", "self": "https://gracedb.ligo.org/api/events/T279500/log/6", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279500/log/6/tag/", "N": 6}, "alert_type": "update", "uid": "T279500", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-1, +5] seconds"}
+2017-03-27 14:44:24,112 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:44:24,112 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:44:24,150 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-60, +600] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:41:39.442258+00:00", "self": "https://gracedb.ligo.org/api/events/T279500/log/8", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279500/log/8/tag/", "N": 8}, "alert_type": "update", "uid": "T279500", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-60, +600] seconds"}
+2017-03-27 14:44:35,240 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:44:35,241 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:44:35,282 | iQ : INFO : received : {"object": {"comment": "RAVEN: Coincidence search complete", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:41:40.357793+00:00", "self": "https://gracedb.ligo.org/api/events/T279500/log/10", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279500/log/10/tag/", "N": 10}, "alert_type": "update", "uid": "T279500", "file": "", "description": "LOG: RAVEN: Coincidence search complete"}
+2017-03-27 14:44:46,376 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:44:46,376 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:44:46,423 | iQ : INFO : received : {"alert_type": "resetThrottle", "uid": "command", "object": {"pipeline": "CWB2G", "group": "Test"}}
+2017-03-27 14:44:46,423 | iQ.parseCommand : DEBUG : added Command=resetThrottle
+2017-03-27 14:44:46,424 | iQ : INFO : performing : resets throttled PipelineThrottle queueItems by calling the reset() method
+2017-03-27 14:44:46,424 | iQ.resetThrottle.resetThrottle : INFO : received PipelineThrottle throttleKey: Test_CWB2G
+2017-03-27 14:44:46,425 | iQ.resetThrottle.resetThrottle : INFO : Found PipelineThrottle QueueItem, calling reset method
+2017-03-27 14:44:46,425 | iQ.resetThrottle.resetThrottle : INFO : Before reset, events list: [(u'T279498', 1490650864.99577), (u'T279499', 1490650873.343228), (u'T279500', 1490650881.637505)]
+2017-03-27 14:44:46,425 | iQ.resetThrottle.resetThrottle : INFO : After reset, events list: []
+2017-03-27 14:44:46,425 | iQ.resetThrottle.resetThrottle : INFO : Resorting the queue after setting expiration time to -infty
+2017-03-27 14:44:46,523 | iQ : INFO : received : {"object": {"comment": "AP: Candidate event has low enough FAR. 1e-08 < 1.9e-07", "file_version": null, "tag_names": ["em_follow"], "file": null, "created": "2017-03-27T21:41:54.422452+00:00", "self": "https://gracedb.ligo.org/api/events/T279499/log/13", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279499/log/13/tag/", "N": 13}, "alert_type": "update", "uid": "T279499", "file": "", "description": "LOG: AP: Candidate event has low enough FAR. 1e-08 < 1.9e-07"}
+2017-03-27 14:44:57,610 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:44:57,610 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:44:57,677 | iQ : INFO : performing : a throttle on the events approval processor will react to from Test_CWB2G
+2017-03-27 14:44:57,678 | iQ : INFO : received : {"object": {"graceid": "T279501", "gpstime": "1174686081.1200", "pipeline": "CWB2G", "group": "Test", "links": {"neighbors": "https://gracedb.ligo.org/api/events/T279501/neighbors/", "files": "https://gracedb.ligo.org/api/events/T279501/files/", "log": "https://gracedb.ligo.org/api/events/T279501/log/", "filemeta": "https://gracedb.ligo.org/api/events/T279501/filemeta/", "self": "https://gracedb.ligo.org/api/events/T279501", "labels": "https://gracedb.ligo.org/api/events/T279501/labels/", "emobservations": "https://gracedb.ligo.org/api/events/T279501/emobservation/", "tags": "https://gracedb.ligo.org/api/events/T279501/tag/"}, "created": "2017-03-27 21:42:11 UTC", "far": 1e-08, "instruments": "H1,L1", "labels": {}, "extra_attributes": {"MultiBurst": {"central_freq": "0.000000", "false_alarm_rate": null, "confidence": null, "start_time_ns": 120000000, "start_time": 1174686081, "ligo_angle_sig": null, "bandwidth": "0.000000", "single_ifo_times": "1174686081.1200,1174686081.1200", "snr": 0.0, "ligo_angle": null, "amplitude": "0.000000", "ligo_axis_ra": "0.000000", "duration": "0.000000", "ligo_axis_dec": "0.000000", "peak_time_ns": null, "peak_time": null, "ifos": "H1,L1"}}, "nevents": null, "submitter": "min-a.cho@LIGO.ORG", "likelihood": 0, "far_is_upper_limit": false}, "alert_type": "new", "uid": "T279501", "file": "https://gracedb.ligo.org/events/T279501/files/trigger_submitted.txt", "description": ""}
+2017-03-27 14:45:01,339 | iQ : INFO : received : {"object": {"comment": "This is a fake event for testing PipelineThrottle. Event should NOT be labeled as EM_Throttled because it is sent after the reset method has been called.", "file_version": null, "tag_names": ["analyst_comments"], "file": null, "created": "2017-03-27T21:42:12.930378+00:00", "self": "https://gracedb.ligo.org/gracedb/api/events/T279501/log/3", "issuer": {"username": "min-a.cho@LIGO.ORG", "display_name": "Min-A Cho"}, "filename": "", "tags": "https://gracedb.ligo.org/gracedb/api/events/T279501/log/3/tag/", "N": 3}, "alert_type": "update", "uid": "T279501", "file": "", "description": "LOG: This is a fake event for testing PipelineThrottle. Event should NOT be labeled as EM_Throttled because it is sent after the reset method has been called."}
+2017-03-27 14:45:13,314 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:45:13,314 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:45:13,352 | iQ : INFO : received : {"object": {"comment": "RAVEN: Initiating coincidence search", "file_version": null, "tag_names": [], "file": null, "created": "2017-03-27T21:42:22.384146+00:00", "self": "https://gracedb.ligo.org/api/events/T279501/log/5", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279501/log/5/tag/", "N": 5}, "alert_type": "update", "uid": "T279501", "file": "", "description": "LOG: RAVEN: Initiating coincidence search"}
+2017-03-27 14:45:24,436 | iQ : WARNING : parseAlert raised an exception!
+2017-03-27 14:45:24,437 | iQ : WARNING : Traceback (most recent call last):
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/lvalertMP/lvalert/interactiveQueue.py", line 105, in interactiveQueue
+    parseAlert( queue, queueByGraceID, e, t0, config )
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/approval_processorMPutils.py", line 557, in parseAlert
+    eval('event_dict.{0}()'.format(Check))
+  File "<string>", line 1, in <module>
+  File "/home/min-a.cho/opt/lib/python2.7/site-packages/approval_processorMP/eventDictClassMethods.py", line 276, in injectionCheck
+    from raven.search import query
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/search.py", line 35, in <module>
+    from gracedb_events import GW, ExtTrig
+  File "/home/min-a.cho/.local/lib/python2.7/site-packages/raven/gracedb_events.py", line 39, in <module>
+    from lalinference import fits
+ImportError: cannot import name fits
+2017-03-27 14:45:24,473 | iQ : INFO : received : {"object": {"comment": "RAVEN: No External trigger candidates in window [-1, +5] seconds", "file_version": null, "tag_names": ["ext_coinc"], "file": null, "created": "2017-03-27T21:42:24.884689+00:00", "self": "https://gracedb.ligo.org/api/events/T279501/log/6", "issuer": {"username": "gracedb.processor", "display_name": " GraceDB Processor"}, "filename": "", "tags": "https://gracedb.ligo.org/api/events/T279501/log/6/tag/", "N": 6}, "alert_type": "update", "uid": "T279501", "file": "", "description": "LOG: RAVEN: No External trigger candidates in window [-1, +5] seconds"}
