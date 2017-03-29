@@ -5,9 +5,11 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 from queueItemsAndTasks import generate_ThrottleKey
 from lvalertMP.lvalert import lvalertMPutils as utils
 from lvalertMP.lvalert import commands
-from lvalertMP.lvalert.commands import knownCommands, requiredKWargs, forbiddenKWargs, parseCommand
+from lvalertMP.lvalert.commands import knownCommands
+from lvalertMP.lvalert.commands import requiredKWargs
+from lvalertMP.lvalert.commands import forbiddenKWargs
+from lvalertMP.lvalert.commands import parseCommand
 
-from numpy import infty
 import logging
 
 #-------------------------------------------------
