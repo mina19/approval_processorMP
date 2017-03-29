@@ -52,7 +52,7 @@ class ResetThrottleTask(commands.CommandTask):
         logger.addHandler( handler )
 
         ### determine the throttleKey associated with this command
-        throttleKey = generate_ThrottleKey(kwargs['group'], kwargs['pipeline'], search=kwargs['search'] if kwargs.has_kwy('search') else None)
+        throttleKey = generate_ThrottleKey(kwargs['group'], kwargs['pipeline'], search=kwargs['search'] if kwargs.has_key('search') else None)
 
         ### print to logger
         logger.info('received PipelineThrottle throttleKey: {0}'.format(throttleKey ))
