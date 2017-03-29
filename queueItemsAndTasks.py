@@ -196,10 +196,11 @@ class PipelineThrottle(utils.QueueItem):
         '''
         return the log of a factorial, using Stirling's approximation if n >= 100
         '''
-        if n < 100:
-            return np.log( np.math.factorial(n) )
-        else:
+        if n > 20: ### use stirling's approximation because np.math.factorial returns a long float when n>20, which breaks np.log 
+                   ### this should be accurate to ~1 part in 1e4, if not more so
             return 0.5*np.log(np.pi*2*n) + n*np.log(n) - n
+        else:
+            return np.log( np.math.factorial(n) )
 
     def isThrottled(self):
         '''
@@ -246,12 +247,11 @@ class PipelineThrottle(utils.QueueItem):
 
     def reset(self):
         '''
-        resets the throttle (sets self.events = [])
+        Resets the throttle (empties self.events)
+        After emptying self.events, we force self.tasks[0] to expire and then delegate to self.execute.
+        This in turn marks the item as complete (as well as moving self.tasks[0] from self.tasks to self.completedTasks)
 
-        NOTE: when calling this, we should also call SortedQueue.resort() to ensure that SortedQueues remain sorted!
-              this may be expensive, but should be rare!
-              We can also play games with marking this as complete by hand, etc.
-        An equivalent proceedure is to reset() is to remove the QueueItem from all SortedQueues. If a new event comes in, we will create a replacement
+        The main use case is from within ResetThrottleTask, which uses reset() to mark the item complete and then removes it from queueByGraceID.
         '''
         while self.events: ### modify this list in place instead of creating a new object. This way, the reference within self.tasks[0] is updated too
             self.events.pop(0)
