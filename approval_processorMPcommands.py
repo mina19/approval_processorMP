@@ -9,6 +9,7 @@ from lvalertMP.lvalert.commands import knownCommands
 from lvalertMP.lvalert.commands import requiredKWargs
 from lvalertMP.lvalert.commands import forbiddenKWargs
 from lvalertMP.lvalert.commands import parseCommand
+from lvalertMP.lvalert.commands import initCommand
 
 import logging
 
