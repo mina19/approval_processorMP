@@ -125,7 +125,8 @@ class PipelineThrottle(utils.QueueItem):
     '''
     name = 'pipeline throttle'
 
-    def __init__(self, t0, win, targetRate, group, pipeline, search=None, requireManualReset=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
+    def __init__(self, t0, eventDicts, win, targetRate, group, pipeline, search=None, requireManualReset=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
+        self.eventDicts = eventDicts ### pointer to the dictionary of event dicts, needed for determining number of triggers with different gpstimes
         ### record data about the pipeline (equivalently, the lvalert node)
         self.group    = group
         self.pipeline = pipeline
@@ -146,7 +147,7 @@ class PipelineThrottle(utils.QueueItem):
 
         self.graceDB = GraceDb( graceDB_url )
 
-        tasks = [Throttle(self.events, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
+        tasks = [Throttle(self.events, eventDicts, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
 
@@ -269,8 +270,10 @@ class Throttle(utils.Task):
     name = 'manageEvents'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
-    def __init__(self, events, win, Nthr, requireManualReset=False):
+    def __init__(self, events, eventDicts, win, Nthr, requireManualReset=False):
         self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
+
+        self.eventDicts = eventDicts ### pointer to the dictionary of event dictionaries, needed to determine number of triggers with distinct gpstimes
 
         self.Nthr = Nthr
 

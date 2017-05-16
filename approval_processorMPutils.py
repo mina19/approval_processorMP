@@ -332,7 +332,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 targetRate           = config.getfloat('default_PipelineThrottle', 'targetRate')
                 requireManualReset   = config.get('default_PipelineThrottle', 'requireManualReset')
                 conf                 = config.getfloat('default_PipelineThrottle', 'conf')
-            item = PipelineThrottle(t0, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=requireManualReset, conf=conf, graceDB_url=client)
+            item = PipelineThrottle(t0, eventDictionaries, throttleWin, targetRate, group, pipeline, search=search, requireManualReset=requireManualReset, conf=conf, graceDB_url=client)
 
             queue.insert( item ) ### add to overall queue
 
