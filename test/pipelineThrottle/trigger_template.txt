@@ -1,0 +1,83 @@
+nevent:     1
+ndim:       2
+run:        1
+name:
+rho:        0.000000
+netCC:      0.000000
+netED:      0.000000
+penalty:    0.000000
+gnet:       0.000000
+anet:       0.000000
+inet:       0.000000
+likelihood: 0.000000
+ecor:       0.000000
+ECOR:       0.000000
+factor:     0.000000
+range:      0.000000
+mchirp:     0.000000
+norm:       0.000000
+usize:      0
+ifo:        L1 H1
+eventID:    1 0
+rho:        0.000000 0.000000
+type:       0 0
+rate:       0 0
+volume:     0 0
+size:       0 0
+lag:        0.000000 0.000000
+slag:       0.000000 0.000000
+phi:        0.000000 0.000000 0.000000 0.000000
+theta:      0.000000 0.000000 0.000000 0.000000
+psi:        0.000000 0.000000
+iota:       0.000000 0.000000
+bp:          0.0000  0.0000
+inj_bp:      0.0000  0.0000
+bx:          0.0000  0.0000
+inj_bx:      0.0000  0.0000
+chirp:      0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+range:      0.000000 0.000000
+Deff:       0.000000 0.000000
+mass:       0.000000 0.000000
+spin:       0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+eBBH:       0.000000 0.000000 0.000000
+null:       0.000000 0.000000
+strain:     0.000000e+00 0.000000e+00
+hrss:       0.000000e+00 0.000000e+00
+inj_hrss:   0.000000e+00 0.000000e+00
+noise:      0.000000e+00 0.000000e+00
+segment:    1127475203.0000 1127475203.0000 1127475203.0000 1127475203.0000
+start:      1127475203.0000 1127475203.0000
+time:       1127475203.0000 1127475203.0000
+stop:       1127475203.0000 1127475203.0000
+inj_time:         0.0000       0.0000
+left:       0.0000000 0.0000000
+right:      0.0000000 0.0000000
+duration:   0.000000 0.000000
+frequency:  0.000000 0.000000
+low:        0.000000
+high:       0.000000
+bandwidth:  0.000000 0.000000
+snr:        0.000000 0.000000
+xSNR:       0.000000 0.000000
+sSNR:       0.000000 0.000000
+iSNR:       0.000000 0.000000
+oSNR:       0.000000 0.000000
+ioSNR:      0.000000 0.000000
+netcc:      0.000000 0.000000 0.000000 0.000000
+neted:      0.000000 0.000000 0.000000 0.000000 0.000000
+erA:         0.000  0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000  0.000
+sky_res:    0.000000
+map_length: 0
+veto:      0.000000 0.000000
+wat version = 2G
+online version = 1
+search=r
+## number of events with rho>= rho of the event | corresponding rate | start time of the analyzed segment list | end time of the analyzed segment list | duration of the analyzed segment list
+#significance based on the last processed job (about 180 seconds)
+0 1.00000e-08 0000000000 0000000600 600
+#significance based on the last hour
+0 1.00000e-08 0000000000 0000003600 3600
+#significance based on the last day
+0 1.00000e-08 0000000000 0000122192 122192
+#significance based on all the processed livetime in the run
+0 1.00000e-08 0000000000 0000675384 675384
