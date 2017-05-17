@@ -282,11 +282,25 @@ class Throttle(utils.Task):
         super(Throttle, self).__init__(win) ### delegate to parent. Will call setExpiration, which we overwrite to manage things as we need here
         #                               ^win is stored as timeout via delegation to Parent
 
+    def countDistinctTriggers(self): ### counts the number of triggers with distinct gpstimes; will group triggers and count them as one if their gpstimes round down to the same number
+        if len(self.events):
+            distinctTriggers = {}
+            for event in self.events:
+                graceid = event[0]
+                eventGPStime = int(self.eventDicts[graceid]['gpstime']) # round down the gpstime to the nearest integer
+                if distinctTriggers.has_key(eventGPStime):
+                    distinctTriggers[eventGPStime] += 1
+                else:
+                    distinctTriggers[eventGPStime] = 1
+            return len(distinctTriggers)
+        else:
+            return 0
+
     def isThrottled(self):
         '''
-        return len(self.events) > self.Nthr
+        return self.countDistinctTriggers() > self.Nthr
         '''
-        return len(self.events) > self.Nthr
+        return self.countDistinctTriggers() > self.Nthr
 
     def manageEvents(self, verbose=False, *args, **kwargs):
         '''
