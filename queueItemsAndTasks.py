@@ -312,10 +312,10 @@ class Throttle(utils.Task):
                 for distinctTrigger in distinctTriggers:
                     trueFalse, timeDiff, trigger = withinGrouperWin(event2, distinctTrigger, self.grouperWin, self.eventDicts)
                     if trueFalse==True: # we found a trigger with similar gpstimes, so break and move on to the next event in self.events[1:]
-                        distinctTriggers[trigger] += 1
+                        distinctTriggers[trigger] += 1 #since trigger is the one already in distinctTriggers, increase the count by 1
                         break
                     else:
-                        distinctTriggers[trigger] = 1
+                        distinctTriggers[trigger] = 1 #since trigger is the new trigger from self.events[1:], count starts at 1
             return len(distinctTriggers)
         else:
             return 0
