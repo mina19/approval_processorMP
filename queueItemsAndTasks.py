@@ -94,6 +94,22 @@ class CleanUpQueue(utils.Task):
         sortedQueue.insert(queueItem) # putting this queue item back in so that when interactiveQueue reaches the sorted queue associated with this self.graceid, it will not break
 
 #-------------------------------------------------
+# A common function used by PipelineThrottle and Grouper
+#-------------------------------------------------
+def withinGrouperWin(trigger1, trigger2, grouperWin, eventDictionaries):
+    """
+    determines whether trigger 1 is within +-grouperWin of trigger2 eventGPStime
+    make sure when you use this function that trigger1 is the 'new' trigger that needs to be compared against trigger2 which is already in a list like distinctTriggers in throttle or queueByGraceID for grouper
+    """
+    trigger1GPStime = eventDictionaries[trigger1]['gpstime']
+    trigger2GPStime = eventDictionaries[trigger2]['gpstime']
+    timeDiff = abs(trigger1GPStime - trigger2GPStime)
+    if timeDiff >= grouperWin:
+        return False, timeDiff, trigger1
+    else:
+        return True, timeDiff, trigger2
+
+#-------------------------------------------------
 # PipelineThrottle
 # used to ignore certain pipelines when they submit too many events to GraceDb. 
 # NOTE: this will not stop GraceDb from crashing but it will prevent approval processor from being overloaded
@@ -125,7 +141,7 @@ class PipelineThrottle(utils.QueueItem):
     '''
     name = 'pipeline throttle'
 
-    def __init__(self, t0, eventDicts, win, targetRate, group, pipeline, search=None, requireManualReset=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
+    def __init__(self, t0, eventDicts, grouperWin, win, targetRate, group, pipeline, search=None, requireManualReset=False, conf=0.9, graceDB_url='https://gracedb.ligo.org/api/'):
         self.eventDicts = eventDicts ### pointer to the dictionary of event dicts, needed for determining number of triggers with different gpstimes
         ### record data about the pipeline (equivalently, the lvalert node)
         self.group    = group
@@ -147,7 +163,7 @@ class PipelineThrottle(utils.QueueItem):
 
         self.graceDB = GraceDb( graceDB_url )
 
-        tasks = [Throttle(self.events, eventDicts, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
+        tasks = [Throttle(self.events, eventDicts, grouperWin, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
                 ]
         super(PipelineThrottle, self).__init__(t0, tasks) ### delegate to parent
 
@@ -270,10 +286,12 @@ class Throttle(utils.Task):
     name = 'manageEvents'
     description = 'a task that manages which events are tracked as part of the PipelineThrottle'
 
-    def __init__(self, events, eventDicts, win, Nthr, requireManualReset=False):
+    def __init__(self, events, eventDicts, grouperWin, win, Nthr, requireManualReset=False):
         self.events = events ### list of data we're tracking. Should be a shared reference to an attribute of PipelineThrottle
 
         self.eventDicts = eventDicts ### pointer to the dictionary of event dictionaries, needed to determine number of triggers with distinct gpstimes
+
+        self.grouperWin = grouperWin
 
         self.Nthr = Nthr
 
@@ -283,15 +301,21 @@ class Throttle(utils.Task):
         #                               ^win is stored as timeout via delegation to Parent
 
     def countDistinctTriggers(self): ### counts the number of triggers with distinct gpstimes; will group triggers and count them as one if their gpstimes round down to the same number
-        if len(self.events):
+        if len(self.events)==1:
+            return 1
+        elif len(self.events)>1: # we need at least two triggers to use the withinGrouperWin function
             distinctTriggers = {}
-            for event in self.events:
-                graceid = event[0]
-                eventGPStime = int(self.eventDicts[graceid]['gpstime']) # round down the gpstime to the nearest integer
-                if distinctTriggers.has_key(eventGPStime):
-                    distinctTriggers[eventGPStime] += 1
-                else:
-                    distinctTriggers[eventGPStime] = 1
+            event1 = self.events[0][0] #this is the graceid of the first trigger
+            distinctTriggers[event1] = 1 # adding in the first trigger graceid
+            for event in self.events[1:]: #cycle through the rest of the events in self.events and compare with triggers in distinctTriggers
+                event2 = event[0] # graceid of the event pulled in from self.events[1:]
+                for distinctTrigger in distinctTriggers:
+                    trueFalse, timeDiff, trigger = withinGrouperWin(event2, distinctTrigger, self.grouperWin, self.eventDicts)
+                    if trueFalse==True: # we found a trigger with similar gpstimes, so break and move on to the next event in self.events[1:]
+                        distinctTriggers[trigger] += 1
+                        break
+                    else:
+                        distinctTriggers[trigger] = 1
             return len(distinctTriggers)
         else:
             return 0
