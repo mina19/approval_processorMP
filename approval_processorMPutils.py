@@ -10,7 +10,6 @@ from eventDictClassMethods import *
 from approval_processorMPcommands import parseCommand
 
 from lvalertMP.lvalert import lvalertMPutils as utils
-from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
 import json
@@ -23,10 +22,10 @@ import re
 # Activate a virtualenv in order to be able to use Comet.
 #-----------------------------------------------------------------------
 
-VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py" ### FIXME: this shouldn't be hard coded like this. 
+#VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py" ### FIXME: this shouldn't be hard coded like this. 
                                                                                              ### If we need a virtual environment, it should be distributed along with the package.
                                                                                              ### That way, it is straightforward to install and run the code from *any* computer withour modifying the source code
-execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
+#execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #--------------------
 # Definitions of which checks must be satisfied in each state before moving on
@@ -34,6 +33,7 @@ execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 # main checks when currentstate of event is new_to_preliminary
 new_to_preliminary = [
+    'ifosCheck',
     'farCheck',
     'labelCheck',
     'injectionCheck'
@@ -85,7 +85,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
-    g = GraceDb(client)
+    g = initGraceDb(client)
 
     # get other childConfig settings; save in configdict
     voeventerror_email        = config.get('general', 'voeventerror_email')
@@ -301,7 +301,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     # actions for each alert_type
     currentstate = event_dict.data['currentstate'] ### actions depend on the current state
-       
+
     ### NOTE: we handle alert_type=="new" above as well and this conditional is slightly redundant...
     if alert_type=='new':
 

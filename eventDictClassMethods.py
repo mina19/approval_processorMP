@@ -4,12 +4,12 @@ author = "Min-A Cho (mina19@umd.edu)"
 #-----------------------------------------------------------------------
 # Import packages
 #-----------------------------------------------------------------------
-from ligo.gracedb.rest import GraceDb, HTTPError
-
+from ligo.gracedb.rest import GraceDb
+from ligoTest.gracedb.rest import FakeDb
 import os
 import json
 import pickle
-import urllib
+
 import logging
 
 import ConfigParser
@@ -38,6 +38,19 @@ global eventDictionaries # global variable for local bookkeeping
 ### important thing is it saves the event_dict as a DICTIONARY
 eventDictionaries = {}
 
+#-----------------------------------------------------------------------
+# Define initGracedb() function
+#-----------------------------------------------------------------------
+def initGraceDb(client):
+    if 'http' in client:
+        g = GraceDb(client)
+    else:
+        # FakeDb directory is created if non-existent
+        if os.path.exists(client):
+            g = FakeDb(client)
+        else:
+            g = None
+    return g
 #-----------------------------------------------------------------------
 # EventDict class
 #-----------------------------------------------------------------------
@@ -79,6 +92,8 @@ class EventDict():
             'idq_joint_fapCheckresult'   : None,
             'idqlogkey'                  : 'no',
             'idqvalues'                  : {},
+            'ifoslogkey'                 : 'no',
+            'ifosCheckresult'            : None,
             'injectionCheckresult'       : None,
             'injectionsfound'            : None,
             'injectionlogkey'            : 'no',
@@ -191,6 +206,17 @@ class EventDict():
             'pipeline'         : self.dictionary['pipeline']
         })  
 
+    def ifosCheck(self):
+        ifos = self.data['instruments']
+        res = len(ifos) > 1 # to neglect single IFO triggers 
+        self.data['ifosCheckresult'] = res
+        if not(res):
+            self.client.writeLog(self.graceid, 'AP: Candidate event rejected due to Single IFO')
+            self.data['ifoslogkey'] = 'yes'
+            message = '{0} -- {1} -- Rejecting due to Single IFO {2}'.format(convertTime(), self.graceid, ifos[0])
+            if loggerCheck(self.data, message)==False:
+                self.logger.info(message)
+        return res
     #-----------------------------------------------------------------------
     # farCheck
     #-----------------------------------------------------------------------
@@ -1021,7 +1047,7 @@ def resend_alert():
     client = config.get('general', 'client')
     approval_processorMPfiles = config.get('general', 'approval_processorMPfiles')
     print 'got client: {0}'.format(client)
-    g = GraceDb('{0}'.format(client))
+    g = initGraceDb('{0}'.format(client))
 
     # set up logger
     logger = loadLogger(config)
@@ -1065,7 +1091,7 @@ def resend_alert():
 def createTestEventDict(graceid):
     config = loadConfig()
     client = config.get('general', 'client')
-    g = GraceDb(client)
+    g = initGraceDb(client)
     configdict = makeConfigDict(config)
     logger = loadLogger(config)
     event_dict = EventDict()
