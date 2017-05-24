@@ -22,10 +22,10 @@ import re
 # Activate a virtualenv in order to be able to use Comet.
 #-----------------------------------------------------------------------
 
-#VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py" ### FIXME: this shouldn't be hard coded like this. 
+VIRTUALENV_ACTIVATOR = "/home/alexander.pace/emfollow_gracedb/cometenv/bin/activate_this.py" ### FIXME: this shouldn't be hard coded like this. 
                                                                                              ### If we need a virtual environment, it should be distributed along with the package.
                                                                                              ### That way, it is straightforward to install and run the code from *any* computer withour modifying the source code
-#execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
+execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 #--------------------
 # Definitions of which checks must be satisfied in each state before moving on
