@@ -5,7 +5,6 @@ author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
 
 from eventDictClassMethods import *
 from lvalertMP.lvalert import lvalertMPutils as utils
-from ligo.gracedb.rest import GraceDb
 
 import time
 
@@ -144,7 +143,7 @@ class PipelineThrottle(utils.QueueItem):
 
         self.computeNthr() ### sets self.Nthr
 
-        self.graceDB = GraceDb( graceDB_url )
+        self.graceDB = initGraceDb( graceDB_url )
 
         tasks = [Throttle(self.events, win, self.Nthr, requireManualReset=requireManualReset) ### there is only one task!
                 ]
@@ -407,7 +406,7 @@ class DefineGroup(utils.Task):
     def __init__(self, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
         self.eventDicts = eventDicts ### shared reference pointing to the local data about events
-        self.graceDB = GraceDb( graceDB_url )
+        self.graceDB = initGraceDb( graceDB_url )
         super(DefineGroup, self).__init__(timeout)
     def decide(self, verbose=False):
         '''
