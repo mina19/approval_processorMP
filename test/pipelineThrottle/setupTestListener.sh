@@ -313,8 +313,6 @@ export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
 export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}
 echo "DONE"
 
-#export PYTHONPATH=/home/min-a.cho/opt/lib/python2.7/site-packages:${PYTHONPATH}
-
 echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
 
 lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v
