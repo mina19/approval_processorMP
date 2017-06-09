@@ -47,23 +47,23 @@ class ResetThrottleTask(commands.CommandTask):
         generate the throttle key that will be used to reset the correct PipelineThrottle queueItem
         '''
         ###print in the logger
-        logger  = logging.getLogger('%s.%s'%(self.logTag, self.name)) ### want this to also propagate to interactiveQueue's logger
+        thislogger  = logging.getLogger('%s.%s'%(self.logTag, self.name)) ### want this to also propagate to interactiveQueue's logger
         handler = logging.StreamHandler() ### we don't format this so that it prints exactly as supplied
                                           ### however, interactiveQueue's handler *will* be formatted nicely 
-        logger.addHandler( handler )
+        thislogger.addHandler( handler )
 
         ### determine the throttleKey associated with this command
         throttleKey = generate_ThrottleKey(kwargs['group'], kwargs['pipeline'], search=kwargs['search'] if kwargs.has_key('search') else None)
 
         ### print to logger
-        logger.info('received PipelineThrottle throttleKey: {0}'.format(throttleKey ))
+        thislogger.info('received PipelineThrottle throttleKey: {0}'.format(throttleKey ))
         ### get the correct queueByGraceID sortedQueue
         if self.queueByGraceID.has_key(throttleKey):
             item = self.queueByGraceID[throttleKey][0]
-            logger.info('Found PipelineThrottle QueueItem, calling reset method')
-            logger.info('Before reset, events list: {0}'.format(item.events))
+            thislogger.info('Found PipelineThrottle QueueItem, calling reset method')
+            thislogger.info('Before reset, events list: {0}'.format(item.events))
             item.reset()
-            logger.info('After reset, events list: {0}'.format(item.events))
+            thislogger.info('After reset, events list: {0}'.format(item.events))
 
             ### after calling item.reset(), item.complete is set to True. 
             ### This means that interactiveQueue will automatically skip it and we don't need to touch the expiration
@@ -79,7 +79,7 @@ class ResetThrottleTask(commands.CommandTask):
             ### identify the index associated with this item within self.queue 
 
         else:
-            logger.info('Did not find PipelineThrottle QueueItem in QueueByGraceid')
+            thislogger.info('Did not find PipelineThrottle QueueItem in QueueByGraceid')
 
 #-------------------------------------------------
 # update dictionaries within lvalertMP.lvalert.commands
