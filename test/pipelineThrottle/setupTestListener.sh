@@ -72,7 +72,12 @@ rm -rf ${APPROVAL_PROCESSORMP_DIR}
 # Proceed with the download process.
 git clone "https://github.com/reedessick/lvalertMP.git" ${LVALERTMP_DIR}
 git clone "https://github.com/reedessick/lvalertTest.git" ${LVALERTTEST_DIR}
-git clone "https://github.com/deepchatterjeeligo/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
+git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
+#git clone "https://github.com/deepchatterjeeligo/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
+
+echo "Checking out hash 3e123dd of lvalertMP, which is the version running on Grinch installation"
+cd ${LVALERTMP_DIR}
+git checkout 3e123dd
 
 echo "Checking out branch testingPipelineThrottle in approval_processorMP"
 cd ${APPROVAL_PROCESSORMP_DIR}
@@ -307,5 +312,9 @@ export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
 export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}
 echo "DONE"
+
+#export PYTHONPATH=/home/min-a.cho/opt/lib/python2.7/site-packages:${PYTHONPATH}
+
+echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
 
 lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v
