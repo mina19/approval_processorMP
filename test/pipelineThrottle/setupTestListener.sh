@@ -290,7 +290,13 @@ conf = 0.9999
 throttleWin = 3600
 targetRate = 2.5e-6
 requireManualReset = False
-conf = 0.9999" > childConfig-approval_processorMPTest.ini
+conf = 0.9999
+
+;----------------- grouper ------------------------------
+; sets the window for grouping triggers together related to the same astrophysical event
+[grouper]
+; grouperWin determines the time window over which we group triggers from the time of the first ungrouped lvalertMP alert arrival
+grouperWin = 3" > childConfig-approval_processorMPTest.ini
 
 # There is an import error in lvalertTest_listenMP so fix that
 # ligoMP.lvalert needs to change to lvalertMP.lvalert
