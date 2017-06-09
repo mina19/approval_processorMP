@@ -315,6 +315,7 @@ class Throttle(utils.Task):
                         break
                     else:
                         distinctTriggers[trigger] = 1 #since trigger is the new trigger from self.events[1:], count starts at 1
+                        break
             return len(distinctTriggers)
         else:
             return 0
