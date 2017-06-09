@@ -280,11 +280,11 @@ class EventDict():
     #-----------------------------------------------------------------------
     def labelCheck(self):
         '''
-        checks whether event has either INJ or DQV label. it will treat INJ as a real event or not depending on config setting
+        checks whether event has INJ, DQV, EM_Throttled, EM_Superseded, H1NO, L1NO, V1NO, or ADVNO label. it will treat INJ as a real event or not depending on config setting
         '''
         labels = self.data['labels']
         if checkLabels(labels, self.config) > 0:
-            message = '{0} -- {1} -- Ignoring event due to INJ or DQV label.'.format(convertTime(), self.graceid)
+            message = '{0} -- {1} -- Ignoring event due to bad label.'.format(convertTime(), self.graceid)
             if loggerCheck(self.data, message)==False:
                 self.logger.info(message)
                 self.data['labelCheckresult'] = False
@@ -746,9 +746,9 @@ def is_external_trigger(alert):
 def checkLabels(labels, config):
     hardware_inj = config.get('labelCheck', 'hardware_inj')
     if hardware_inj == 'yes':
-        badlabels = ['DQV', 'EM_Throttled', 'EM_Superseded', 'H1NO', 'L1NO', 'ADVNO']
+        badlabels = ['DQV', 'EM_Throttled', 'EM_Superseded', 'H1NO', 'L1NO', 'V1NO', 'ADVNO']
     else:
-        badlabels = ['DQV', 'EM_Throttled', 'EM_Superseded', 'INJ', 'H1NO', 'L1NO', 'ADVNO']
+        badlabels = ['DQV', 'EM_Throttled', 'EM_Superseded', 'INJ', 'H1NO', 'L1NO', 'V1NO', 'ADVNO']
     intersectionlist = list(set(badlabels).intersection(labels))
     return len(intersectionlist)
 
