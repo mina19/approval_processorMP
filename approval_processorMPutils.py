@@ -10,7 +10,6 @@ from eventDictClassMethods import *
 from approval_processorMPcommands import parseCommand
 
 from lvalertMP.lvalert import lvalertMPutils as utils
-from ligo.gracedb.rest import GraceDb, HTTPError
 
 import os
 import json
@@ -34,6 +33,7 @@ execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 
 # main checks when currentstate of event is new_to_preliminary
 new_to_preliminary = [
+    'ifosCheck',
     'farCheck',
     'labelCheck',
     'injectionCheck'
@@ -85,7 +85,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     # instantiate GraceDB client from the childConfig
     client = config.get('general', 'client')
-    g = GraceDb(client)
+    g = initGraceDb(client)
 
     # get other childConfig settings; save in configdict
     voeventerror_email        = config.get('general', 'voeventerror_email')
