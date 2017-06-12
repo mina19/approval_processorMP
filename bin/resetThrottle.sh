@@ -1,0 +1,1 @@
+approvalprocessor_commandMP --node=approval_processorMPcommands group,Test pipeline,CWB2G resetThrottle
