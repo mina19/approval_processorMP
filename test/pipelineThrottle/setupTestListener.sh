@@ -314,6 +314,7 @@ echo "${REPO_DIR}" > repoDir.txt
 
 # Make the resetThrottleTest.sh command so that we can reset the CBC_gstlal_LowMass pipeline
 echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CBC pipeline,gstlal search,LowMass resetThrottle -v" > resetThrottleTest.sh
+chmod +x resetThrottleTest.sh
 
 # Make it easier for sourcing paths and python paths for testing purposes
 echo "export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
@@ -340,6 +341,7 @@ echo "DONE"
 cd ${LVALERTTEST_DIR}/bin
 sed -i -e 's/lvalertMP.lvalert import/approval_processorMP import approval_processorMPcommands as/g' lvalertTest_commandMP
 
+cd ${HOME_DIR}
 echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
 
 lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v
