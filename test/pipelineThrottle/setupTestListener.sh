@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#  setup_test.sh
+#  setupTestListener.sh
 #
 #  Created by:    Min-A Cho
 #  Creation date: June 8, 2017
@@ -12,7 +12,7 @@
 #
 
 # Usage message.
-usage="""setup_test.sh (v1.0)
+usage="""setupTestListener.sh (v1.0)
 
 Downloads the latest lvalertMP and lvalertTest repositories to a specified directory, downloads a specific git hash of approval_processorMP.
 
@@ -307,6 +307,20 @@ sed -i -e 's/ligoMP/lvalertMP/g' lvalertTest_listenMP
 # Comment out the line in approval_processorMPutils regarding sourcing comet
 cd ${APPROVAL_PROCESSORMP_DIR}
 sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
+
+# Record the repository directory so that we can simulate events more easily for testing purposes
+cd ${APPROVAL_PROCESSORMP_DIR}/test/pipelineThrottle
+echo "${REPO_DIR}" > repoDir.txt 
+
+# Make it easier for sourcing paths and python paths for testing purposes
+echo "export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
+export PATH=${LVALERTTEST_DIR}/bin:${PATH}
+export PYTHONPATH=${LVALERTMP_DIR}:${PYTHONPATH}
+export PATH=${LVALERTMP_DIR}/bin:${PATH}
+export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
+export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}" > setup.sh
+chmod +x setup.sh
 
 cd ${HOME_DIR}
 echo "Adding configuration files and libraries to PATH and PYTHONPATH"
