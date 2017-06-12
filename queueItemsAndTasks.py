@@ -393,7 +393,6 @@ class Grouper(utils.QueueItem):
     '''
     name = 'grouper'
 
-
     def __init__(self, t0, win, groupTag, eventDicts, decisionWin=60, graceDB_url='https://gracedb.ligo.org/api'):
         self.graceid = groupTag ### record data bout this group
 
@@ -589,7 +588,7 @@ class GroupPipelineSearch():
                         'CWB'         :0,
                         'LIB'         :0,
                        } ### all pipelines are equal
-    __searchRank__   = {'LowMass' :0,   ### events with "search" specified are preferred over events without "search" specified
+    __searchRank__   = {'LowMass' :0,   ### events with "search" specified are equivalent to events without "search" specified
                         'HighMass':0,
                         'AllSky'  :0,
                         ''        :0,
