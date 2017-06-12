@@ -336,6 +336,10 @@ export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
 export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}
 echo "DONE"
 
+# Make the lvalertTest_commandMP recognize approval_processorMP'f resetThrottle command
+cd ${LVALERTTEST_DIR}/bin
+sed -i -e 's/lvalertMP.lvalert import/approval_processorMP import approval_processorMPcommands as/g' lvalertTest_commandMP
+
 echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
 
 lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v
