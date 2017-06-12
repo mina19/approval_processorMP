@@ -17,44 +17,27 @@ the PipelineThrottle will forever remained throttled once throttled (requiring
 using the command resetThrottle) or it will sort itself out and become 
 unthrottled if we wait long enough and the pipeline calms down.
 
-Thus to test, we need to start an lvalert_listenMP listener.
-An example of that script is found in the file startApproval_ProcessorMP.sh
-You need to edit it correspondingly --
-    (1) Pay attention to where you put your .netrc file
-    (2) Which server are you using? If you use lvalert.cgca.uwm.edu you are
-        listening to events put into gracedb.ligo.org -- this means you 
-        absolutely need to make sure you *only* test with group=Test events
-        so as to not actually set off the true approval_processorMP which is
-        running
-        If you want to test with other types of triggers you need to set the
-        server to lvalert-test.cgca.uwm.edu
-    (3) Pay attention to the lvalert_listenMP.ini file -- open it up and make
-        sure you only listen to the Test_() nodes if you are running on gracedb
-        and also a node that is yours that you can publish to.
-        Do *NOT* send commands to approval_processorMPcommands because that is
-        the real commands node. You are only testing!
-        You may have to create your own lvalert node for sending commands to
-        that you are subscribed to, can publish to, and are listening to in 
-        this .ini file.
+Thus to test, we need to start an lvalertTest_listenMP listener.
 
-Next, I will include a script that will generate triggers for the Test_CWB2G
-node
+1. Call setupTestListener.sh
+   It will ask for your email address and your LIGO ID
+   You can specify a testing directory where it will download the repo's as 
+   needed for testing
+   ex: ./setupTestListener.sh -d /home/min-a.cho/github
 
-The first part of the test will generate 3 triggers, but they will all have 
-the same event gpstime, and therefore be counted as only 1 trigger by approval
-processorMP. This is to ensure that none of these 3 triggers are labeled
-as EM_Throttled since they are effectively the same trigger.
+2. Calling setupTestListener.sh above created two new files in the newly
+   created approval_processorMP/test/pipelineThrottle directory called
+   repoDir.txt and setup.sh
 
-Next, the resetThrottle command will be sent to reset the PipelineThrottle.
-
-Afterwards, 3 triggers will be sent again, but with distinct event gpstimes.
-3 triggers is enough to trip the throttle and cause events to be labeled as 
-EM_Throttled in gracedb. 
-
-Again, afterwards, I will send an unthrottling command.
-And then I will generate 1 last trigger and show it is not labeled EM_Throttled.
-
-That is the test.
+3. The test we conduct will be as follows:
+   1. Simulate 3 CBC_gstlal_LowMass events, send lvalerts for these --
+      this will trip the pipeline throttle for this throttleKey.
+      Make sure these events become labeled as EM_Throttled
+   2. Send a resetThrottle command using resetThrottleTest.sh
+      It is very import you own a testing lvalert node that you can publish to!
+      ex: min-a.cho-test or deep.chatterjee-test
+      It should be of the form ${LIGO_NAME}-test
+   3. Send another gstlal_LowMass event and make sure it is not throttled.
 
 The results will be in the log file that you specify in the childConfig.ini's
 log_directory under the [general] heading.
