@@ -1,5 +1,5 @@
 description = "utilities for approval_processorMP.py"
-author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org)"
+author = "Min-A Cho (mina19@umd.edu), Reed Essick (reed.essick@ligo.org), Deep Chatterjee (deep@uwm.edu)"
 
 #-----------------------------------------------------------------------
 # Import packages

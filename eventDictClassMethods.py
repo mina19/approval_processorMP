@@ -1,5 +1,5 @@
 description = "methods and attributes of the EventDict class"
-author = "Min-A Cho (mina19@umd.edu)"
+author = "Min-A Cho (mina19@umd.edu), Deep Chatterjee (deep@uwm.edu)"
 
 #-----------------------------------------------------------------------
 # Import packages
