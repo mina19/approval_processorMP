@@ -71,7 +71,7 @@ rm -rf ${APPROVAL_PROCESSORMP_DIR}
 
 # Proceed with the download process.
 git clone "https://github.com/reedessick/lvalertMP.git" ${LVALERTMP_DIR}
-git clone "https://github.com/reedessick/lvalertTest.git" ${LVALERTTEST_DIR}
+git clone "https://github.com/deepchatterjeeligo/lvalertTest.git" ${LVALERTTEST_DIR}
 git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
 #git clone "https://github.com/deepchatterjeeligo/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
 
