@@ -10,6 +10,7 @@ from eventDictClassMethods import *
 from approval_processorMPcommands import parseCommand
 
 from lvalertMP.lvalert import lvalertMPutils as utils
+from lal.gpstime import tconvert
 
 import os
 import json
@@ -32,7 +33,7 @@ execfile(VIRTUALENV_ACTIVATOR, dict(__file__=VIRTUALENV_ACTIVATOR))
 #--------------------
 
 # main checks when currentstate of event is new_to_preliminary
-new_to_preliminary = [
+selected_to_preliminary = [
     'ifosCheck',
     'farCheck',
     'labelCheck',
@@ -135,6 +136,13 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     else: # if not, set one up
         logger = loadLogger(config)
         logger.info('\n{0} ************ approval_processorMP.log RESTARTED ************\n'.format(convertTime()))
+
+    global gpstime_of_restart
+    if globals().has_key('gpstime_of_restart'): # check to see if this is the first lvalert we process after a restart of approval processor
+        gpstime_of_restart = globals()['gpstime_of_restart']
+    else: # this is needed later for grouper, so that upon a restart of approval_processor, we know whether we need to query gracedb or not
+        utc_t0 = convertTime(t0) # t0 is in linux time. we converted it into a UTC string
+        gpstime_of_restart = float(tconvert(utc_t0))
 
     #-------------------------------------------------------------------
     # extract relevant info about this alert
@@ -339,7 +347,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             queue.insert( item ) ### add to overall queue
 
             newSortedQueue = utils.SortedQueue() # create sorted queue for event candidate
-            newSortedQueue.insert(item) # put ForgetMeNow queue item into the sorted queue
+            newSortedQueue.insert(item) # put PipelineThrottle queue item into the sorted queue
             queueByGraceID[item.graceid] = newSortedQueue # add queue item to the queueByGraceID
 
         item.addEvent( graceid, t0 ) ### add new event to throttle
@@ -349,47 +357,51 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
             ### send some warning message?
             return 0 ### we're done here because we're ignoring this event -> exit from parseAlert
 
-#        #----------------
-#        ### pass data to Grouper
-#        #----------------
-#        raise Warning("Grouper is not implemented yet! we're currently using a temporate groupTag and prototype code")
+        #----------------
+        ### pass data to Grouper
+        #----------------
+        ### due to the time sensitivity of grouper, first check to see if an existing grouper exists
+        ### get the best groupTag from the queueByGraceID for this event gpstime, or create a new groupTag
+        grouperWin = config.getfloat('grouper', 'grouperWin')
+        groupTag = generate_GroupTag(event_dict.data, grouperWin, queueByGraceID)
 
-#        '''
-#        need to extract groupTag from group_pipeline[_search] mapping. 
-#            These associations should be specified in the config file, so we'll have to specify this somehow.
-#            probably just a "Grouper" section, with (option = value) pairs that look like (groupTag = nodeA nodeB nodeC ...)
-#        '''
-#        groupTag = 'TEMPORARY'
+        ### check to see if Grouper exists for this groupTag
+        if queueByGraceID.has_key(groupTag): ### this is not a new Grouper we have to create, so pull it up
+            if len(queueByGraceID[groupTag]) > 1:
+                raise ValueError('too many QueueItems in SortedQueue for groupTag={0}'.format(groupTag))
+            item = queueByGraceID[groupTag][0] ### there should only be one item in this SortedQueue
+            item.addEvent( graceid ) ### add this graceid to the item
 
-#        ### check to see if Grouper exists for this groupTag
-#        if queueByGraceID.has_key(groupTag): ### at least one Grouper already exists
+        else: ### have we already made a decision about triggers with gpstimes close to this event's gpstime?
+            already_selected = False
+            query_string = 'gpstime: {0} .. {1}'.format(str(event_dict.data['gpstime']-grouperWin), str(event_dict.data['gpstime']+grouperWin))
+            events = g.events(query_string) # query GraceDb for events
+            for event in events: # look to see if any were labeled EM_Selected
+                labels = event['labels'] # get the dictionary of labels
+                if labels.has_key('EM_Selected'):
+                   already_selected = True
+            if already_selected: # label this event as EM_Superseded, no need to do more
+                g.writeLabel(graceid, 'EM_Superseded')
+                return 0
+            else: # we need to make a groupTag and grouper, or pull down existing ones
+                pass
 
-#            ### determine if any of the existing Groupers are still accepting new triggers
-#            for item in queueByGraceID[groupTag]:
-#                if item.isOpen():
-#                    break ### this Grouper is still open, so we'll just use it
-#            else: ### no Groupers are open, so we need to create one
-#                item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+            decisionWin = config.getfloat('grouper', 'decisionWin')
+            item = Grouper(t0, grouperWin, groupTag, eventDictionaries, decisionWin, graceDB_url=client) ### create the actual QueueItem
 
-#                queue.insert( item ) ### insert it in the overall queue
+            queue.insert( item ) ### insert it in the overall queue
 
-#                newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-#                newSortedQueue.insert(item)
-#                queueByGraceID[groupTag] = newSortedQueue  
+            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
+            newSortedQueue.insert(item)
+            queueByGraceID[groupTag] = newSortedQueue
+            item.addEvent( graceid ) ### add this graceid to the item
 
-#        else: ### we need to make a Grouper
-#            grouperWin = config.getfloat('grouper', 'grouperWin')
-#            item = Grouper(t0, grouperWin, groupTag, eventDicts, graceDB_url=client) ### create the actual QueueItem
+        ### update the event dictionaries for all members of this group to reflect all the current members of the group with this groupTag
+        for groupMember in item.events:
+            eventDictionaries[groupMember]['grouperGroupMembers'] = item.events
 
-#            queue.insert( item ) ### insert it in the overall queue
-
-#            newSortedQueue = utils.SortedQueue() ### set up the SortedQueue for queueByGraceID
-#            newSortedQueue.insert(item)
-#            queueByGraceID[groupTag] = newSortedQueue
-
-#        item.addEvent( graceid ) ### add this graceid to the item
-
-        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "selected" label
+        saveEventDicts(approval_processorMPfiles)
+        return 0 ### we're done here. When Grouper makes a decision, we'll tick through the rest of the processes with a "EM_Selected" label
 
     elif alert_type=='label':
         record_label(event_dict.data, description)
@@ -457,11 +469,9 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 #            else:
 #                raise ValueError('could not find ForgetMeNow QueueItem for graceid=%s'%graceid)
 
-        elif description=="EM_Selected": ### this event was selected by a Grouper 
-            raise NotImplementedError('write logic to handle \"Selected\" labels')
-
         elif description=="EM_Superseded": ### this event was superceded by another event within Grouper
-            raise NotImplementedError('write logic to handle \"Superseded" labels')
+            # the currentstate should be updated to em_superseded
+            event_dict.data['currentstate'] = 'superseded' 
 
         elif (checkLabels(description.split(), config) > 0): ### some other label was applied. We may need to issue a retraction notice.
             event_dict.data['currentstate'] = 'rejected'
@@ -474,17 +484,12 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     process_alert(event_dict.data, 'retraction', g, config, logger)
 
         saveEventDicts(approval_processorMPfiles) ### save the updated eventDict to disk
-        return 0
-
-    ### FIXME: Reed left off commenting here...
-
-
-
-
-
-
-
-
+        if description=='EM_Selected':
+            event_dict.data['currentstate'] = 'selected_to_preliminary'
+            # we want to get to the block of code where we perform checks for selected_to_preliminary events so pass, rather than return 0
+            pass
+        else:
+            return 0
 
     elif alert_type=='update':
         # first the case that we have a new lvem skymap
@@ -554,17 +559,14 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
     passedcheckcount = 0
 
-    if currentstate=='new_to_preliminary':
-        time.sleep(wait_for_hardware_inj) #this is for those cases where we dont have the INJ label right away
-        queried_dict = g.events(graceid).next() #query gracedb for the graceid
-        event_dict.data['labels'] = queried_dict['labels'].keys() #get the latest labels before running checks
-        for Check in new_to_preliminary:
+    if currentstate=='selected_to_preliminary':
+        for Check in selected_to_preliminary:
             eval('event_dict.{0}()'.format(Check))
             checkresult = event_dict.data[Check + 'result']
             if checkresult==None:
                 pass
             elif checkresult==False:
-                # because in 'new_to_preliminary' state, no need to apply DQV label
+                # because in 'selected_to_preliminary' state, no need to apply DQV label
                 message = '{0} -- {1} -- Failed {2} in currentstate: {3}.'.format(convertTime(), graceid, Check, currentstate)
                 if loggerCheck(event_dict.data, message)==False:
                     logger.info(message)
@@ -582,7 +584,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                 return 0
             elif checkresult==True:
                 passedcheckcount += 1
-        if passedcheckcount==len(new_to_preliminary):
+        if passedcheckcount==len(selected_to_preliminary):
             message = '{0} -- {1} -- Passed all {2} checks.'.format(convertTime(), graceid, currentstate)
             if loggerCheck(event_dict.data, message)==False:
                 logger.info(message)
