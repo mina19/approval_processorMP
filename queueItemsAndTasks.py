@@ -7,8 +7,10 @@ from eventDictClassMethods import *
 from lvalertMP.lvalert import lvalertMPutils as utils
 
 import time
-
+import re
 import numpy as np
+import json
+import os
 
 #-------------------------------------------------
 # ForgetMeNow
@@ -356,6 +358,26 @@ class Throttle(utils.Task):
 # Grouper
 # used to group nearby events 
 #-------------------------------------------------
+def generate_GroupTag(event_dict, grouperWin, queueByGraceID):
+    '''
+    returns a string that will be used as the graceid to identify the correct grouper QueueItem from the queueByGraceID
+    '''
+    eventGPStime = float(event_dict['gpstime'])
+    upperGPStime = eventGPStime + grouperWin
+    lowerGPStime = eventGPStime - grouperWin
+    Dt = grouperWin #will be used to track the grouper queueItem whose gpstime is closest to our eventGPStime
+    GrouperGPStime = None #by default because we haven't begun our search yet
+    for graceID in queueByGraceID:
+        if 'Group_' in graceID:
+            grouperGPStime = float(re.findall('Group_(.*)', graceID)[0])
+            if grouperGPStime >= lowerGPStime and grouperGPStime <= upperGPStime: #our current event could go into this grouper, so calculate dt and compare to Dt
+                dt = abs(eventGPStime - grouperGPStime)
+                if dt <= Dt:
+                    Dt = dt
+                    GrouperGPStime = grouperGPStime
+    if GrouperGPStime==None:
+        GrouperGPStime = eventGPStime
+    return "Group_{0}".format(GrouperGPStime)
 
 class Grouper(utils.QueueItem):
     '''
@@ -364,14 +386,15 @@ class Grouper(utils.QueueItem):
 
     WARNING: grouping is currently done by the time at which lvalert_listenMP recieves the alert rather than gpstime or creation time. We may want to revisit this.
 
-    as currently implemented, the group stays "open" until t0+win=closure. 
-    At this point, it begins trying to decide via delegations to it's task. 
-    If it cannot decide immediately (eg: not enough DQ info is available), it will punt "wait" seconds and try again. 
-    This polling will continue until we have enough info to decide or we reach a maximum timeout of "maxWait" after the window closes. 
+    as currently implemented, the group stays "open" until t0+win=closure.
+    At this point, it begins trying to decide via delegations to it's task.
+    If it cannot decide immediately (eg: not enough DQ info is available), it will punt "wait" seconds and try again.
+    This polling will continue until we have enough info to decide or we reach a maximum timeout of "maxWait" after the window closes.
     '''
     name = 'grouper'
-    
-    def __init__(self, t0, win, groupTag, eventDicts, wait=1, maxWait=60, graceDB_url='https://gracedb.ligo.org/api'):
+
+
+    def __init__(self, t0, win, groupTag, eventDicts, decisionWin=60, graceDB_url='https://gracedb.ligo.org/api'):
         self.graceid = groupTag ### record data bout this group
 
         self.eventDicts = eventDicts ### pointer to the dictionary of dictionaries, which we will need to determine whether a decision can be made
@@ -380,37 +403,40 @@ class Grouper(utils.QueueItem):
 
         self.events = [] ### shared reference that is passed to DefineGroup task
 
-        self.t0 = t0
-        self.closure = t0+win ### when the acceptance gate closes
+        self.t0 = t0 # this is the time of the first lvalert type new arrival that sparked the creation of this Grouper queueItem. it is in unix time!!!
+        self.closure = t0+decisionWin ### when the acceptance gate closes
 
-        self.wait = wait ### the amount we wait (repeatedly) while looking for more information before making a decision
-        self.maxWait = maxWait ### the maximum amount of time after self.closure that we wait for necessary info to make a decision
+        self.win = win ### the window around first lvalert type new eventGpstime
 
-        tasks = [DefineGroup(self.events, eventDicts, win, graceDB_url=graceDB_url) ### only one task!
+        self.grouperGPStime = float(re.findall('Group_(.*)', groupTag)[0])
+
+        tasks = [DefineGroup(self.graceid, self.events, eventDicts, decisionWin, graceDB_url=graceDB_url) ### only one task!
                 ]
         super(Grouper, self).__init__(t0, tasks) ### delegate to parent
-
-    def isOpen(self):
-        '''
-        determines whether the Group is still accepting new events
-        '''
-        return time.time() < self.closure
 
     def addEvent(self, graceid):
         '''
         adds a graceid to the DefineGroup task
-        NOTE: we do NOT check whether the grouper is open before adding the event. 
+        NOTE: we do NOT check whether the grouper is open before adding the event.
         This allows us the flexibility to ignore which groupers are still open if needed and "force" events into the mix.
+        Also note: any event added after the acceptance gate has closed will be labeled as EM_Superseded
         '''
-        self.events.append( graceid )
-
+        ### double check that the new event's eventGPStime is within +-win of the grouperGPStime 
+        upperLimit = self.grouperGPStime + self.win
+        lowerLimit = self.grouperGPStime - self.win
+        if self.eventDicts[graceid]['gpstime'] <= upperLimit and self.eventDicts[graceid]['gpstime']>= lowerLimit:
+            self.events.append( graceid )
+            self.eventDicts[graceid]['grouperGroupTag'] = self.graceid
+        else:
+            ###something is really wrong, so alert Mina
+            pass
     def canDecide(self):
         """
         determines whether we have enough information to make this decision
 
-        currently, we only require FAR and pipeline information, which we *know* we already have in eventDicts. 
+        currently, we only require FAR and pipeline information, which we *know* we already have in eventDicts.
         Thus, we return True without doing anything.
-        
+
         We may want to do something like the following for more complicated logic:
             goodToGo = True
             for graceid in self.events: ### iterate through events in this group
@@ -421,16 +447,6 @@ class Grouper(utils.QueueItem):
         """
         return True
 
-    def execute(self, verbose=False ):
-        '''
-        override parent method to handle the case where we cannot make a decision yet
-        we can just set this up to poll every second or so until we can decide or there is a hard timeout. Then we force a decision.
-        '''
-        if self.canDecide() or (time.time() > self.closure+self.maxWait): ### we can decide or we've timed out
-            super(Grouper, self).execute( verbose=verbose ) ### delegate to the parent
-        else: ### we have not timed out and we cannot yet decide
-            self.setExpiration( self.t0+self.wait ) ### increment the expiration time by wait
-
 class DefineGroup(utils.Task):
     '''
     the Task associated with Grouper. 
@@ -440,10 +456,11 @@ class DefineGroup(utils.Task):
     name = 'decide'
     description = 'a task that defines a group and selects which element is preferred'
 
-    def __init__(self, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
+    def __init__(self, groupTag, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
         self.eventDicts = eventDicts ### shared reference pointing to the local data about events
         self.graceDB = initGraceDb( graceDB_url )
+        self.groupTag = groupTag
         super(DefineGroup, self).__init__(timeout)
     def decide(self, verbose=False):
         '''
@@ -470,6 +487,16 @@ class DefineGroup(utils.Task):
         self.labelAsSelected( selected )
         for graceid in superseded:
             self.labelAsSuperseded( graceid )
+
+        ### one more step -- upload to each of the event logs a json file with grouper related information
+        grouper_json = {}
+        grouper_json['groupTag'] = self.groupTag
+        grouper_json['EM_Selected'] = selected
+        grouper_json['EM_Superseded'] = superseded
+        for graceid in self.events:
+            self.writeJSON(graceid, grouper_json)
+        # remove the grouper related json file
+        os.remove('/tmp/{0}.json'.format(self.groupTag))
 
     def choose(self, graceidA, graceidB ):
         """
@@ -515,7 +542,7 @@ class DefineGroup(utils.Task):
         attempts to label the graceid as "EM_Selected"
         """
         try:
-            self.gdb.writeLabel( graceid, "EM_Selected" )
+            self.graceDB.writeLabel( graceid, "EM_Selected" )
         except:
             pass ### FIXME: print some intelligent error message here!
 
@@ -524,9 +551,16 @@ class DefineGroup(utils.Task):
         attempts to label the graceid as "EM_Superseded"
         """
         try:
-            self.gdb.writeLabel( graceid, "EM_Superseded" )
+            self.graceDB.writeLabel( graceid, "EM_Superseded" )
         except:
             pass ### FIXME: print some intelligent error message here!
+
+    def writeJSON(self, graceid, grouper_json):
+        grouper_json = json.dumps(grouper_json)
+        tmpfile = open('/tmp/{0}.json'.format(self.groupTag), 'w')
+        tmpfile.write(grouper_json)
+        tmpfile.close()
+        self.graceDB.writeLog( graceid, 'AP: Grouper made a selection.', filename='/tmp/{0}.json'.format(self.groupTag), tagname="em_follow")
 
 class GroupPipelineSearch():
     '''
@@ -555,9 +589,9 @@ class GroupPipelineSearch():
                         'CWB'         :0,
                         'LIB'         :0,
                        } ### all pipelines are equal
-    __searchRank__   = {'LowMass' :1,   ### events with "search" specified are preferred over events without "search" specified
-                        'HighMass':1,
-                        'AllSky'  :1,
+    __searchRank__   = {'LowMass' :0,   ### events with "search" specified are preferred over events without "search" specified
+                        'HighMass':0,
+                        'AllSky'  :0,
                         ''        :0,
                         None      :0,
                        }
@@ -590,7 +624,7 @@ class GroupPipelineSearch():
     def __eq__(self, other):
         return (self.groupRank==other.groupRank) and (self.pipelineRank==other.pipelineRank) and (self.searchRank==other.searchRank)
 
-    def __neq__(self, other):
+    def __ne__(self, other):
         return (not self==other)
 
     def __lt__(self, other):
