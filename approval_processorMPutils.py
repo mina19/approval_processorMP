@@ -45,7 +45,8 @@ preliminary_to_initial = [
     'farCheck',
     'labelCheck',
     'have_lvem_skymapCheck',
-    'idq_joint_fapCheck'
+    'idq_joint_fapCheck',
+    'virgo_dqCheck'
     ]
 
 # tasks when currentstate of event is initial_to_update
@@ -536,6 +537,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message_dict = json.loads(message_dict) # converts string to dictionary
                     message_dict['loaded_to_gracedb'] = 1
                     saveEventDicts(approval_processorMPfiles)
+                elif 'V1 veto channel' in comment and comment.endswith('vetoed'): # this is a Virgo Veto statement we need to record
+                    record_virgo_dqIsVetoed(event_dict.data, comment, logger)
                 else:
                     pass
 
