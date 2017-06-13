@@ -310,25 +310,18 @@ echo "${REPO_DIR}" > repoDir.txt
 echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CBC pipeline,gstlal search,LowMass resetThrottle -v" > resetThrottleTest.sh
 chmod +x resetThrottleTest.sh
 
+echo "print lvalertTest directory" ${LVALERTTEST_DIR}
+
+
 # Make it easier for sourcing paths and python paths for testing purposes
-echo "export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
-export PATH=${LVALERTTEST_DIR}/bin:${PATH}
-export PYTHONPATH=${LVALERTMP_DIR}:${PYTHONPATH}
-export PATH=${LVALERTMP_DIR}/bin:${PATH}
-export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
-export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
-export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}" > setup.sh
+echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
 chmod +x setup.sh
 
 cd ${HOME_DIR}
 echo "Adding configuration files and libraries to PATH and PYTHONPATH"
-export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
-export PATH=${LVALERTTEST_DIR}/bin:${PATH}
-export PYTHONPATH=${LVALERTMP_DIR}:${PYTHONPATH}
-export PATH=${LVALERTMP_DIR}/bin:${PATH}
-export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
-export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
-export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}
+export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}
 echo "DONE"
 
 # Make the lvalertTest_commandMP recognize approval_processorMP'f resetThrottle command
