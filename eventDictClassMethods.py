@@ -905,6 +905,19 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
+def record_virgo_dqIsVetoed(event_dict, comment, logger):
+    graceid = event_dict['graceid']
+    response = re.findall('this event (.*) vetoed', comment)[0]
+    if response=='IS':
+        event_dict['virgo_dqIsVetoed']=True
+    elif response=='IS NOT':
+        event_dict['virgo_dqIsVetoed']=False
+    message = '{0} -- {1} -- Virgo {2} vetoing this trigger.'.format(convertTime(), graceid, response)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
+
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
