@@ -310,9 +310,6 @@ echo "${REPO_DIR}" > repoDir.txt
 echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CBC pipeline,gstlal search,LowMass resetThrottle -v" > resetThrottleTest.sh
 chmod +x resetThrottleTest.sh
 
-echo "print lvalertTest directory" ${LVALERTTEST_DIR}
-
-
 # Make it easier for sourcing paths and python paths for testing purposes
 echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
