@@ -298,12 +298,6 @@ conf = 0.9999
 ; grouperWin determines the time window over which we group triggers from the time of the first ungrouped lvalertMP alert arrival
 grouperWin = 3" > childConfig-approval_processorMPTest.ini
 
-# There is an import error in lvalertTest_listenMP so fix that
-# ligoMP.lvalert needs to change to lvalertMP.lvalert
-cd ${LVALERTTEST_DIR}/bin
-echo "${LVALERTTEST_DIR}/bin"
-sed -i -e 's/ligoMP/lvalertMP/g' lvalertTest_listenMP 
-
 # Comment out the line in approval_processorMPutils regarding sourcing comet
 cd ${APPROVAL_PROCESSORMP_DIR}
 sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
