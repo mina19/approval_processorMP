@@ -189,6 +189,17 @@ class EventDict():
                 self.data['configuration'] = self.configdict
                 self.data['farlogkey'] = 'yes'
                 self.data['farCheckresult'] = True
+            elif 'AP: Automatically passed Virgo check' in message['comment']:
+                self.data['virgo_dqCheckresult'] = True
+                self.data['virgo_dqlogkey'] = 'yes'
+            elif 'AP: Rejecting because of Virgo veto' in message['comment']:
+                self.data['virgo_dqCheckresult'] = False
+                self.data['virgo_dqlogkey'] = 'yes'
+            elif 'AP: Passed Virgo DQ check' in message['comment']:
+                self.data[virgo_dqCheckresult] = True
+                self.data['virgo_dqlogkey'] = 'yes'
+            elif 'V1 veto channel' in message['comment'] and message['comment'].endswith('vetoed'):
+                record_virgo_dqIsVetoed(self.data, message['comment'], logger)
             else:
                 pass               
 
@@ -628,7 +639,7 @@ class EventDict():
                 elif virgo_dqIsVetoed==False: # Virgo data quality okayed this trigger
                     self.client.writeLog(self.graceid, 'AP: Passed Virgo DQ check.', tagname = "em_follow")
                     self.data['virgo_logkey'] = 'yes'
-                    message = '{0} -- {1} -- Passed Virgo DQ Check.'.format(convertTime(), self.graceid)
+                    message = '{0} -- {1} -- Passed Virgo DQ check.'.format(convertTime(), self.graceid)
                     if loggerCheck(self.data, message)==False:
                         self.logger.info(message)
                         self.data['virgo_dqCheckresult']=True
