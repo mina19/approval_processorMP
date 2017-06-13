@@ -113,6 +113,9 @@ class EventDict():
             'operatorsignoffs'           : {},
             'pipeline'                   : self.dictionary['pipeline'],
             'search'                     : self.dictionary['search'] if self.dictionary.has_key('search') else '',
+            'virgo_dqCheckresult'        : None,
+            'virgo_dqIsVetoed'           : None,
+            'virgo_dqlogkey'             : 'no',
             'voeventerrors'              : [],
             'voevents'                   : []
         })
@@ -588,6 +591,49 @@ class EventDict():
                         self.client.writeLog(self.graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                         self.data['advocatelogkey'] = 'yes'
                     self.data['advocate_signoffCheckresult'] = True
+                    return True
+
+    #-----------------------------------------------------------------------
+    # virgo_dqCheck
+    #-----------------------------------------------------------------------
+    def virgo_dqCheck(self):
+        virgo_dqCheckresult = self.data['virgo_dqCheckresult']
+        if virgo_dqCheckresult!=None:
+            return virgo_dqCheckresult
+        else:
+            if 'V1' not in self.data['instruments']: # automatically passes this check since Virgo is not involved
+                self.client.writeLog(self.graceid, 'AP: Automatically passed Virgo DQ check -- V1 not involved.', tagname = "em_follow")
+                self.data['virgo_dqlogkey'] = 'yes'
+                message = '{0} -- {1} -- Automatically passed Virgo DQ check -- V1 not involved.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['virgo_dqCheckresult']=True
+                else:
+                    pass
+                return True
+            else: # Virgo is involved so see if we have a value for virgo_dqIsVetoed
+                virgo_dqIsVetoed = self.data['virgo_dqIsVetoed']
+                if virgo_dqIsVetoed==None: # this information has not come in yet
+                    return None
+                elif virgo_dqIsVetoed==True: # Virgo data quality vetoed this trigger
+                    self.client.writeLog(self.graceid, 'AP: Rejecting because of Virgo veto.', tagname = "em_follow")
+                    self.data['virgo_logkey'] = 'yes'
+                    message = '{0} -- {1} -- Rejecting because of Virgo veto.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['virgo_dqCheckresult']=False
+                    else:
+                        pass
+                    return False
+                elif virgo_dqIsVetoed==False: # Virgo data quality okayed this trigger
+                    self.client.writeLog(self.graceid, 'AP: Passed Virgo DQ check.', tagname = "em_follow")
+                    self.data['virgo_logkey'] = 'yes'
+                    message = '{0} -- {1} -- Passed Virgo DQ Check.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['virgo_dqCheckresult']=True
+                    else:
+                        pass
                     return True
 
 #-----------------------------------------------------------------------
