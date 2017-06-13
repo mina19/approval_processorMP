@@ -2,10 +2,10 @@
 
 REPO_DIR=$(cat repoDir.txt)
 
-# USAGE:: run_test.sh [FakeDb_directory] [Output directory] [/path/to/place/the/config/file/filename] 
+# USAGE:: ./one_fake_gstlal.sh
 FAKE_DB=${REPO_DIR}/approval_processorMP/test/FAKE_DB		# Directory where events will be created
 OUT_DIR=${REPO_DIR}/approval_processorMP/test/OUT_DIR		# temporary directory to store upload files
-CONFIG_FILE=${REPO_DIR}/approval_processorMP/test/pipelineThrottle/gstlal.ini		# config file of the event created, will be written by script
+CONFIG_FILE=${REPO_DIR}/approval_processorMP/test/pipelineThrottle/gstlal_1.ini		# config file of the event created, will be written by script
 NUM_EVENTS=1		# number of this type of events to be created
 
 # Event details
