@@ -123,7 +123,7 @@ echo "DONE"
 echo "Making approval_processorMP configuration files to point to FAKE_DB directory"
 cd ${APPROVAL_PROCESSORMP_DIR}/etc
 echo "[approval_processorMP]
-nodes = CBC_MBTAOnline CBC_gstlal CBC_gstlal_LowMass CBC_gstlal_HighMass CBC_pycc CBC_pycbc_AllSky Burst_CWB Burst_CWB_AllSky Burst_LIB Burst_LIB Burst_LIB_AllSky External_Swift External_Fermi cbc_mbtaonline cbc_gstlal_lowmass cbc_gstlal_highmass cbc_pycbc burst_cwb_allsky burst_lib ${LIGO_NAME}-test
+nodes = CBC_MBTAOnline CBC_gstlal CBC_gstlal_LowMass CBC_gstlal_HighMass CBC_pycc CBC_pycbc_AllSky Burst_CWB Burst_CWB_AllSky Burst_LIB Burst_LIB_AllSky External_Swift External_Fermi cbc_mbtaonline cbc_gstlal_lowmass cbc_gstlal_highmass cbc_pycbc burst_cwb_allsky burst_lib ${LIGO_NAME}-test
 childConfig = ${APPROVAL_PROCESSORMP_DIR}/etc/childConfig-approval_processorMPTest.ini
 verbose = True
 sleep = 0.1
