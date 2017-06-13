@@ -427,7 +427,8 @@ class EventDict():
             self.__compute_joint_fap_values__(self.config)
             idqvalues      = self.data['idqvalues']
             idqlogkey      = self.data['idqlogkey']
-            instruments    = self.data['instruments']
+            idqinstruments = ['H1', 'L1'] #only H1 and L1 have idq running, not V1
+            instruments = list(set(idqinstruments).intersection(self.data['instruments'])) # the intersection of idqinstruments and our trigger's list of instruments
             jointfapvalues = self.data['jointfapvalues']
             idq_pipelines  = self.config.get('idq_joint_fapCheck', 'idq_pipelines')
             idq_pipelines  = idq_pipelines.replace(' ', '')
