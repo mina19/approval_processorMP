@@ -123,7 +123,7 @@ echo "DONE"
 echo "Making approval_processorMP configuration files to point to FAKE_DB directory"
 cd ${APPROVAL_PROCESSORMP_DIR}/etc
 echo "[approval_processorMP]
-nodes = cbc_mbtaonline cbc_gstlal_lowmass cbc_gstlal_highmass cbc_pycbc burst_cwb_allsky burst_lib ${LIGO_NAME}-test
+nodes = CBC_MBTAOnline CBC_gstlal CBC_gstlal_LowMass CBC_gstlal_HighMass CBC_pycc CBC_pycbc_AllSky Burst_CWB Burst_CWB_AllSky Burst_LIB Burst_LIB_AllSky External_Swift External_Fermi cbc_mbtaonline cbc_gstlal_lowmass cbc_gstlal_highmass cbc_pycbc burst_cwb_allsky burst_lib ${LIGO_NAME}-test
 childConfig = ${APPROVAL_PROCESSORMP_DIR}/etc/childConfig-approval_processorMPTest.ini
 verbose = True
 sleep = 0.1
@@ -298,12 +298,6 @@ conf = 0.9999
 ; grouperWin determines the time window over which we group triggers from the time of the first ungrouped lvalertMP alert arrival
 grouperWin = 3" > childConfig-approval_processorMPTest.ini
 
-# There is an import error in lvalertTest_listenMP so fix that
-# ligoMP.lvalert needs to change to lvalertMP.lvalert
-cd ${LVALERTTEST_DIR}/bin
-echo "${LVALERTTEST_DIR}/bin"
-sed -i -e 's/ligoMP/lvalertMP/g' lvalertTest_listenMP 
-
 # Comment out the line in approval_processorMPutils regarding sourcing comet
 cd ${APPROVAL_PROCESSORMP_DIR}
 sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
@@ -317,24 +311,14 @@ echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CB
 chmod +x resetThrottleTest.sh
 
 # Make it easier for sourcing paths and python paths for testing purposes
-echo "export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
-export PATH=${LVALERTTEST_DIR}/bin:${PATH}
-export PYTHONPATH=${LVALERTMP_DIR}:${PYTHONPATH}
-export PATH=${LVALERTMP_DIR}/bin:${PATH}
-export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
-export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
-export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}" > setup.sh
+echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
 chmod +x setup.sh
 
 cd ${HOME_DIR}
 echo "Adding configuration files and libraries to PATH and PYTHONPATH"
-export PYTHONPATH=${LVALERTTEST_DIR}/lib:${PYTHONPATH}
-export PATH=${LVALERTTEST_DIR}/bin:${PATH}
-export PYTHONPATH=${LVALERTMP_DIR}:${PYTHONPATH}
-export PATH=${LVALERTMP_DIR}/bin:${PATH}
-export PYTHONPATH=${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
-export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${PATH}
-export PYTHONPATH=${REPO_DIR}:${PYTHONPATH}
+export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}
 echo "DONE"
 
 # Make the lvalertTest_commandMP recognize approval_processorMP'f resetThrottle command
