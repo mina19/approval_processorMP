@@ -196,7 +196,7 @@ class EventDict():
                 self.data['virgo_dqCheckresult'] = False
                 self.data['virgo_dqlogkey'] = 'yes'
             elif 'AP: Passed Virgo DQ check' in message['comment']:
-                self.data[virgo_dqCheckresult] = True
+                self.data['virgo_dqCheckresult'] = True
                 self.data['virgo_dqlogkey'] = 'yes'
             elif 'V1 veto channel' in message['comment'] and message['comment'].endswith('vetoed'):
                 record_virgo_dqIsVetoed(self.data, message['comment'], logger)
