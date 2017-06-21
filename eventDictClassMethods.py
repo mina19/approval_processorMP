@@ -226,13 +226,17 @@ class EventDict():
     # ifosCheck
     #-----------------------------------------------------------------------
     def ifosCheck(self):
-        ifos = self.data['instruments']
-        res = len(ifos) > 1 # to neglect single IFO triggers 
+        ifos = self.data['instruments'] # instruments as a list
+        ifolist = ",".join(ifos)        # instrument list as a string
+        num_ifo = len(ifos)             # number of ifos
+        res = False if num_ifo == 1 else True if num_ifo == 3 \
+                                                 else 'V1' not in ifos
         self.data['ifosCheckresult'] = res
         if not(res):
-            self.client.writeLog(self.graceid, 'AP: Candidate event rejected due to Single IFO')
+            self.client.writeLog(self.graceid, \
+            'AP: Candidate event rejected due to single ifo OR V1 in double coinc')
             self.data['ifoslogkey'] = 'yes'
-            message = '{0} -- {1} -- Rejecting due to Single IFO {2}'.format(convertTime(), self.graceid, ifos[0])
+            message = '{0} -- {1} -- Rejecting due to single ifo OR presence of V1 in ifo list: {2}'.format(convertTime(), self.graceid, ifolist)
             if loggerCheck(self.data, message)==False:
                 self.logger.info(message)
         return res
