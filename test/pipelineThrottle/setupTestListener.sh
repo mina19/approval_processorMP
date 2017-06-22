@@ -77,7 +77,7 @@ git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCES
 
 echo "Checking out hash 3e123dd of lvalertMP, which is the version running on Grinch installation"
 cd ${LVALERTMP_DIR}
-git checkout 3e123dd
+git checkout bf205ca
 
 echo "Checking out branch testingPipelineThrottle in approval_processorMP"
 cd ${APPROVAL_PROCESSORMP_DIR}
