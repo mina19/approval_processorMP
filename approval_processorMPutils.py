@@ -271,7 +271,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                         g.writeLog(graceid, 'GRB-GW Coincidence JSON file: grb_offline_json', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     ### alert via email
-                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
+                    os.system('mail -s "Coincidence JSON created for {0}" {1} <<< "{2}"'.format(graceid, grb_email, notification_text))
                 # is this the json file loaded into GraceDb?
                 if 'GRB-GW Coincidence JSON file' in comment:
                     # if it is, find out which type of json it was and then message_dict['loaded_to_gracedb'] = 1
@@ -530,7 +530,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLog(exttrig, 'GRB-GW Coincidence JSON file: em_coinc_json', '/tmp/coinc_{0}.json'.format(exttrig), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(exttrig))
                     ### alert via email
-                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
+                    os.system('mail -s "Coincidence JSON created for {0}" {1} <<< "{2}"'.format(exttrig, grb_email, notification_text))
                     saveEventDicts(approval_processorMPfiles)
                 elif 'GRB-GW Coincidence JSON file' in comment: # this is the comment that accompanies a loaded coinc json file
                     message_dict = event_dict.data['em_coinc_json']
