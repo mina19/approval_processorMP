@@ -204,6 +204,11 @@ class EventDict():
             #    record_virgo_dqIsVetoed(self.data, message['comment'], logger)
             #elif 'V1 hardware injection' in message['comment'] and message['comment'].endswith('injections'):
             #    record_virgoInjections(self.data, message['comment'], logger)
+            elif 'AP: Grouper made a selection' in message['comment']:
+                grouper_json = json.loads(self.client.get(message['file']).read())# get the grouper_json file that was loaded with this comment
+                self.data['grouperGroupTag'] = grouper_json['groupTag']
+                self.data['grouperGroupMembers'].append(grouper_json['EM_Selected']) #There should only be one event in grouper_json['EM_Selected']
+                self.data['grouperGroupMembers'].extend(grouper_json['EM_Superseded'])
             else:
                 pass               
 
