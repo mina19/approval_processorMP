@@ -423,12 +423,10 @@ class Grouper(utils.QueueItem):
             trueFalse, timeDiff, trigger = withinGrouperWin(graceid, originalTrigger, self.win, self.eventDicts)
             if trueFalse==True: #it should always be True otherwise we have a serious problem as the events should not be grouped together
                 self.events.append(graceid)
-        else: #There are no events in this grouper yet meaning this grouper was just created and we are adding in the original trigger that made it get created
-            upperLimit = self.grouperGPStime + self.win
-            lowerLimit = self.grouperGPStime - self.win
-            if self.eventDicts[graceid]['gpstime'] <= upperLimit and self.eventDicts[graceid]['gpstime']>= lowerLimit:
-                self.events.append( graceid )
                 self.eventDicts[graceid]['grouperGroupTag'] = self.graceid
+        else: #There are no events in this grouper yet meaning this grouper was just created and we are adding in the original trigger that made it get created
+            self.events.append( graceid )
+            self.eventDicts[graceid]['grouperGroupTag'] = self.graceid
     def canDecide(self):
         """
         determines whether we have enough information to make this decision
