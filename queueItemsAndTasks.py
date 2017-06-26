@@ -367,11 +367,11 @@ def generate_GroupTag(graceid, grouperWin, queueByGraceID, eventDictionaries):
     for graceID in queueByGraceID:
         if 'Group_' in graceID:
             originalGraceID = graceID.events[0] #graceid of the first trigger added for this grouper QueueItem
-           # Now compare our graceid to this originalGraceID to see if they are within grouperWin of each other            
-           trueFalse, timeDiff, trigger = withinGrouperWin(graceid, originalGraceID, grouperWin, eventDictionaries)
-           if trueFalse:
-               Dt = timeDiff
-               GrouperGPStime = float(re.findall('Group_(.*)', graceID)[0])
+            #Now compare our graceid to this originalGraceID to see if they are within grouperWin of each other            
+            trueFalse, timeDiff, trigger = withinGrouperWin(graceid, originalGraceID, grouperWin, eventDictionaries)
+            if trueFalse:
+                Dt = timeDiff
+                GrouperGPStime = float(re.findall('Group_(.*)', graceID)[0])
     if GrouperGPStime==None: #there were no groupers already existing for this graceid to be added to so we create one
         GrouperGPStime = float(eventDictionaries[graceid]['gpstime'])
     return "Group_{0}".format(GrouperGPStime)
