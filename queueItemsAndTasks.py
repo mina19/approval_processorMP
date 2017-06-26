@@ -358,25 +358,22 @@ class Throttle(utils.Task):
 # Grouper
 # used to group nearby events 
 #-------------------------------------------------
-def generate_GroupTag(event_dict, grouperWin, queueByGraceID):
+def generate_GroupTag(graceid, grouperWin, queueByGraceID, eventDictionaries):
     '''
     returns a string that will be used as the graceid to identify the correct grouper QueueItem from the queueByGraceID
     '''
-    eventGPStime = float(event_dict['gpstime'])
-    upperGPStime = eventGPStime + grouperWin
-    lowerGPStime = eventGPStime - grouperWin
     Dt = grouperWin #will be used to track the grouper queueItem whose gpstime is closest to our eventGPStime
     GrouperGPStime = None #by default because we haven't begun our search yet
     for graceID in queueByGraceID:
         if 'Group_' in graceID:
-            grouperGPStime = float(re.findall('Group_(.*)', graceID)[0])
-            if grouperGPStime >= lowerGPStime and grouperGPStime <= upperGPStime: #our current event could go into this grouper, so calculate dt and compare to Dt
-                dt = abs(eventGPStime - grouperGPStime)
-                if dt <= Dt:
-                    Dt = dt
-                    GrouperGPStime = grouperGPStime
-    if GrouperGPStime==None:
-        GrouperGPStime = eventGPStime
+            originalGraceID = graceID.events[0] #graceid of the first trigger added for this grouper QueueItem
+           # Now compare our graceid to this originalGraceID to see if they are within grouperWin of each other            
+           trueFalse, timeDiff, trigger = withinGrouperWin(graceid, originalGraceID, grouperWin, eventDictionaries)
+           if trueFalse:
+               Dt = timeDiff
+               GrouperGPStime = float(re.findall('Group_(.*)', graceID)[0])
+    if GrouperGPStime==None: #there were no groupers already existing for this graceid to be added to so we create one
+        GrouperGPStime = float(eventDictionaries[graceid]['gpstime'])
     return "Group_{0}".format(GrouperGPStime)
 
 class Grouper(utils.QueueItem):
@@ -420,15 +417,18 @@ class Grouper(utils.QueueItem):
         This allows us the flexibility to ignore which groupers are still open if needed and "force" events into the mix.
         Also note: any event added after the acceptance gate has closed will be labeled as EM_Superseded
         '''
-        ### double check that the new event's eventGPStime is within +-win of the grouperGPStime 
-        upperLimit = self.grouperGPStime + self.win
-        lowerLimit = self.grouperGPStime - self.win
-        if self.eventDicts[graceid]['gpstime'] <= upperLimit and self.eventDicts[graceid]['gpstime']>= lowerLimit:
-            self.events.append( graceid )
-            self.eventDicts[graceid]['grouperGroupTag'] = self.graceid
-        else:
-            ###something is really wrong, so alert Mina
-            pass
+        ### double check that the new event's eventGPStime is within +-win of the grouperGPStime
+        if len(self.events)!=0: #There is at least one graceid already in the list of events for this grouper
+            originalTrigger = self.events[0] #the graceid of the first trigger put into this list of events
+            trueFalse, timeDiff, trigger = withinGrouperWin(graceid, originalTrigger, self.win, self.eventDicts)
+            if trueFalse==True: #it should always be True otherwise we have a serious problem as the events should not be grouped together
+                self.events.append(graceid)
+        else: #There are no events in this grouper yet meaning this grouper was just created and we are adding in the original trigger that made it get created
+            upperLimit = self.grouperGPStime + self.win
+            lowerLimit = self.grouperGPStime - self.win
+            if self.eventDicts[graceid]['gpstime'] <= upperLimit and self.eventDicts[graceid]['gpstime']>= lowerLimit:
+                self.events.append( graceid )
+                self.eventDicts[graceid]['grouperGroupTag'] = self.graceid
     def canDecide(self):
         """
         determines whether we have enough information to make this decision

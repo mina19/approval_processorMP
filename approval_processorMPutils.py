@@ -363,7 +363,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         ### due to the time sensitivity of grouper, first check to see if an existing grouper exists
         ### get the best groupTag from the queueByGraceID for this event gpstime, or create a new groupTag
         grouperWin = config.getfloat('grouper', 'grouperWin')
-        groupTag = generate_GroupTag(event_dict.data, grouperWin, queueByGraceID)
+        groupTag = generate_GroupTag(graceid, grouperWin, queueByGraceID, eventDictionaries)
 
         ### check to see if Grouper exists for this groupTag
         if queueByGraceID.has_key(groupTag): ### this is not a new Grouper we have to create, so pull it up
