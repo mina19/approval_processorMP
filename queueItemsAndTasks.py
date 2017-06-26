@@ -453,7 +453,7 @@ class DefineGroup(utils.Task):
     name = 'decide'
     description = 'a task that defines a group and selects which element is preferred'
 
-    def __init__(self, groupTag, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api'):
+    def __init__(self, groupTag, events, eventDicts, timeout, graceDB_url='https://gracedb.ligo.org/api/'):
         self.events = events ### shared reference to events tracked within Grouper QueueItem
         self.eventDicts = eventDicts ### shared reference pointing to the local data about events
         self.graceDB = initGraceDb( graceDB_url )
