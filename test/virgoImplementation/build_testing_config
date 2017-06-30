@@ -9,7 +9,7 @@ parser.add_argument('--file', required=True, help='File to write config file')
 parser.add_argument('--group', choices=['Test','CBC','Burst'], required=True)
 parser.add_argument('--pipeline',choices=['pycbc','gstlal','CWB','LIB'],required=True)
 parser.add_argument('--search', choices=['AllSky','HighMass','LowMass',None], default='None')
-parser.add_argument('--instruments',type=str, choices=["H1","L1","V1","H1,V1","V1,H1","L1,V1","V1,L1","H1,L1","L1,H1","H1,L1,V1","H1,V1,L1","V1,H1,L1","V1,L1,H1","L1,H1,V1","L1,V1,H1",None], default="H1,L1")
+parser.add_argument('--instruments',type=str, choices=["H1","L1","V1","H1,V1","L1,V1","H1,L1","H1,L1,V1",None], default="H1,L1")
 ### Add human response options
 parser.add_argument('--humans',type=int,choices=[0,1], help='Adds humans section.  Supply boolean', default=0)
 parser.add_argument('--human-response',type=int, choices=[0,1], help='Adds humans section.  Enter 1 for ADVOK 0 for ADVNO', default=0)
@@ -18,6 +18,9 @@ parser.add_argument('--segdb2grcdb',type=int,choices=[0,1],help='Adds segdb2grcd
 ### Add IDQ requirement options
 parser.add_argument('--idq',type=int,choices=[0,1], help='Adds idq section. Supply boolean', default=0)
 parser.add_argument('--idq-response',type=int,choices=[0,1], help='Enter 1 for passing IDQ, 0 otherwise', default=0)
+### Add VirgoDQ requirement options
+parser.add_argument('--virgodq',type=int,choices=[0,1], help='Adds VirgoDQ section. Supply boolean', default=0)
+parser.add_argument('--virgodq-veto',type=int,choices=[0,1], help='Enter 1 for passing data quality check, 0 otherwise', default=1)
 ### Add plot skymaps
 parser.add_argument('--skymaps',type=int,choices=[0,1], help='Adds skymap section',default=0)
 parser.add_argument('--lvem',type=int,choices=[0,1], help='Provide the lvem tag or not? Supply boolean', default=0)
@@ -28,8 +31,8 @@ parser.add_argument('--unblind-inj', type=int,choices=[0,1],help='Adds unblind i
 
 args = parser.parse_args()
 ### Peform argument dependency checks
-if args.group not in ['CBC','Test'] and args.idq:
-	parser.error("Only --group=CBC can have idq set")
+if args.group not in ['CBC','Test'] and (args.idq or args.virgodq):
+	parser.error("Only --group=CBC can have idq or virgodq set")
 	sys.exit(1)
 
 config = SafeConfigParser()
@@ -70,6 +73,32 @@ if args.segdb2grcdb:
 	config.set('L1:DMT-ANALYSIS_READY:1','prob','1')
 	config.set('L1:DMT-ANALYSIS_READY:1','win','30')
 
+if args.virgodq:
+    config.add_section('VirgoDQ')
+    config.set('VirgoDQ','instruments',args.instruments.replace(',',' '))
+    config.set('VirgoDQ','start delay','10.0')
+    config.set('VirgoDQ','start jitter' ,'1.0')
+    config.set('VirgoDQ','start prob','1.0')
+    
+    config.set('VirgoDQ','ifostats delay','1.0')
+    config.set('VirgoDQ','ifostats jitter','0.5')
+    config.set('VirgoDQ','ifostats prob','1.0')
+    
+    config.set('VirgoDQ','vetoes delay','1.0')
+    config.set('VirgoDQ','vetoes jitter','0.5')
+    config.set('VirgoDQ','vetoes prob', str(args.virgodq_veto))
+    
+    config.set('VirgoDQ','rmsChan delay','1.0')
+    config.set('VirgoDQ','rmsChan jitter','0.5')
+    config.set('VirgoDQ','rmsChan prob','1.0')
+    
+    config.set('VirgoDQ','inj delay','1.0')
+    config.set('VirgoDQ','inj jitter','0.5')
+    config.set('VirgoDQ','inj prob','1.0')
+    
+    config.set('VirgoDQ', 'pad left','10.0')
+    config.set('VirgoDQ', 'pad right','10.0')
+    
 if args.idq:
 	config.add_section('idq')
 	config.set('idq','instruments',args.instruments.replace(',',' '))
