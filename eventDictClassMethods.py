@@ -116,6 +116,7 @@ class EventDict():
             'virgo_dqCheckresult'        : None,
             'virgo_dqIsVetoed'           : None,
             'virgo_dqlogkey'             : 'no',
+            'virgoInjections'            : None,
             'voeventerrors'              : [],
             'voevents'                   : []
         })
@@ -200,6 +201,8 @@ class EventDict():
                 self.data['virgo_dqlogkey'] = 'yes'
             elif 'V1 veto channel' in message['comment'] and message['comment'].endswith('vetoed'):
                 record_virgo_dqIsVetoed(self.data, message['comment'], logger)
+            elif 'V1 hardware injection' in message['comment'] and message['comment'].endswith('injections'):
+                record_virgoInjections(self.data, message['comment'], logger)
             else:
                 pass               
 
@@ -928,6 +931,19 @@ def record_virgo_dqIsVetoed(event_dict, comment, logger):
     elif response=='IS NOT':
         event_dict['virgo_dqIsVetoed']=False
     message = '{0} -- {1} -- Virgo {2} vetoing this trigger.'.format(convertTime(), graceid, response)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
+
+def record_virgoInjections(event_dict, comment, logger):
+    graceid = event_dict['graceid']
+    response = re.findall('V1 hardware injection: (.*) injections', comment)[0]
+    if response=="DID NOT FIND":
+        event_dict['virgoInjections']=0
+    elif response=="DID FIND":
+        event_dict['virgoInjections']=1
+    message = '{0} -- {1} -- Virgo {2} injections.'.format(convertTime(), graceid, response)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
     else:
