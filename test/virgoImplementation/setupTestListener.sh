@@ -75,7 +75,7 @@ git clone "https://github.com/deepchatterjeeligo/lvalertTest.git" ${LVALERTTEST_
 git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
 #git clone "https://github.com/deepchatterjeeligo/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
 
-echo "Checking out hash 3e123dd of lvalertMP, which is the version running on Grinch installation"
+echo "Checking out hash bf205ca of lvalertMP, which is the version running on Grinch installation"
 cd ${LVALERTMP_DIR}
 git checkout bf205ca
 
