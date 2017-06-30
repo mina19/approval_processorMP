@@ -9,7 +9,7 @@ parser.add_argument('--file', required=True, help='File to write config file')
 parser.add_argument('--group', choices=['Test','CBC','Burst'], required=True)
 parser.add_argument('--pipeline',choices=['pycbc','gstlal','CWB','LIB'],required=True)
 parser.add_argument('--search', choices=['AllSky','HighMass','LowMass',None], default='None')
-parser.add_argument('--instruments',type=str, choices=["H1","L1","V1","H1,V1","L1,V1","H1,L1","H1,L1,V1",None], default="H1,L1")
+parser.add_argument('--instruments',type=str, choices=["H1","L1","V1","H1,V1","V1,H1","L1,V1","V1,L1","H1,L1","L1,H1","H1,L1,V1","H1,V1,L1","V1,H1,L1","V1,L1,H1","L1,H1,V1","L1,V1,H1",None], default="H1,L1")
 ### Add human response options
 parser.add_argument('--humans',type=int,choices=[0,1], help='Adds humans section.  Supply boolean', default=0)
 parser.add_argument('--human-response',type=int, choices=[0,1], help='Adds humans section.  Enter 1 for ADVOK 0 for ADVNO', default=0)
