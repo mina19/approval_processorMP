@@ -539,6 +539,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     saveEventDicts(approval_processorMPfiles)
                 elif 'V1 veto channel' in comment and comment.endswith('vetoed'): # this is a Virgo Veto statement we need to record
                     record_virgo_dqIsVetoed(event_dict.data, comment, logger)
+                elif 'V1 hardware injection' in comment and comment.endswith('injections'): # this is a Virgo hardware injection statement we need to record
+                    record_virgoInjections(event_dict.data, comment, logger)
                 else:
                     pass
 
