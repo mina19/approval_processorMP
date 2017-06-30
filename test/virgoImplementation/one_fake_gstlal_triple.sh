@@ -3,10 +3,10 @@
 REPO_DIR=$(cat repoDir.txt)
 
 # USAGE:: ./one_fake_gstlal.sh
-FAKE_DB=${REPO_DIR}/approval_processorMP/test/FAKE_DB		# Directory where events will be created
-OUT_DIR=${REPO_DIR}/approval_processorMP/test/OUT_DIR		# temporary directory to store upload files
-CONFIG_FILE=${REPO_DIR}/approval_processorMP/test/virgoImplementation/gstlal.ini_1		# config file of the event created, will be written by script
-NUM_EVENTS=1		# number of this type of events to be created
+FAKE_DB=${REPO_DIR}/approval_processorMP/test/FAKE_DB          # Directory where events will be created
+OUT_DIR=${REPO_DIR}/approval_processorMP/test/OUT_DIR          # temporary directory to store upload files
+CONFIG_FILE=${REPO_DIR}/approval_processorMP/test/virgoImplementation/gstlal.ini_1             # config file of the event created, will be written by script
+NUM_EVENTS=1
 
 # Event details
 GROUP="CBC"
@@ -14,13 +14,15 @@ PIPELINE="gstlal"
 SEARCH="LowMass"
 INSTRUMENTS="H1,L1,V1"
 FAR=1e-8		# Event FAR
-HUMANS=0		# Add humans section?
+HUMANS=1		# Add humans section?
 HUMAN_RESPONSE=1	# 0 for ADVNO, 1 for ADVOK
-SEGDB2GRCDB=0		# Add segdb2grcdb section?
-IDQ=0			# Add idq section?
+SEGDB2GRCDB=1		# Add segdb2grcdb section?
+VIRGODQ=1		# Add VirgoDQ section?
+VIRGODQVETO=0		# Pass/ fail Virgo DQ test
+IDQ=1			# Add idq section?
 IDQ_RESPONSE=1		# Pass/ fail criteria AP's IDQ threshold
 SKYMAPS=0		# Adds various skymaps?
-LVEM=1			# Add lvem tag?
+LVEM=0			# Add lvem tag?
 EXT_TRIGGER=0		# Add ext-trigger section?
 UNBLIND_INJ=0		# Add unblind-inj section?
 
@@ -51,6 +53,8 @@ echo "### Writing config file"
 	--humans=${HUMANS} \
 	--human-response=${HUMAN_RESPONSE} \
 	--segdb2grcdb=${SEGDB2GRCDB} \
+	--virgodq=${VIRGODQ} \
+	--virgodq-veto=${VIRGODQVETO} \
 	--idq=${IDQ} \
 	--idq-response=${IDQ_RESPONSE} \
 	--skymaps=${SKYMAPS} \
