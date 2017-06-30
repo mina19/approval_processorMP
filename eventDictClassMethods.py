@@ -326,7 +326,7 @@ class EventDict():
         elif 'V1' in self.data['instruments']:
             virgoInjections = self.data['virgoInjections']
             if virgoInjections==None: # we need virgo Injection information which has not come in yet
-                message = '{0} -- {1} -- Have not received Virgo injection statement yet.'
+                message = '{0} -- {1} -- Have not received Virgo injection statement yet.'.format(convertTime(), self.graceid)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                 else:
