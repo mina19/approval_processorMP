@@ -21,6 +21,7 @@ parser.add_argument('--idq-response',type=int,choices=[0,1], help='Enter 1 for p
 ### Add VirgoDQ requirement options
 parser.add_argument('--virgodq',type=int,choices=[0,1], help='Adds VirgoDQ section. Supply boolean', default=0)
 parser.add_argument('--virgodq-veto',type=int,choices=[0,1], help='Enter 1 for passing data quality check, 0 otherwise', default=1)
+parser.add_argument('--virgo-inj',type=int,choices=[0,1], help='Enter 1 for having a virgo inj, 0 otherwise', default=0)
 ### Add plot skymaps
 parser.add_argument('--skymaps',type=int,choices=[0,1], help='Adds skymap section',default=0)
 parser.add_argument('--lvem',type=int,choices=[0,1], help='Provide the lvem tag or not? Supply boolean', default=0)
@@ -30,10 +31,7 @@ parser.add_argument('--ext-trigger', type=int,choices=[0,1],help='Adds external 
 parser.add_argument('--unblind-inj', type=int,choices=[0,1],help='Adds unblind injections section. Supply boolean',default=0)
 
 args = parser.parse_args()
-### Peform argument dependency checks
-if args.group not in ['CBC','Test'] and (args.idq or args.virgodq):
-	parser.error("Only --group=CBC can have idq or virgodq set")
-	sys.exit(1)
+
 
 config = SafeConfigParser()
 config.add_section('general')
@@ -94,7 +92,7 @@ if args.virgodq:
     
     config.set('VirgoDQ','inj delay','1.0')
     config.set('VirgoDQ','inj jitter','0.5')
-    config.set('VirgoDQ','inj prob','1.0')
+    config.set('VirgoDQ','inj prob',str(args.virgo_inj))
     
     config.set('VirgoDQ', 'pad left','10.0')
     config.set('VirgoDQ', 'pad right','10.0')
