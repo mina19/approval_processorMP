@@ -323,46 +323,60 @@ class EventDict():
         injectionCheckresult = self.data['injectionCheckresult']
         if injectionCheckresult!=None:
             return injectionCheckresult
-        else:
-            eventtime = float(self.data['gpstime'])
-            time_duration = self.config.getfloat('injectionCheck', 'time_duration')
-            from raven.search import query
-            th = time_duration
-            tl = -th
-            Injections = query('HardwareInjection', eventtime, tl, th)
-            self.data['injectionsfound'] = len(Injections)
-            hardware_inj = self.config.get('labelCheck', 'hardware_inj')
-            if len(Injections) > 0:
-                if hardware_inj=='no':
-                    self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
-                    self.data['injectionlogkey'] = 'yes'
-                    message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), self.graceid, th)
-                    if loggerCheck(self.data, message)==False:
-                        self.logger.info(message)
-                        self.data['injectionCheckresult'] = False
-                    else:
-                        pass
-                    return False
+        elif 'V1' in self.data['instruments']:
+            virgoInjections = self.data['virgoInjections']
+            if virgoInjections==None: # we need virgo Injection information which has not come in yet
+                message = '{0} -- {1} -- Have not received Virgo injection statement yet.'
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
                 else:
-                    self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
-                    self.data['injectionlogkey'] = 'yes'
-                    message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), self.graceid, th)
-                    if loggerCheck(self.data, message)==False:
-                        self.logger.info(message)
-                        self.data['injectionCheckresult'] = True
-                    else:
-                        pass
-                    return True
-            elif len(Injections)==0:
-                self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
+                    pass
+                return None
+            else: # update the number of injectionsfound with the virgoInjections information
+                self.data['injectionsfound'] = virgoInjections
+                pass
+        eventtime = float(self.data['gpstime'])
+        time_duration = self.config.getfloat('injectionCheck', 'time_duration')
+        from raven.search import query
+        th = time_duration
+        tl = -th
+        Injections = query('HardwareInjection', eventtime, tl, th) # XXX this only reflects the raven search results! Nicolas says Virgo might not be able to record their injections in GraceDb right now, 6/30/17
+        if 'V1' not in self.data['instruments']:
+            self.data['injectionsfound'] = 0 # start with 0 and then add what we just found with raven query
+        self.data['injectionsfound'] += len(Injections) # now we have the total injections found, including those from Virgo if V1 was part of the instruments list
+        hardware_inj = self.config.get('labelCheck', 'hardware_inj')
+        injectionsfound = self.data['injectionsfound']
+        if injectionsfound > 0:
+            if hardware_inj=='no':
+                self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(th), tagname = "em_follow")
                 self.data['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), self.graceid, th)
+                message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['injectionCheckresult'] = False
+                else:
+                    pass
+                return False
+            else:
+                self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(th), tagname = "em_follow")
+                self.data['injectionlogkey'] = 'yes'
+                message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(convertTime(), self.graceid, th)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                     self.data['injectionCheckresult'] = True
                 else:
                     pass
                 return True
+        elif injectionsfound==0:
+            self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds or from Virgo injections statement if V1 is involved.'.format(th), tagname="em_follow")
+            self.data['injectionlogkey'] = 'yes'
+            message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+            if loggerCheck(self.data, message)==False:
+                self.logger.info(message)
+                self.data['injectionCheckresult'] = True
+            else:
+                pass
+            return True
 
     #-----------------------------------------------------------------------
     # have_lvem_skymapCheck
@@ -1033,9 +1047,9 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
     injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
         eventDicts[graceid].injectionCheck()
-        hardware_inj = event_dict['injectionsfound']
+        hardware_inj = 1 if event_dict['injectionsfound'] > 0 else 0
     else:
-        hardware_inj = injectionsfound
+        hardware_inj = 1 if injectionsfound > 0 else 0
 
     # did we identify a coincident GRB trigger?
     if event_dict['external_trigger'] != None:
