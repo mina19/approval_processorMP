@@ -955,7 +955,7 @@ def record_virgoInjections(event_dict, comment, logger):
     response = re.findall('V1 hardware injection: (.*) injections', comment)[0]
     if response=="DID NOT FIND":
         event_dict['virgoInjections']=0
-    elif response=="DID FIND":
+    elif response=="DID FIND" or response=="FOUND": # XXX: need response from Sarah A. on what the log comment actually looks like
         event_dict['virgoInjections']=1
     message = '{0} -- {1} -- Virgo {2} injections.'.format(convertTime(), graceid, response)
     if loggerCheck(event_dict, message)==False:
