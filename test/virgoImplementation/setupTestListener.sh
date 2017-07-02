@@ -69,6 +69,7 @@ rm -rf ${LVALERTTEST_DIR}
 APPROVAL_PROCESSORMP_DIR="${REPO_DIR}/approval_processorMP"
 rm -rf ${APPROVAL_PROCESSORMP_DIR}
 RAVEN_DIR="${REPO_DIR}/raven"
+rm -rf ${RAVEN_DIR}
 
 # Proceed with the download process.
 git clone "https://github.com/reedessick/lvalertMP.git" ${LVALERTMP_DIR}
@@ -323,7 +324,7 @@ chmod +x setup.sh
 
 cd ${HOME_DIR}
 echo "Adding configuration files and libraries to PATH and PYTHONPATH"
-export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}
 echo "DONE"
 
