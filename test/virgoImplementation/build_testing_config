@@ -99,7 +99,11 @@ if args.virgodq:
     
 if args.idq:
 	config.add_section('idq')
-	config.set('idq','instruments',args.instruments.replace(',',' '))
+	# Don't write V1 in set of idq instruments
+	idq_ifos = args.instruments.replace(',',' ')
+	idq_ifos = idq_ifos if 'V1' not in idq_ifos else idq_ifos.replace('V1','')
+	idq_ifos = idq_ifos.strip()
+	config.set('idq','instruments',idq_ifos)
 	config.set('idq','classifiers','ovl')
 	config.set('idq','pad left','10')
 	config.set('idq','pad right','10')
