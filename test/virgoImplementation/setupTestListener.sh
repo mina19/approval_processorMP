@@ -313,10 +313,6 @@ echo "${REPO_DIR}" > repoDir.txt
 echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CBC pipeline,gstlal search,LowMass resetThrottle -v" > resetThrottleTest.sh
 chmod +x resetThrottleTest.sh
 
-# Make sure raven imports fits from lalinference.io and not lalinference
-cd ${RAVEN_DIR}/raven
-sed -i -e 's/from lalinference import fits/from lalinference.io import fits/g' gracedb_events.py
-
 # Make it easier for sourcing paths and python paths for testing purposes
 echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
@@ -331,6 +327,10 @@ echo "DONE"
 # Make the lvalertTest_commandMP recognize approval_processorMP's resetThrottle command
 cd ${LVALERTTEST_DIR}/bin
 sed -i -e 's/lvalertMP.lvalert import/approval_processorMP import approval_processorMPcommands as/g' lvalertTest_commandMP
+
+# Make sure raven imports fits from lalinference.io and not lalinference
+cd ${RAVEN_DIR}/raven
+sed -i -e 's/from lalinference import fits/from lalinference.io import fits/g' gracedb_events.py
 
 cd ${HOME_DIR}
 echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
