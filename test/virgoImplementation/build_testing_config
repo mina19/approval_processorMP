@@ -41,18 +41,19 @@ config.set('general', 'search', args.search)
 
 if args.humans:
 	config.add_section('humans')
-	config.set('humans','request','True')
+	config.set('humans','request','False') # we want approval_processor to apply the ADVREQ and H1OPS, V1OPS, L1OPS labels
 	config.set('humans','respond','True')
 	config.set('humans','request delay','5')
 	config.set('humans','request jitter','0')
-	config.set('humans','site respond delay','10')
+	config.set('humans','site respond delay','60')
 	config.set('humans','site respond jitter','5')
 	config.set('humans','site respond prob', '1')
 	config.set('humans','site success prob','1')
-	config.set('humans','adv respond delay','10')
-	config.set('humans','adv respond jitter','0')
+	config.set('humans','adv respond delay','60')
+	config.set('humans','adv respond jitter','5')
 	config.set('humans','adv respond prob', '1')
-	config.set('humans','adv success prob',str( (1.-1e-6) if args.human_response==1 else 1e-6))
+        config.set('humans','adv success prob', '1')
+#	config.set('humans','adv success prob',str( (1.-1e-6) if args.human_response==1 else 1e-6))
 
 if args.segdb2grcdb:
 	config.add_section('segDB2grcDB')
