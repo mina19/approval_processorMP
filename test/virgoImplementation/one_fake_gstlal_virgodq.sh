@@ -22,8 +22,8 @@ VIRGODQRESPONSE=1	# 0 for IS vetoed (fail); 1 for IS NOT vetoed (pass)
 VIRGOINJ=0		# 0 for DID NOT FIND injections; 1 for DID FIND injections
 IDQ=1			# Add idq section?
 IDQ_RESPONSE=1		# Pass/ fail criteria AP's IDQ threshold
-SKYMAPS=0		# Adds various skymaps?
-LVEM=0			# Add lvem tag?
+SKYMAPS=1		# Adds various skymaps?
+LVEM=1			# Add lvem tag?
 EXT_TRIGGER=0		# Add ext-trigger section?
 UNBLIND_INJ=0		# Add unblind-inj section?
 
