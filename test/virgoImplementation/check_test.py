@@ -16,7 +16,7 @@ for event in EM_READYevents:
     graceid = event['graceid']
     EM_READY.append(graceid)
 
-print(EM_READY)
+print('EM_READY events: {0}'.format(EM_READY))
 
 DQV = []
 query_string = 'DQV'
@@ -26,4 +26,4 @@ for event in DQVevents:
     graceid = event['graceid']
     DQV.append(graceid)
 
-print(DQV)
+print('DQV events: {0}'.format(DQV))
