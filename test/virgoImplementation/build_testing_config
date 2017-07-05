@@ -172,7 +172,7 @@ if args.skymaps:
 #		config.set('lalinference','skymap delay','60')
 #		config.set('lalinference','skymap jitter','0')
 #		config.set('lalinference','skymap prob','1')
-	elif args.group=='Burst' and args.pipeline=='cwb':
+	elif args.group=='Burst' and args.pipeline=='CWB':
 		config.add_section('cwbPE')
 		config.set('cwbPE','lvem','True' if args.lvem else 'False')
 		config.set('cwbPE','finish delay','60')
