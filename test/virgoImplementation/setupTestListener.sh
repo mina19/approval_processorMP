@@ -308,10 +308,6 @@ sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
 cd ${APPROVAL_PROCESSORMP_DIR}/test/virgoImplementation
 echo "${REPO_DIR}" > repoDir.txt 
 
-# Make the resetThrottleTest.sh command so that we can reset the CBC_gstlal_LowMass pipeline
-echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CBC pipeline,gstlal search,LowMass resetThrottle -v" > resetThrottleTest.sh
-chmod +x resetThrottleTest.sh
-
 # Make it easier for sourcing paths and python paths for testing purposes
 echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
