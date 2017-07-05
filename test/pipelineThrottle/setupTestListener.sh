@@ -5,10 +5,10 @@
 #  Created by:    Min-A Cho
 #  Creation date: June 8, 2017
 #
-#  Modified by:
-#  Modified date:
+#  Modified by:   Min-A Cho
+#  Modified date: July 2, 2017 # we need to also get raven to perform the injectionCheck
 #
-#  Purpose: Script to download the latest version of lvalertMP and lvalertTest, and the specific git hash of approval_processorMP and save it to a directory specified by the user.
+#  Purpose: Script to download the latest version of lvalertMP and lvalertTest and raven, and the specific git hash of approval_processorMP and save it to a directory specified by the user.
 #
 
 # Usage message.
@@ -68,16 +68,18 @@ LVALERTTEST_DIR="${REPO_DIR}/lvalertTest"
 rm -rf ${LVALERTTEST_DIR}
 APPROVAL_PROCESSORMP_DIR="${REPO_DIR}/approval_processorMP"
 rm -rf ${APPROVAL_PROCESSORMP_DIR}
+RAVEN_DIR="${REPO_DIR}/raven"
+rm -rf ${RAVEN_DIR}
 
 # Proceed with the download process.
-git clone "https://github.com/reedessick/lvalertMP.git" ${LVALERTMP_DIR}
-git clone "https://github.com/deepchatterjeeligo/lvalertTest.git" ${LVALERTTEST_DIR}
+git clone "https://github.com/mina19/lvalertMP.git" ${LVALERTMP_DIR}
+git clone "https://github.com/mina19/lvalertTest.git" ${LVALERTTEST_DIR}
 git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
-#git clone "https://github.com/deepchatterjeeligo/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
+git clone "https://git.ligo.org/lscsoft/raven.git" ${RAVEN_DIR}
 
-echo "Checking out hash 3e123dd of lvalertMP, which is the version running on Grinch installation"
-cd ${LVALERTMP_DIR}
-git checkout bf205ca
+#echo "Checking out hash bf205ca of lvalertMP, which is the version running on Grinch installation"
+#cd ${LVALERTMP_DIR}
+#git checkout bf205ca
 
 echo "Checking out branch testingPipelineThrottle in approval_processorMP"
 cd ${APPROVAL_PROCESSORMP_DIR}
@@ -303,7 +305,7 @@ cd ${APPROVAL_PROCESSORMP_DIR}
 sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
 
 # Record the repository directory so that we can simulate events more easily for testing purposes
-cd ${APPROVAL_PROCESSORMP_DIR}/test/pipelineThrottle
+cd ${APPROVAL_PROCESSORMP_DIR}/test/virgoImplementation
 echo "${REPO_DIR}" > repoDir.txt 
 
 # Make the resetThrottleTest.sh command so that we can reset the CBC_gstlal_LowMass pipeline
@@ -311,19 +313,23 @@ echo "lvalertTest_commandMP --node=${LIGO_NAME}-test -f ${COMMANDSFILE} group,CB
 chmod +x resetThrottleTest.sh
 
 # Make it easier for sourcing paths and python paths for testing purposes
-echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
 chmod +x setup.sh
 
 cd ${HOME_DIR}
 echo "Adding configuration files and libraries to PATH and PYTHONPATH"
-export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${PYTHONPATH}
+export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
 export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}
 echo "DONE"
 
-# Make the lvalertTest_commandMP recognize approval_processorMP'f resetThrottle command
+# Make the lvalertTest_commandMP recognize approval_processorMP's resetThrottle command
 cd ${LVALERTTEST_DIR}/bin
 sed -i -e 's/lvalertMP.lvalert import/approval_processorMP import approval_processorMPcommands as/g' lvalertTest_commandMP
+
+# Make sure raven imports fits from lalinference.io and not lalinference
+cd ${RAVEN_DIR}/raven
+sed -i -e 's/from lalinference import fits/from lalinference.io import fits/g' gracedb_events.py
 
 cd ${HOME_DIR}
 echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"

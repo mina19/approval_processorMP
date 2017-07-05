@@ -72,19 +72,18 @@ RAVEN_DIR="${REPO_DIR}/raven"
 rm -rf ${RAVEN_DIR}
 
 # Proceed with the download process.
-git clone "https://github.com/reedessick/lvalertMP.git" ${LVALERTMP_DIR}
+git clone "https://github.com/mina19/lvalertMP.git" ${LVALERTMP_DIR}
 git clone "https://github.com/mina19/lvalertTest.git" ${LVALERTTEST_DIR}
 git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
 git clone "https://git.ligo.org/lscsoft/raven.git" ${RAVEN_DIR}
 
-echo "Checking out hash bf205ca of lvalertMP, which is the version running on Grinch installation"
-cd ${LVALERTMP_DIR}
-git checkout bf205ca
+#echo "Checking out hash bf205ca of lvalertMP, which is the version running on Grinch installation"
+#cd ${LVALERTMP_DIR}
+#git checkout bf205ca
 
-echo "Checking out branch virgoImplementationDeep in approval_processorMP"
+echo "Checking out branch virgoImplementation in approval_processorMP"
 cd ${APPROVAL_PROCESSORMP_DIR}
 git checkout -b virgoImplementation origin/virgoImplementation
-#git checkout -b virgoImplementationDeep origin/virgoImplementationDeep
 
 echo "Creating FAKDB_DIR, OUT_DIR, and COMMAND_FILE directories"
 cd ${HOME_DIR}
