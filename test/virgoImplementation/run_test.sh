@@ -8,7 +8,7 @@ source setup.sh
 ./one_fake_cwb_virgodq.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake CWB event which is a triple
 # Joint FAP high enough and IS vetoed
@@ -18,7 +18,7 @@ sed -i -e 's/VIRGODQRESPONSE=1/VIRGODQRESPONSE=0/g' one_fake_cwb_virgodq.sh
 ./one_fake_cwb_virgodq.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake CWB event which is a triple
 # Joint FAP too low and IS NOT vetoed
@@ -29,7 +29,7 @@ sed -i -e 's/IDQ_RESPONSE=1/IDQ_RESPONSE=0/g' one_fake_cwb_virgodq.sh
 ./one_fake_cwb_virgodq.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake CWB event which is a triple
 # Joint FAP too low and IS vetoed
@@ -39,7 +39,7 @@ sed -i -e 's/VIRGODQRESPONSE=1/VIRGODQRESPONSE=0/g' one_fake_cwb_virgodq.sh
 ./one_fake_cwb_virgodq.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake gstlal event which is a triple
 # IS NOT vetoed
@@ -48,7 +48,7 @@ sleep 5
 ./one_fake_gstlal_virgodq.sh
 
 sleep 5
-./resetThrottleCBC.sh
+#./resetThrottleCBC.sh
 
 # send one fake gstlal event which is a triple
 # IS vetoed
@@ -58,7 +58,7 @@ sed -i -e 's/VIRGODQRESPONSE=1/VIRGODQRESPONSE=0/g' one_fake_gstlal_virgodq.sh
 ./one_fake_gstlal_virgodq.sh
 
 sleep 5
-./resetThrottleCBC.sh
+#./resetThrottleCBC.sh
 
 # send one fake CWB event which is a double H1 L1
 # Joint FAP high enough
@@ -67,7 +67,7 @@ sleep 5
 ./one_fake_cwb_double.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake CWB event which is a double H1 L1
 # Joint FAP too low
@@ -77,7 +77,7 @@ sed -i -e 's/IDQ_RESPONSE=1/IDQ_RESPONSE=0/g' one_fake_cwb_double.sh
 ./one_fake_cwb_double.sh
 
 sleep 5
-./resetThrottleBurst.sh
+#./resetThrottleBurst.sh
 
 # send one fake gstlal event which is a double H1 L1
 # G000008
@@ -85,9 +85,4 @@ sleep 5
 ./one_fake_gstlal_double.sh
 
 sleep 5
-./resetThrottleCBC.sh
-
-
-
-
-
+#./resetThrottleCBC.sh

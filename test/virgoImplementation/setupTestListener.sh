@@ -264,6 +264,12 @@ targetRate = 1e-4
 requireManualReset = False
 conf = 0.9999
 
+[CBC_gstlal_LowMass]
+throttleWin = 3600
+targetRate = 1.6e-3
+requireManualReset = False
+conf = 0.9999
+
 [CBC_gstlal_HighMass]
 throttleWin = 3600
 targetRate = 1e-4
@@ -284,7 +290,7 @@ conf = 0.9999
 
 [Burst_CWB_AllSky]
 throttleWin = 3600
-targetRate = 2.5e-6
+targetRate = 1.6e-3
 requireManualReset = False
 conf = 0.9999
 
