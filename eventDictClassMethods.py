@@ -108,6 +108,7 @@ class EventDict():
             'lastsentpreliminaryskymap'  : None,
             'loggermessages'             : [],
             'lvemskymaps'                : {},
+            'offline'                    : self.dictionary['offline'],
             'operator_signoffCheckresult': None,
             'operatorlogkey'             : 'no',
             'operatorsignoffs'           : {},
@@ -223,6 +224,7 @@ class EventDict():
             'grb_online_json'  : None,
             'labels'           : self.dictionary['labels'].keys(),
             'loggermessages'   : [],
+            'offline'          : self.dictionary['offline'],
             'pipeline'         : self.dictionary['pipeline']
         })  
     #-----------------------------------------------------------------------

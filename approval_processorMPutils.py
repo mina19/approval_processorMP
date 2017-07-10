@@ -238,6 +238,17 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         saveEventDicts(approval_processorMPfiles)
         return 0
 
+    # ignoring offline triggers, NOTE: we are also ignoring offline external triggers
+    if event_dict.data['offline']: # this is an offline trigger, ignore
+        message = '{0} -- {1} -- Offline trigger. Ignoring.'.format(convertTime(), graceid)
+        if loggerCheck(event_dict.data, message)==False:
+            logger.info(message)
+            g.writeLog(graceid, 'AP: Offline trigger. Ignoring.', tagname='em_follow')
+        else:
+            pass
+        saveEventDicts(approval_processorMPfiles)
+        return 0
+
     #--------------------
     # take care of external GRB triggers
     #--------------------
