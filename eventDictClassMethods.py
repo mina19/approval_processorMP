@@ -1076,14 +1076,6 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
     elif set_internal=='do nothing': # this will set 'internal' as whatever the config logic has it to be above
         internal = internal
 
-    if internal==0: # expose event to LV-EM
-        url_perm_base = client.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
-        for perm in ['view', 'change']:
-            url = url_perm_base + perm
-            client.put(url)
-    else:
-        pass
-
     thisvoevent = '(internal,vetted,open_alert,hardware_inj,skymap):({0},{1},{2},{3},{4})-'.format(internal, vetted, open_alert, hardware_inj, skymap_filename) + voevent_type
     # check if we sent this voevent before
     if thisvoevent in str(voevents):
@@ -1117,6 +1109,14 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
         voevent = r.json()['text']
     except Exception, e:        
         logger.info('{0} -- {1} -- Caught HTTPError: {2}'.format(convertTime(), graceid, str(e)))
+
+    if internal==0: # expose event to LV-EM
+        url_perm_base = client.service_url + urllib.quote('events/{0}/perms/gw-astronomy:LV-EM:Observers/'.format(graceid))
+        for perm in ['view', 'change']:
+            url = url_perm_base + perm
+            client.put(url)
+    else:
+        pass
 
     number = str(random.random())
     if voevent:
