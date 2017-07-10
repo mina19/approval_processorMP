@@ -23,7 +23,7 @@ class ResetThrottle(commands.Command):
     name = 'resetThrottle'
 
     def __init__(self, **kwargs):
-        super(ResetThrottle, self).__init__(command_type=self.name, **kwargs)
+        super(ResetThrottle, self).__init__(**kwargs)
 
 class ResetThrottleItem(commands.CommandQueueItem):
     '''
