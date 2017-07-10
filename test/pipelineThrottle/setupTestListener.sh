@@ -305,7 +305,7 @@ cd ${APPROVAL_PROCESSORMP_DIR}
 sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
 
 # Record the repository directory so that we can simulate events more easily for testing purposes
-cd ${APPROVAL_PROCESSORMP_DIR}/test/virgoImplementation
+cd ${APPROVAL_PROCESSORMP_DIR}/test/pipelineThrottle
 echo "${REPO_DIR}" > repoDir.txt 
 
 # Make the resetThrottleTest.sh command so that we can reset the CBC_gstlal_LowMass pipeline
