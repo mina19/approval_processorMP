@@ -17,3 +17,6 @@ sleep 20
 # send one fake CBC_gstlal_LowMass event
 # this event should *not* be labeled as EM_Throttled
 ./one_fake_gstlal.sh
+
+# run checkThrottle.py
+python checkThrottle.py
