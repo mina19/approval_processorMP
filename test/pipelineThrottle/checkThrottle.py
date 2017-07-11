@@ -16,5 +16,5 @@ for event in EM_ThrottledEvents:
     graceid = event['graceid']
     EM_Throttled.append(graceid)
 
-print('EM_Throttled events: {0}'.format(EM_READY))
+print('EM_Throttled events: {0}'.format(EM_Throttled))
 print('Only events G000000, G000001, and G000002 should be EM_Throttled')
