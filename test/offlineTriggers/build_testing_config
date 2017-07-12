@@ -30,7 +30,7 @@ parser.add_argument('--ext-trigger', type=int,choices=[0,1],help='Adds external 
 ### Add unblind injections
 parser.add_argument('--unblind-inj', type=int,choices=[0,1],help='Adds unblind injections section. Supply boolean',default=0)
 ### Add offline parameter
-parser.add_argument('--offline', type=bool, choices=[True,False],help='Determines whether trigger is offline or not. Supply boolean', default=False)
+parser.add_argument('--offline', type=str, choices=['True','False'],help='Determines whether trigger is offline or not. Supply boolean', default='False')
 
 args = parser.parse_args()
 
