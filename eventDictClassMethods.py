@@ -347,6 +347,9 @@ class EventDict():
         hardware_inj = self.config.get('labelCheck', 'hardware_inj')
         injectionsfound = self.data['injectionsfound']
         if injectionsfound > 0:
+            # label as INJ if INJ label is not there already
+            if 'INJ' not in self.data['labels']:
+                self.client.writeLabel(self.graceid, 'INJ')
             if hardware_inj=='no':
                 self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(th), tagname = "em_follow")
                 self.data['injectionlogkey'] = 'yes'
