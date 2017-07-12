@@ -60,8 +60,6 @@ for graceid in V1events:
     if graceid in injectionCommentTimes:
         dt = injectionCommentTimes[graceid] - V1events[graceid]
         injectionDelays.append(dt)
-        if dt<0:
-            print('weird event: {0}'.format(graceid))
     else:
         noInjectionComment.append(graceid)
 
@@ -132,7 +130,7 @@ for graceid in noInjectionComment:
 noInjectionCommentTimesFig, ax = plt.subplots()
 num_bins = 1000
 n, bins, patches = plt.hist(noInjectionCommentTimes, num_bins, facecolor='red')
-plt.title('V1 Missing Injection Comments')
+plt.title('Missing V1 Injection Comments')
 plt.xlabel('GPSTime')
 plt.ylabel('Frequency')
 start, end = ax.get_xlim()
@@ -151,7 +149,7 @@ for graceid in noDQComment:
 noDQCommentTimesFig, ax = plt.subplots()
 num_bins = 1000
 n, bins, patches = plt.hist(noDQCommentTimes, num_bins, facecolor='red')
-plt.title('V1 Missing DQ Comments')
+plt.title('Missing V1 DQ Comments')
 plt.xlabel('GPSTime')
 plt.ylabel('Frequency')
 start, end = ax.get_xlim()
