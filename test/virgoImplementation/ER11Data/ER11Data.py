@@ -3,7 +3,8 @@ from astropy.time import Time
 client = "https://gracedb-test.ligo.org/api/"
 g = initGraceDb(client)
 
-query_string = "1181000000 .. 1184000000" 
+# Get ER11 Data from 6/16 08:00:00 UTC to 6/26 08:00:00 UTC
+query_string = "1181635218 .. 1182499218" 
 allEvents = g.events(query_string)
 
 V1events = {}
@@ -94,7 +95,9 @@ ax.xaxis.set_minor_locator(minorLocator)
 plt.show()
 
 # len(injectionDelays) = 104
-# len(noInjectionComment) = 150
+# len(noInjectionComment) = 119
+# min(injectionDelays) = 56.0
+# max(injectionDelays) = 1739.0
 # np.mean(injectionDelays) = 236.54
 # np.std(injectionDelays) = 312.21
 
@@ -116,9 +119,22 @@ ax.xaxis.set_minor_locator(minorLocator)
 plt.show()
 
 # len(DQDelays) = 187
-# len(noDQComment) = 67
+# len(noDQComment) = 36
+# min(DQDelays) = 16.0
+# max(DQDelays) = 5736.0
 # np.mean(DQDelays) = 491.053
 # np.std(DQDelays) = 783.633
+
+import re
+def convertGPStime(float):
+    '''
+    converts float gpstime into UTC time string of the form
+    07-06
+    '''
+    t = Time(float, format='gps')
+    t = Time(t, format='iso')
+    t = re.findall('2017-0(.*)-(.*) ', t.value)
+    return str(t[0][0]) + '/' + str(t[0][1])
 
 
 noInjectionCommentTimes = []
@@ -130,11 +146,10 @@ for graceid in noInjectionComment:
 noInjectionCommentTimesFig, ax = plt.subplots()
 num_bins = 1000
 n, bins, patches = plt.hist(noInjectionCommentTimes, num_bins, facecolor='red')
-plt.title('Missing V1 Injection Comments')
+plt.title('Missing V1 Injection Comment')
 plt.xlabel('GPSTime')
 plt.ylabel('Frequency')
-start, end = ax.get_xlim()
-ax.xaxis.set_ticks(np.arange(start, end, 86400*4))
+ax.xaxis.set_ticks(np.arange(1181635218, 1182499218, 86400))
 ax.xaxis.set_major_formatter(FormatStrFormatter('%0.0f'))
 plt.show()
 
@@ -149,11 +164,11 @@ for graceid in noDQComment:
 noDQCommentTimesFig, ax = plt.subplots()
 num_bins = 1000
 n, bins, patches = plt.hist(noDQCommentTimes, num_bins, facecolor='red')
-plt.title('Missing V1 DQ Comments')
+plt.title('Missing V1 DQ Comment')
 plt.xlabel('GPSTime')
 plt.ylabel('Frequency')
 start, end = ax.get_xlim()
-ax.xaxis.set_ticks(np.arange(start, end, 86400*4))
+ax.xaxis.set_ticks(np.arange(1181635218, 1182499218, 86400))
 ax.xaxis.set_major_formatter(FormatStrFormatter('%0.0f'))
 plt.show()
 
