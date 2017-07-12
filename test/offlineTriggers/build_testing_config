@@ -29,6 +29,8 @@ parser.add_argument('--lvem',type=int,choices=[0,1], help='Provide the lvem tag 
 parser.add_argument('--ext-trigger', type=int,choices=[0,1],help='Adds external trigger section. Supply boolean',default=0)
 ### Add unblind injections
 parser.add_argument('--unblind-inj', type=int,choices=[0,1],help='Adds unblind injections section. Supply boolean',default=0)
+### Add offline parameter
+parser.add_argument('--offline', type=bool, choices=[True,False],help='Determines whether trigger is offline or not. Supply boolean', default=False)
 
 args = parser.parse_args()
 
@@ -38,6 +40,7 @@ config.add_section('general')
 config.set('general', 'group', args.group)
 config.set('general', 'pipeline', args.pipeline)
 config.set('general', 'search', args.search)
+config.set('general', 'offline', args.offline)
 
 if args.humans:
 	config.add_section('humans')
