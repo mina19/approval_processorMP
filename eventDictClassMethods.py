@@ -775,8 +775,8 @@ def makeConfigDict(config):
     hardware_inj            = config.get('labelCheck', 'hardware_inj')
     default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
     humanscimons            = config.get('operator_signoffCheck', 'humanscimons')
-    use_virgoInjComment     = config.getboolean('virgo_dqCheck', 'use_virgoInjComment')
-    use_virgoDQComment      = config.getboolean('injectionCheck', 'use_virgoDQComment')
+    use_virgoInjComment     = config.getboolean('injectionCheck', 'use_virgoInjComment')
+    use_virgoDQComment      = config.getboolean('virgo_dqCheck', 'use_virgoDQComment')
 
     ### extract options about advocates
     advocates      = config.get('advocate_signoffCheck', 'advocates')
