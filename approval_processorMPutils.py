@@ -45,8 +45,7 @@ preliminary_to_initial = [
     'farCheck',
     'labelCheck',
     'have_lvem_skymapCheck',
-    'idq_joint_fapCheck',
-    'virgo_dqCheck'
+    'idq_joint_fapCheck'
     ]
 
 # tasks when currentstate of event is initial_to_update
@@ -99,6 +98,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
     default_farthresh         = config.getfloat('farCheck', 'default_farthresh')
     time_duration             = config.getfloat('injectionCheck', 'time_duration')
     humanscimons              = config.get('operator_signoffCheck', 'humanscimons')
+    use_virgoDQComment        = config.getboolean('virgo_dqCheck', 'use_virgoDQComment')
 
     ### extract options about advocates
     advocates      = config.get('advocate_signoffCheck', 'advocates')
@@ -293,6 +293,8 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
         preliminary_to_initial.append('operator_signoffCheck')
     if advocates=='yes':
         preliminary_to_initial.append('advocate_signoffCheck')
+    if use_virgoDQComment:
+        preliminary_to_initial.append('virgo_dqCheck')
 
     #--------------------
     # update information based on the alert_type

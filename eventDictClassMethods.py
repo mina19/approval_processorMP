@@ -321,19 +321,29 @@ class EventDict():
     #-----------------------------------------------------------------------
     def injectionCheck(self):
         injectionCheckresult = self.data['injectionCheckresult']
+        use_virgoInjComment = self.configdict['use_virgoInjComment'] # this is either True or False
         if injectionCheckresult!=None:
             return injectionCheckresult
         elif 'V1' in self.data['instruments']:
-            virgoInjections = self.data['virgoInjections']
-            if virgoInjections==None: # we need virgo Injection information which has not come in yet
-                message = '{0} -- {1} -- Have not received Virgo injection statement yet.'.format(convertTime(), self.graceid)
+            if use_virgoInjComment:
+                virgoInjections = self.data['virgoInjections']
+                if virgoInjections==None: # we need virgo Injection information which has not come in yet
+                    message = '{0} -- {1} -- Have not received Virgo injection statement yet.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                    else:
+                        pass
+                    return None
+                else: # update the number of injectionsfound with the virgoInjections information
+                    self.data['injectionsfound'] = virgoInjections
+                    pass
+            else: # we dont use virgo injection comment
+                self.data['injectionsfound'] = 0
+                message = '{0} -- {1} -- Virgo in instruments list but not using or waiting for Virgo injection statement.'.format(convertTime(), self.graceid)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                 else:
                     pass
-                return None
-            else: # update the number of injectionsfound with the virgoInjections information
-                self.data['injectionsfound'] = virgoInjections
                 pass
         eventtime = float(self.data['gpstime'])
         time_duration = self.config.getfloat('injectionCheck', 'time_duration')
@@ -765,6 +775,8 @@ def makeConfigDict(config):
     hardware_inj            = config.get('labelCheck', 'hardware_inj')
     default_farthresh       = config.getfloat('farCheck', 'default_farthresh')
     humanscimons            = config.get('operator_signoffCheck', 'humanscimons')
+    use_virgoInjComment     = config.getboolean('virgo_dqCheck', 'use_virgoInjComment')
+    use_virgoDQComment      = config.getboolean('injectionCheck', 'use_virgoDQComment')
 
     ### extract options about advocates
     advocates      = config.get('advocate_signoffCheck', 'advocates')
@@ -783,6 +795,8 @@ def makeConfigDict(config):
         'advocates'           : advocates,
         'ignore_idq'          : ignore_idq,
         'default_idqthresh'   : default_idqthresh,
+        'use_virgoInjComment' : use_virgoInjComment,
+        'use_virgoDQComment'  : use_virgoDQComment,
         'client'              : client
     }
     return configdict
