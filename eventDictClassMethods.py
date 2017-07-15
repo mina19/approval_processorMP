@@ -340,11 +340,6 @@ class EventDict():
                     pass
             else: # we dont use virgo injection comment
                 self.data['injectionsfound'] = 0
-                message = '{0} -- {1} -- Virgo in instruments list but not using or waiting for Virgo injection statement.'.format(convertTime(), self.graceid)
-                if loggerCheck(self.data, message)==False:
-                    self.logger.info(message)
-                else:
-                    pass
                 virgoComment = 'Performing hardware injection check without waiting for Virgo injection statement. '
                 pass
         eventtime = float(self.data['gpstime'])
