@@ -336,6 +336,7 @@ class EventDict():
                     return None
                 else: # update the number of injectionsfound with the virgoInjections information
                     self.data['injectionsfound'] = virgoInjections
+                    virgoComment = 'Performing hardware injectiong check after waiting for Virgo injection statement. '
                     pass
             else: # we dont use virgo injection comment
                 self.data['injectionsfound'] = 0
@@ -344,6 +345,7 @@ class EventDict():
                     self.logger.info(message)
                 else:
                     pass
+                virgoComment = 'Performing hardware injection check without waiting for Virgo injection statement. '
                 pass
         eventtime = float(self.data['gpstime'])
         time_duration = self.config.getfloat('injectionCheck', 'time_duration')
@@ -353,17 +355,19 @@ class EventDict():
         Injections = query('HardwareInjection', eventtime, tl, th) # XXX this only reflects the raven search results! Nicolas says Virgo might not be able to record their injections in GraceDb right now, 6/30/17
         if 'V1' not in self.data['instruments']:
             self.data['injectionsfound'] = 0 # start with 0 and then add what we just found with raven query
+            virgoComment = ''
         self.data['injectionsfound'] += len(Injections) # now we have the total injections found, including those from Virgo if V1 was part of the instruments list
         hardware_inj = self.config.get('labelCheck', 'hardware_inj')
-        injectionsfound = self.data['injectionsfound']
+        injectionsfound = self.data['injectionsfound']            
         if injectionsfound > 0:
             # label as INJ if INJ label is not there already
             if 'INJ' not in self.data['labels']:
+                self.client.writeLog(self.graceid, 'AP: Labeling INJ.', tagname='em_follow')
                 self.client.writeLabel(self.graceid, 'INJ')
             if hardware_inj=='no':
-                self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(th), tagname = "em_follow")
+                self.client.writeLog(self.graceid, 'AP: {0}Hardware injection found. Ignoring.'.format(virgoComment), tagname = "em_follow")
                 self.data['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+                message = '{0} -- {1} -- {2}Hardware injection found. Ignoring.'.format(convertTime(), self.graceid, virgoComment)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                     self.data['injectionCheckresult'] = False
@@ -371,9 +375,9 @@ class EventDict():
                     pass
                 return False
             else:
-                self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(th), tagname = "em_follow")
+                self.client.writeLog(self.graceid, 'AP: {0}Hardware injection found but treating as a real event in config setting.'.format(virgoComment), tagname = "em_follow")
                 self.data['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(convertTime(), self.graceid, th)
+                message = '{0} -- {1} -- {2}Hardware injection found but treating as a real event in config setting.'.format(convertTime(), self.graceid, virgoComment)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                     self.data['injectionCheckresult'] = True
@@ -381,9 +385,9 @@ class EventDict():
                     pass
                 return True
         elif injectionsfound==0:
-            self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds or from Virgo injections statement if V1 is involved.'.format(th), tagname="em_follow")
+            self.client.writeLog(self.graceid, 'AP: {0}No hardware injection found.'.format(virgoComment), tagname="em_follow")
             self.data['injectionlogkey'] = 'yes'
-            message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+            message = '{0} -- {1} -- {2}No hardware injection found.'.format(convertTime(), self.graceid, virgoComment)
             if loggerCheck(self.data, message)==False:
                 self.logger.info(message)
                 self.data['injectionCheckresult'] = True
