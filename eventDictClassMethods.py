@@ -955,12 +955,17 @@ def record_signoff(event_dict, signoff_object):
 
 def record_virgo_dqIsVetoed(event_dict, comment, logger):
     graceid = event_dict['graceid']
+    use_virgoDQComment = event_dict['configuration']['use_virgoDQComment']
     response = re.findall('this event (.*) vetoed', comment)[0]
     if response=='IS':
         event_dict['virgo_dqIsVetoed']=True
     elif response=='IS NOT':
         event_dict['virgo_dqIsVetoed']=False
-    message = '{0} -- {1} -- Virgo {2} vetoing this trigger.'.format(convertTime(), graceid, response)
+    if use_virgoDQComment:
+        virgoComment = 'Config setting: virgo_dqCheck turned on.'
+    else:
+        virgoComment = 'Config setting: virgo_dqCheck turned off.'
+    message = '{0} -- {1} -- Virgo {2} vetoing this trigger. {3}'.format(convertTime(), graceid, response, virgoComment)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
     else:
@@ -968,12 +973,17 @@ def record_virgo_dqIsVetoed(event_dict, comment, logger):
 
 def record_virgoInjections(event_dict, comment, logger):
     graceid = event_dict['graceid']
+    use_virgoInjComment = event_dict['configuration']['use_virgoInjComment']
     response = re.findall('V1 hardware injection: (.*) injections', comment)[0]
     if response=="DID NOT FIND":
         event_dict['virgoInjections']=0
     elif response=="DID FIND" or response=="FOUND": # XXX: need response from Sarah A. on what the log comment actually looks like
         event_dict['virgoInjections']=1
-    message = '{0} -- {1} -- Virgo {2} injections.'.format(convertTime(), graceid, response)
+    if use_virgoInjComment:
+        virgoComment = 'Config setting: will use Virgo injection statement.'
+    else:
+        virgoComment = 'Config setting: will not use Virgo injection statement.'
+    message = '{0} -- {1} -- Virgo {2} injections. {3}'.format(convertTime(), graceid, response, virgoComment)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
     else:
