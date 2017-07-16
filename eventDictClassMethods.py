@@ -336,11 +336,11 @@ class EventDict():
                     return None
                 else: # update the number of injectionsfound with the virgoInjections information
                     self.data['injectionsfound'] = virgoInjections
-                    virgoComment = 'Performing hardware injectiong check after waiting for Virgo injection statement. '
+                    virgoComment = 'Performing hardware injection check. Did wait for Virgo injection statement. '
                     pass
             else: # we dont use virgo injection comment
                 self.data['injectionsfound'] = 0
-                virgoComment = 'Performing hardware injection check without waiting for Virgo injection statement. '
+                virgoComment = 'Performing hardware injection check. Did not wait for Virgo injection statement. '
                 pass
         eventtime = float(self.data['gpstime'])
         time_duration = self.config.getfloat('injectionCheck', 'time_duration')
@@ -350,7 +350,7 @@ class EventDict():
         Injections = query('HardwareInjection', eventtime, tl, th) # XXX this only reflects the raven search results! Nicolas says Virgo might not be able to record their injections in GraceDb right now, 6/30/17
         if 'V1' not in self.data['instruments']:
             self.data['injectionsfound'] = 0 # start with 0 and then add what we just found with raven query
-            virgoComment = ''
+            virgoComment = 'Performing hardware injection check.'
         self.data['injectionsfound'] += len(Injections) # now we have the total injections found, including those from Virgo if V1 was part of the instruments list
         hardware_inj = self.config.get('labelCheck', 'hardware_inj')
         injectionsfound = self.data['injectionsfound']            
