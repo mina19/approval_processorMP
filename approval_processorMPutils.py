@@ -46,7 +46,7 @@ preliminary_to_initial = [
     'labelCheck',
     'have_lvem_skymapCheck',
     'idq_joint_fapCheck',
-    'virgo_dqCheck'
+#    'virgo_dqCheck' XXX: removing virgo_dqCheck so that we do not get stalled for applying EM_READY label and sending out initial alerts
     ]
 
 # tasks when currentstate of event is initial_to_update
@@ -537,10 +537,10 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     message_dict = json.loads(message_dict) # converts string to dictionary
                     message_dict['loaded_to_gracedb'] = 1
                     saveEventDicts(approval_processorMPfiles)
-                elif 'V1 veto channel' in comment and comment.endswith('vetoed'): # this is a Virgo Veto statement we need to record
-                    record_virgo_dqIsVetoed(event_dict.data, comment, logger)
-                elif 'V1 hardware injection' in comment and comment.endswith('injections'): # this is a Virgo hardware injection statement we need to record
-                    record_virgoInjections(event_dict.data, comment, logger)
+                #elif 'V1 veto channel' in comment and comment.endswith('vetoed'): # this is a Virgo Veto statement we need to record
+                #    record_virgo_dqIsVetoed(event_dict.data, comment, logger)
+                #elif 'V1 hardware injection' in comment and comment.endswith('injections'): # this is a Virgo hardware injection statement we need to record
+                #    record_virgoInjections(event_dict.data, comment, logger)
                 else:
                     pass
 

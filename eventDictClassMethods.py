@@ -116,7 +116,7 @@ class EventDict():
             'virgo_dqCheckresult'        : None,
             'virgo_dqIsVetoed'           : None,
             'virgo_dqlogkey'             : 'no',
-            'virgoInjections'            : None,
+            'virgoInjections'            : 0, ### hardcoding to be 0 so that we do not wait for virgo injection statement to come in
             'voeventerrors'              : [],
             'voevents'                   : []
         })
