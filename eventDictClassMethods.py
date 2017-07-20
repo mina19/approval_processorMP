@@ -108,7 +108,7 @@ class EventDict():
             'lastsentpreliminaryskymap'  : None,
             'loggermessages'             : [],
             'lvemskymaps'                : {},
-            'offline'                    : self.dictionary['offline'],
+            'offline'                    : self.dictionary['offline'] if self.dictionary.has_key('offline') else False,
             'operator_signoffCheckresult': None,
             'operatorlogkey'             : 'no',
             'operatorsignoffs'           : {},
