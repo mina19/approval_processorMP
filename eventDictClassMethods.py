@@ -200,9 +200,9 @@ class EventDict():
                 self.data['virgo_dqCheckresult'] = True
                 self.data['virgo_dqlogkey'] = 'yes'
             elif 'V1 veto channel' in message['comment'] and message['comment'].endswith('vetoed'):
-                record_virgo_dqIsVetoed(self.data, message['comment'], logger)
+                record_virgo_dqIsVetoed(self.data, message['comment'], self.client, logger)
             elif 'V1 hardware injection' in message['comment'] and message['comment'].endswith('injections'):
-                record_virgoInjections(self.data, message['comment'], logger)
+                record_virgoInjections(self.data, message['comment'], self.client, logger)
             else:
                 pass               
 
@@ -953,7 +953,7 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
-def record_virgo_dqIsVetoed(event_dict, comment, logger):
+def record_virgo_dqIsVetoed(event_dict, comment, client, logger):
     graceid = event_dict['graceid']
     use_virgoDQComment = event_dict['configuration']['use_virgoDQComment']
     response = re.findall('this event (.*) vetoed', comment)[0]
@@ -964,14 +964,18 @@ def record_virgo_dqIsVetoed(event_dict, comment, logger):
     if use_virgoDQComment:
         virgoComment = 'Config setting: virgo_dqCheck turned on.'
     else:
-        virgoComment = 'Config setting: virgo_dqCheck turned off.'
+        virgoComment = 'Config setting: virgo_dqCheck turned off. If vetoed, labeling DQV.'
+        # if the response was that the trigger IS VETOED, apply DQV label
+        if response=='IS':
+            client.writeLog(graceid, 'AP: Labeling DQV.', tagname='em_follow')
+            client.writeLabel(graceid, 'DQV')
     message = '{0} -- {1} -- Virgo {2} vetoing this trigger. {3}'.format(convertTime(), graceid, response, virgoComment)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
     else:
         pass
 
-def record_virgoInjections(event_dict, comment, logger):
+def record_virgoInjections(event_dict, comment, client, logger):
     graceid = event_dict['graceid']
     use_virgoInjComment = event_dict['configuration']['use_virgoInjComment']
     response = re.findall('V1 hardware injection: (.*) injections', comment)[0]
@@ -982,7 +986,16 @@ def record_virgoInjections(event_dict, comment, logger):
     if use_virgoInjComment:
         virgoComment = 'Config setting: will use Virgo injection statement.'
     else:
-        virgoComment = 'Config setting: will not use Virgo injection statement.'
+        virgoComment = 'Config setting: will not use Virgo injection statement. If injection found, labeling INJ.'
+        if response=="DID FIND":
+            injectionCheckresult=event_dict['injectionCheckresult']
+            labels=event_dict['labels']
+            if injectionCheckresult!=None: # we already performed the injectionCheck so update the results to reflect we found virgo injection
+                event_dict['injectionCheckresult']=False
+                event_dict['injectionsfound']+=1
+            if 'INJ' not in labels: # label as INJ. this would have been done in the injectionCheck but we performed or would be performing without virgo injection information
+                client.writeLog(graceid, 'AP: Labeling INJ.', tagname='em_follow')
+                client.writeLabel(graceid, 'INJ')
     message = '{0} -- {1} -- Virgo {2} injections. {3}'.format(convertTime(), graceid, response, virgoComment)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
