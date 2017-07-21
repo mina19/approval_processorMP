@@ -964,7 +964,7 @@ def record_virgo_dqIsVetoed(event_dict, comment, client, logger):
     if use_virgoDQComment:
         virgoComment = 'Config setting: virgo_dqCheck turned on.'
     else:
-        virgoComment = 'Config setting: virgo_dqCheck turned off. If vetoed, labeling DQV.'
+        virgoComment = 'Config setting: virgo_dqCheck turned off. Thus, if vetoed, labeling DQV.'
         # if the response was that the trigger IS VETOED, apply DQV label
         if response=='IS':
             client.writeLog(graceid, 'AP: Labeling DQV.', tagname='em_follow')
@@ -984,9 +984,9 @@ def record_virgoInjections(event_dict, comment, client, logger):
     elif response=="DID FIND" or response=="FOUND": # XXX: need response from Sarah A. on what the log comment actually looks like
         event_dict['virgoInjections']=1
     if use_virgoInjComment:
-        virgoComment = 'Config setting: will use Virgo injection statement.'
+        virgoComment = 'Config setting: will wait for Virgo injection statement.'
     else:
-        virgoComment = 'Config setting: will not use Virgo injection statement. If injection found, labeling INJ.'
+        virgoComment = 'Config setting: will not wait for Virgo injection statement. Thus, if injection found, labeling INJ.'
         if response=="DID FIND":
             injectionCheckresult=event_dict['injectionCheckresult']
             labels=event_dict['labels']
