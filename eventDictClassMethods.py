@@ -113,6 +113,10 @@ class EventDict():
             'operatorsignoffs'           : {},
             'pipeline'                   : self.dictionary['pipeline'],
             'search'                     : self.dictionary['search'] if self.dictionary.has_key('search') else '',
+            'virgo_dqCheckresult'        : None,
+            'virgo_dqIsVetoed'           : None,
+            'virgo_dqlogkey'             : 'no',
+            'virgoInjections'            : 0, ### hardcoding to be 0 so that we do not wait for virgo injection statement to come in
             'voeventerrors'              : [],
             'voevents'                   : []
         })
@@ -186,6 +190,19 @@ class EventDict():
                 self.data['configuration'] = self.configdict
                 self.data['farlogkey'] = 'yes'
                 self.data['farCheckresult'] = True
+            elif 'AP: Automatically passed Virgo check' in message['comment']:
+                self.data['virgo_dqCheckresult'] = True
+                self.data['virgo_dqlogkey'] = 'yes'
+            elif 'AP: Rejecting because of Virgo veto' in message['comment']:
+                self.data['virgo_dqCheckresult'] = False
+                self.data['virgo_dqlogkey'] = 'yes'
+            elif 'AP: Passed Virgo DQ check' in message['comment']:
+                self.data['virgo_dqCheckresult'] = True
+                self.data['virgo_dqlogkey'] = 'yes'
+            #elif 'V1 veto channel' in message['comment'] and message['comment'].endswith('vetoed'):
+            #    record_virgo_dqIsVetoed(self.data, message['comment'], logger)
+            #elif 'V1 hardware injection' in message['comment'] and message['comment'].endswith('injections'):
+            #    record_virgoInjections(self.data, message['comment'], logger)
             else:
                 pass               
 
@@ -212,13 +229,17 @@ class EventDict():
     # ifosCheck
     #-----------------------------------------------------------------------
     def ifosCheck(self):
-        ifos = self.data['instruments']
-        res = len(ifos) > 1 # to neglect single IFO triggers 
+        ifos = self.data['instruments'] # instruments as a list
+        ifolist = ",".join(ifos)        # instrument list as a string
+        num_ifo = len(ifos)             # number of ifos
+        res = False if num_ifo == 1 else True if num_ifo >= 3 \
+                                                 else 'V1' not in ifos
         self.data['ifosCheckresult'] = res
         if not(res):
-            self.client.writeLog(self.graceid, 'AP: Candidate event rejected due to Single IFO')
+            self.client.writeLog(self.graceid, \
+            'AP: Candidate event rejected due to single ifo OR V1 in two-ifo coinc')
             self.data['ifoslogkey'] = 'yes'
-            message = '{0} -- {1} -- Rejecting due to Single IFO {2}'.format(convertTime(), self.graceid, ifos[0])
+            message = '{0} -- {1} -- Rejecting due to single ifo OR presence of V1 in two-ifo coinc: {2}'.format(convertTime(), self.graceid, ifolist)
             if loggerCheck(self.data, message)==False:
                 self.logger.info(message)
         return res
@@ -302,46 +323,63 @@ class EventDict():
         injectionCheckresult = self.data['injectionCheckresult']
         if injectionCheckresult!=None:
             return injectionCheckresult
-        else:
-            eventtime = float(self.data['gpstime'])
-            time_duration = self.config.getfloat('injectionCheck', 'time_duration')
-            from raven.search import query
-            th = time_duration
-            tl = -th
-            Injections = query('HardwareInjection', eventtime, tl, th)
-            self.data['injectionsfound'] = len(Injections)
-            hardware_inj = self.config.get('labelCheck', 'hardware_inj')
-            if len(Injections) > 0:
-                if hardware_inj=='no':
-                    self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime.'.format(th), tagname = "em_follow")
-                    self.data['injectionlogkey'] = 'yes'
-                    message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime.'.format(convertTime(), self.graceid, th)
-                    if loggerCheck(self.data, message)==False:
-                        self.logger.info(message)
-                        self.data['injectionCheckresult'] = False
-                    else:
-                        pass
-                    return False
+        elif 'V1' in self.data['instruments']:
+            virgoInjections = self.data['virgoInjections']
+            if virgoInjections==None: # we need virgo Injection information which has not come in yet
+                message = '{0} -- {1} -- Have not received Virgo injection statement yet.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
                 else:
-                    self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime but treating as real event in config.'.format(th), tagname = "em_follow")
-                    self.data['injectionlogkey'] = 'yes'
-                    message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime but treating as real event in config.'.format(convertTime(), self.graceid, th)
-                    if loggerCheck(self.data, message)==False:
-                        self.logger.info(message)
-                        self.data['injectionCheckresult'] = True
-                    else:
-                        pass
-                    return True
-            elif len(Injections)==0:
-                self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds.'.format(th), tagname="em_follow")
+                    pass
+                return None
+            else: # update the number of injectionsfound with the virgoInjections information
+                self.data['injectionsfound'] = virgoInjections
+                pass
+        eventtime = float(self.data['gpstime'])
+        time_duration = self.config.getfloat('injectionCheck', 'time_duration')
+        from raven.search import query
+        th = time_duration
+        tl = -th
+        Injections = query('HardwareInjection', eventtime, tl, th) # XXX this only reflects the raven search results! Nicolas says Virgo might not be able to record their injections in GraceDb right now, 6/30/17
+        if 'V1' not in self.data['instruments']:
+            self.data['injectionsfound'] = 0 # start with 0 and then add what we just found with raven query
+        self.data['injectionsfound'] += len(Injections) # now we have the total injections found, including those from Virgo if V1 was part of the instruments list
+        hardware_inj = self.config.get('labelCheck', 'hardware_inj')
+        injectionsfound = self.data['injectionsfound']
+        if injectionsfound > 0:
+            # label as INJ if INJ label is not there already
+            if 'INJ' not in self.data['labels']:
+                self.client.writeLabel(self.graceid, 'INJ')
+            if hardware_inj=='no':
+                self.client.writeLog(self.graceid, 'AP: Ignoring new event because we found a hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(th), tagname = "em_follow")
                 self.data['injectionlogkey'] = 'yes'
-                message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds.'.format(convertTime(), self.graceid, th)
+                message = '{0} -- {1} -- Ignoring new event because we found a hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['injectionCheckresult'] = False
+                else:
+                    pass
+                return False
+            else:
+                self.client.writeLog(self.graceid, 'AP: Found hardware injection +/- {0} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(th), tagname = "em_follow")
+                self.data['injectionlogkey'] = 'yes'
+                message = '{0} -- {1} -- Found hardware injection +/- {2} seconds of event gpstime or from Virgo injections statement if V1 is involved but treating as real event in config.'.format(convertTime(), self.graceid, th)
                 if loggerCheck(self.data, message)==False:
                     self.logger.info(message)
                     self.data['injectionCheckresult'] = True
                 else:
                     pass
                 return True
+        elif injectionsfound==0:
+            self.client.writeLog(self.graceid, 'AP: No hardware injection found near event gpstime +/- {0} seconds or from Virgo injections statement if V1 is involved.'.format(th), tagname="em_follow")
+            self.data['injectionlogkey'] = 'yes'
+            message = '{0} -- {1} -- No hardware injection found near event gpstime +/- {2} seconds or from Virgo injections statement if V1 is involved.'.format(convertTime(), self.graceid, th)
+            if loggerCheck(self.data, message)==False:
+                self.logger.info(message)
+                self.data['injectionCheckresult'] = True
+            else:
+                pass
+            return True
 
     #-----------------------------------------------------------------------
     # have_lvem_skymapCheck
@@ -427,7 +465,8 @@ class EventDict():
             self.__compute_joint_fap_values__(self.config)
             idqvalues      = self.data['idqvalues']
             idqlogkey      = self.data['idqlogkey']
-            instruments    = self.data['instruments']
+            idqinstruments = ['H1', 'L1'] #only H1 and L1 have idq running, not V1
+            instruments = list(set(idqinstruments).intersection(self.data['instruments'])) # the intersection of idqinstruments and our trigger's list of instruments
             jointfapvalues = self.data['jointfapvalues']
             idq_pipelines  = self.config.get('idq_joint_fapCheck', 'idq_pipelines')
             idq_pipelines  = idq_pipelines.replace(' ', '')
@@ -587,6 +626,49 @@ class EventDict():
                         self.client.writeLog(self.graceid, 'AP: Candidate event passed advocate signoff check.', tagname = 'em_follow')
                         self.data['advocatelogkey'] = 'yes'
                     self.data['advocate_signoffCheckresult'] = True
+                    return True
+
+    #-----------------------------------------------------------------------
+    # virgo_dqCheck
+    #-----------------------------------------------------------------------
+    def virgo_dqCheck(self):
+        virgo_dqCheckresult = self.data['virgo_dqCheckresult']
+        if virgo_dqCheckresult!=None:
+            return virgo_dqCheckresult
+        else:
+            if 'V1' not in self.data['instruments']: # automatically passes this check since Virgo is not involved
+                self.client.writeLog(self.graceid, 'AP: Automatically passed Virgo DQ check -- V1 not involved.', tagname = "em_follow")
+                self.data['virgo_dqlogkey'] = 'yes'
+                message = '{0} -- {1} -- Automatically passed Virgo DQ check -- V1 not involved.'.format(convertTime(), self.graceid)
+                if loggerCheck(self.data, message)==False:
+                    self.logger.info(message)
+                    self.data['virgo_dqCheckresult']=True
+                else:
+                    pass
+                return True
+            else: # Virgo is involved so see if we have a value for virgo_dqIsVetoed
+                virgo_dqIsVetoed = self.data['virgo_dqIsVetoed']
+                if virgo_dqIsVetoed==None: # this information has not come in yet
+                    return None
+                elif virgo_dqIsVetoed==True: # Virgo data quality vetoed this trigger
+                    self.client.writeLog(self.graceid, 'AP: Rejecting because of Virgo veto.', tagname = "em_follow")
+                    self.data['virgo_logkey'] = 'yes'
+                    message = '{0} -- {1} -- Rejecting because of Virgo veto.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['virgo_dqCheckresult']=False
+                    else:
+                        pass
+                    return False
+                elif virgo_dqIsVetoed==False: # Virgo data quality okayed this trigger
+                    self.client.writeLog(self.graceid, 'AP: Passed Virgo DQ check.', tagname = "em_follow")
+                    self.data['virgo_logkey'] = 'yes'
+                    message = '{0} -- {1} -- Passed Virgo DQ check.'.format(convertTime(), self.graceid)
+                    if loggerCheck(self.data, message)==False:
+                        self.logger.info(message)
+                        self.data['virgo_dqCheckresult']=True
+                    else:
+                        pass
                     return True
 
 #-----------------------------------------------------------------------
@@ -858,6 +940,32 @@ def record_signoff(event_dict, signoff_object):
         advocatesignoffs = event_dict['advocatesignoffs']
         advocatesignoffs.append(status)
 
+def record_virgo_dqIsVetoed(event_dict, comment, logger):
+    graceid = event_dict['graceid']
+    response = re.findall('this event (.*) vetoed', comment)[0]
+    if response=='IS':
+        event_dict['virgo_dqIsVetoed']=True
+    elif response=='IS NOT':
+        event_dict['virgo_dqIsVetoed']=False
+    message = '{0} -- {1} -- Virgo {2} vetoing this trigger.'.format(convertTime(), graceid, response)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
+
+def record_virgoInjections(event_dict, comment, logger):
+    graceid = event_dict['graceid']
+    response = re.findall('V1 hardware injection: (.*) injections', comment)[0]
+    if response=="DID NOT FIND":
+        event_dict['virgoInjections']=0
+    elif response=="DID FIND" or response=="FOUND": # XXX: need response from Sarah A. on what the log comment actually looks like
+        event_dict['virgoInjections']=1
+    message = '{0} -- {1} -- Virgo {2} injections.'.format(convertTime(), graceid, response)
+    if loggerCheck(event_dict, message)==False:
+        logger.info(message)
+    else:
+        pass
+
 #-----------------------------------------------------------------------
 # process_alert
 #-----------------------------------------------------------------------
@@ -942,9 +1050,9 @@ def process_alert(event_dict, voevent_type, client, config, logger, set_internal
     injectionsfound = event_dict['injectionsfound']
     if injectionsfound==None:
         eventDicts[graceid].injectionCheck()
-        hardware_inj = event_dict['injectionsfound']
+        hardware_inj = 1 if event_dict['injectionsfound'] > 0 else 0
     else:
-        hardware_inj = injectionsfound
+        hardware_inj = 1 if injectionsfound > 0 else 0
 
     # did we identify a coincident GRB trigger?
     if event_dict['external_trigger'] != None:

@@ -1,9 +1,143 @@
-[general]
+#! /bin/sh
+#
+#  setupTestListener.sh
+#
+#  Created by:    Min-A Cho
+#  Creation date: June 8, 2017
+#
+#  Modified by:   Min-A Cho
+#  Modified date: July 2, 2017 # we need to also get raven to perform the injectionCheck
+#
+#  Purpose: Script to download the latest version of lvalertMP and lvalertTest and raven, and the specific git hash of approval_processorMP and save it to a directory specified by the user.
+#
+
+# Usage message.
+usage="""setupTestListener.sh (v1.0)
+
+Downloads the latest lvalertMP and lvalertTest repositories to a specified directory, downloads a specific git hash of approval_processorMP.
+
+   --dir | -d  <PATH>         : Directory path to which to clone the downloaded LALSuite repository.
+   --help | -h                : Print this help
+"""
+
+USERNAME=${USER}
+HOME_DIR=/home/${USERNAME}
+
+# Default script variables.
+REPO_DIR="${HOME_DIR}"       # Default directory to which to clone the repositories.
+
+# Get user arguments.
+while [ -n "$1" ]
+do
+   case $1
+      in
+      --dir | -d) # Use the specified directory for the repository clone.
+         REPO_DIR="${2}"
+         shift; shift
+         ;;
+      --help | -h)   # Print the help.
+         echo ${usage}
+         shift
+         ;;
+      *) # Ignore anything else
+         shift
+         ;;
+   esac
+done
+
+EMAIL=""
+# Force the user to actually input an email address.
+while [ -z "${EMAIL}" ]
+do
+   echo "You must enter an email address (ex.: albert.einstein@ligo.org): "
+   read EMAIL
+done
+
+LIGO_NAME=""
+# Force the user to actually input a LIGO ID. This is for sending lvalert commands later, to albert.einstein-test
+while [ -z "${LIGO_NAME}" ]
+do
+   echo "You must enter a LIGO ID (ex.: albert.einstein) for sending commands to the albert.einstein-test lvalert node: "
+   read LIGO_NAME
+done
+
+
+LVALERTMP_DIR="${REPO_DIR}/lvalertMP"
+rm -rf ${LVALERTMP_DIR}
+LVALERTTEST_DIR="${REPO_DIR}/lvalertTest"
+rm -rf ${LVALERTTEST_DIR}
+APPROVAL_PROCESSORMP_DIR="${REPO_DIR}/approval_processorMP"
+rm -rf ${APPROVAL_PROCESSORMP_DIR}
+RAVEN_DIR="${REPO_DIR}/raven"
+rm -rf ${RAVEN_DIR}
+
+# Proceed with the download process.
+git clone "https://github.com/mina19/lvalertMP.git" ${LVALERTMP_DIR}
+git clone "https://github.com/mina19/lvalertTest.git" ${LVALERTTEST_DIR}
+git clone "https://github.com/mina19/approval_processorMP.git" ${APPROVAL_PROCESSORMP_DIR}
+git clone "https://git.ligo.org/lscsoft/raven.git" ${RAVEN_DIR}
+
+#echo "Checking out hash bf205ca of lvalertMP, which is the version running on Grinch installation"
+#cd ${LVALERTMP_DIR}
+#git checkout bf205ca
+
+echo "Checking out branch virgoImplementation in approval_processorMP"
+cd ${APPROVAL_PROCESSORMP_DIR}
+git checkout -b virgoImplementation origin/virgoImplementation
+
+echo "Creating FAKDB_DIR, OUT_DIR, and COMMAND_FILE directories"
+cd ${HOME_DIR}
+FAKEDB_DIR=${APPROVAL_PROCESSORMP_DIR}/test/FAKE_DB            # store fake events
+LVALERTOUTFILE=${FAKEDB_DIR}/lvalert.out  # store lvalerts received and sent
+
+OUT_DIR=${APPROVAL_PROCESSORMP_DIR}/test/OUT_DIR               # store temporary files here
+TMPFILE=${OUT_DIR}/tmpfile.out            # store lvalerts to be sent
+
+COMMAND_DIR=${APPROVAL_PROCESSORMP_DIR}/test/COMMAND_FILE      # store commands received and sent
+COMMANDSFILE=${COMMAND_DIR}/commands.txt  # commands file
+
+mkdir -p ${FAKEDB_DIR}
+mkdir -p ${OUT_DIR}
+mkdir -p ${COMMAND_DIR}
+echo "DONE"
+
+echo "Clearing FAKE_DB, OUT_DIR, and COMMAND_FILE"
+rm -rf ${FAKEDB_DIR}/*
+rm -rf ${OUT_DIR}/*
+rm -rf ${COMMAND_DIR}/*
+echo "DONE"
+
+echo "Creating new tmpfile.out, lvalert.out, and commands.txt files"
+echo -n > ${LVALERTOUTFILE}
+echo -n > ${TMPFILE}
+echo -n > ${COMMANDSFILE}
+echo "DONE"
+
+echo "Creating approval_processorMP public files directory"
+PUBLIC_DIR=${HOME_DIR}/public_html/monitor/approval_processorMPTest/files
+mkdir -p ${PUBLIC_DIR}
+rm -rf ${PUBLIC_DIR}
+
+PUBLIC_LOGDIR=${PUBLIC_DIR}/log
+mkdir -p ${PUBLIC_LOGDIR}
+echo "DONE"
+
+echo "Making approval_processorMP configuration files to point to FAKE_DB directory"
+cd ${APPROVAL_PROCESSORMP_DIR}/etc
+echo "[approval_processorMP]
+nodes = CBC_MBTAOnline CBC_gstlal CBC_gstlal_LowMass CBC_gstlal_HighMass CBC_pycc CBC_pycbc_AllSky Burst_CWB Burst_CWB_AllSky Burst_LIB Burst_LIB_AllSky External_Swift External_Fermi cbc_mbtaonline cbc_gstlal_lowmass cbc_gstlal_highmass cbc_pycbc burst_cwb_allsky burst_lib ${LIGO_NAME}-test
+childConfig = ${APPROVAL_PROCESSORMP_DIR}/etc/childConfig-approval_processorMPTest.ini
+verbose = True
+sleep = 0.1
+maxComplete = 100
+maxFrac = 0.5
+recipients = ${EMAIL}" > lvalert_listenMP-approval_processorMPTest.ini
+
+echo "[general]
 ; process_type is used to load libraries and determine behavior
 process_type = approval_processorMP
 ; log_directory is where output, log, and error of running approval_processorMP instance is recorded
-log_directory = /home/gracedb.processor/public_html/monitor/approval_processorMP/files/log/
-;log_directory = /home/min-a.cho/public_html/monitor/approval_processorMP/files/log/
+log_directory = ${PUBLIC_LOGDIR}/
 
 ; checks that are to be performed. we expect one section for each check listed here
 checks = labelCheck, farCheck, injectionCheck, operator_signoffCheck, advocate_signoffCheck, iDQ_joint_fapCheck, have_lvem_skymapCheck
@@ -13,18 +147,13 @@ approval_processorMP_logfile = /approval_processorMP.log
 approval_processorO1_logfile = /approval_processor.log
 
 ; client is the gracedb api you want to use
-client = https://gracedb.ligo.org/api/
-;client = https://gracedb-test.ligo.org/api/
-;client = https://moe.phys.uwm.edu/branson/api/
-;client = https://simdb.phys.uwm.edu/api/
+client = ${FAKEDB_DIR}
 
 ; approval_processorMPfiles is the local file directory where the EventDicts.p, EventDicts.txt, and log file will be saved
 ; leave out the home directory location and end forward slash
-approval_processorMPfiles = /public_html/monitor/approval_processorMP/files
-approval_processorO1files = /public_html/monitor/approval_processor/files
+approval_processorMPfiles = /public_html/monitor/approval_processorMPTest/files
 
-; voeventerror_email is the email used to alert any voevent sending errors
-voeventerror_email = mina19@umd.edu
+voeventerror_email = ${EMAIL}
 
 ; forgetmenow_timeout is the time in seconds we should wait after last lvalert to delete an event dictionary
 ; currently set to 1 week = 604800
@@ -47,7 +176,7 @@ em_coinc_text = A coincidence was found between a GRB trigger {0} from {1} and a
 coinc_text = A coherent search of gravitational-wave data coincident with {0} produced a promising candidate. The tentative False Alarm Probability of such a coincidence is {1}.
 ; notification_text is the content of email sent to GRB enthusiasts when a coincidence is found and approval_processorMP uploads a json to event candidate page
 notification_text = A json file was loaded into GraceDb by approval_processorMP. Please take a look online.
-grb_email = cbc+grb@ligo.org burst+grb@ligo.org mina19@umd.edu
+grb_email = ${EMAIL}
 
 ;-----------------------------------------------------------------------------
 ; basic checks for event
@@ -95,7 +224,7 @@ humanscimons = yes
 ; advocate_email is set during observing runs to lvc-cloud-phone@email2phone.net
 advocates = yes
 advocate_text = A transient candidate passed the follow-up criteria. Please check your email immediately and alert others.
-advocate_email = mina19@umd.edu
+advocate_email = ${EMAIL}
 
 [idq_joint_fapCheck]
 ; checks that the joint fap idq value is above the 'default_idqthresh' or pipeline specific 'idqthresh' parameter
@@ -135,6 +264,12 @@ targetRate = 1e-4
 requireManualReset = False
 conf = 0.9999
 
+[CBC_gstlal_LowMass]
+throttleWin = 3600
+targetRate = 1.6e-3
+requireManualReset = False
+conf = 0.9999
+
 [CBC_gstlal_HighMass]
 throttleWin = 3600
 targetRate = 1e-4
@@ -155,7 +290,7 @@ conf = 0.9999
 
 [Burst_CWB_AllSky]
 throttleWin = 3600
-targetRate = 2.5e-6
+targetRate = 1.6e-3
 requireManualReset = False
 conf = 0.9999
 
@@ -169,4 +304,36 @@ conf = 0.9999
 ; sets the window for grouping triggers together related to the same astrophysical event
 [grouper]
 ; grouperWin determines the time window over which we group triggers from the time of the first ungrouped lvalertMP alert arrival
-grouperWin = 3
+grouperWin = 3" > childConfig-approval_processorMPTest.ini
+
+# Comment out the line in approval_processorMPutils regarding sourcing comet
+cd ${APPROVAL_PROCESSORMP_DIR}
+sed -i -e 's/execfile/#execfile/g' approval_processorMPutils.py
+
+# Record the repository directory so that we can simulate events more easily for testing purposes
+cd ${APPROVAL_PROCESSORMP_DIR}/test/virgoImplementation
+echo "${REPO_DIR}" > repoDir.txt 
+
+# Make it easier for sourcing paths and python paths for testing purposes
+echo "export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}" > setup.sh
+chmod +x setup.sh
+
+cd ${HOME_DIR}
+echo "Adding configuration files and libraries to PATH and PYTHONPATH"
+export PYTHONPATH=${REPO_DIR}:${LVALERTTEST_DIR}/lib:${LVALERTMP_DIR}:${APPROVAL_PROCESSORMP_DIR}:${RAVEN_DIR}:${PYTHONPATH}
+export PATH=${APPROVAL_PROCESSORMP_DIR}/bin:${LVALERTTEST_DIR}/bin:${LVALERTMP_DIR}/bin:${PATH}
+echo "DONE"
+
+# Make the lvalertTest_commandMP recognize approval_processorMP's resetThrottle command
+cd ${LVALERTTEST_DIR}/bin
+sed -i -e 's/lvalertMP.lvalert import/approval_processorMP import approval_processorMPcommands as/g' lvalertTest_commandMP
+
+# Make sure raven imports fits from lalinference.io and not lalinference
+cd ${RAVEN_DIR}/raven
+sed -i -e 's/from lalinference import fits/from lalinference.io import fits/g' gracedb_events.py
+
+cd ${HOME_DIR}
+echo "lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v"
+
+lvalertTest_listenMP -f ${FAKEDB_DIR} -c ${APPROVAL_PROCESSORMP_DIR}/etc/lvalert_listenMP-approval_processorMPTest.ini -C ${COMMANDSFILE} -v

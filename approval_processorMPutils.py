@@ -45,7 +45,8 @@ preliminary_to_initial = [
     'farCheck',
     'labelCheck',
     'have_lvem_skymapCheck',
-    'idq_joint_fapCheck'
+    'idq_joint_fapCheck',
+#    'virgo_dqCheck' XXX: removing virgo_dqCheck so that we do not get stalled for applying EM_READY label and sending out initial alerts
     ]
 
 # tasks when currentstate of event is initial_to_update
@@ -270,7 +271,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                         g.writeLog(graceid, 'GRB-GW Coincidence JSON file: grb_offline_json', '/tmp/coinc_{0}.json'.format(graceid), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(graceid))
                     ### alert via email
-                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, graceid, grb_email))
+                    os.system('mail -s "Coincidence JSON created for {0}" {1} <<< "{2}"'.format(graceid, grb_email, notification_text))
                 # is this the json file loaded into GraceDb?
                 if 'GRB-GW Coincidence JSON file' in comment:
                     # if it is, find out which type of json it was and then message_dict['loaded_to_gracedb'] = 1
@@ -529,13 +530,17 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
                     g.writeLog(exttrig, 'GRB-GW Coincidence JSON file: em_coinc_json', '/tmp/coinc_{0}.json'.format(exttrig), tagname = 'em_follow')
                     os.remove('/tmp/coinc_{0}.json'.format(exttrig))
                     ### alert via email
-                    os.system('echo \{0}\' | mail -s \'Coincidence JSON created for {1}\' {2}'.format(notification_text, exttrig, grb_email))
+                    os.system('mail -s "Coincidence JSON created for {0}" {1} <<< "{2}"'.format(exttrig, grb_email, notification_text))
                     saveEventDicts(approval_processorMPfiles)
                 elif 'GRB-GW Coincidence JSON file' in comment: # this is the comment that accompanies a loaded coinc json file
                     message_dict = event_dict.data['em_coinc_json']
                     message_dict = json.loads(message_dict) # converts string to dictionary
                     message_dict['loaded_to_gracedb'] = 1
                     saveEventDicts(approval_processorMPfiles)
+                #elif 'V1 veto channel' in comment and comment.endswith('vetoed'): # this is a Virgo Veto statement we need to record
+                #    record_virgo_dqIsVetoed(event_dict.data, comment, logger)
+                #elif 'V1 hardware injection' in comment and comment.endswith('injections'): # this is a Virgo hardware injection statement we need to record
+                #    record_virgoInjections(event_dict.data, comment, logger)
                 else:
                     pass
 
