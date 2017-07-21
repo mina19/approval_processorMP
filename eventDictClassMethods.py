@@ -967,8 +967,11 @@ def record_virgo_dqIsVetoed(event_dict, comment, client, logger):
         virgoComment = 'Config setting: virgo_dqCheck turned off. Thus, if vetoed, labeling DQV.'
         # if the response was that the trigger IS VETOED, apply DQV label
         if response=='IS':
+            event_dict['virgo_dqCheckresult']=False
             client.writeLog(graceid, 'AP: Labeling DQV.', tagname='em_follow')
             client.writeLabel(graceid, 'DQV')
+        else:
+            event_dict['virgo_dqCheckresult']=True
     message = '{0} -- {1} -- Virgo {2} vetoing this trigger. {3}'.format(convertTime(), graceid, response, virgoComment)
     if loggerCheck(event_dict, message)==False:
         logger.info(message)
