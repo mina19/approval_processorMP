@@ -81,9 +81,9 @@ git clone "https://git.ligo.org/lscsoft/raven.git" ${RAVEN_DIR}
 #cd ${LVALERTMP_DIR}
 #git checkout bf205ca
 
-echo "Checking out branch dontWaitVirgoComments in approval_processorMP"
+echo "Checking out branch optionWaitVirgoComments in approval_processorMP"
 cd ${APPROVAL_PROCESSORMP_DIR}
-git checkout -b dontWaitVirgoComments origin/dontWaitVirgoComments
+git checkout -b optionWaitVirgoComments origin/optionWaitVirgoComments
 
 echo "Creating FAKDB_DIR, OUT_DIR, and COMMAND_FILE directories"
 cd ${HOME_DIR}
