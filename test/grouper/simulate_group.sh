@@ -20,3 +20,8 @@ sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME'/g' simulate_H1L1V1_events.sh
 ./simulate_H1L1V1_events.sh
 ./simulate_H1V1_event.sh
 
+# fixing simulate.py calling scripts to that we can use this script again
+sed -i -e 's/GPSTIME='$GPSTIME'/GPSTIME=0/g' simulate_H1L1_events.sh
+sed -i -e 's/GPSTIME='$GPSTIME'/GPSTIME=0/g' simulate_H1V1_event.sh
+sed -i -e 's/GPSTIME='$GPSTIME'/GPSTIME=0/g' simulate_H1L1V1_events.sh
+
