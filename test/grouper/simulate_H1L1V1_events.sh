@@ -19,5 +19,5 @@ ${REPO_DIR}/lvalertTest/bin/simulate.py \
         --event-rate=${EVENT_RATE} \
         -s \
         -v \
-        --start-time=${GPSTIME}
+        --start-time=${GPSTIME} \
         cwb.ini_2 gstlal.ini_3
