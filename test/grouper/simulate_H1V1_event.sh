@@ -20,5 +20,5 @@ ${REPO_DIR}/lvalertTest/bin/simulate.py \
         --event-rate=${EVENT_RATE} \
         -s \
         -v \
-        gstlal.ini_2 \
-        --start-time=${GPSTIME} 
+        --start-time=${GPSTIME} \
+        gstlal.ini_2
