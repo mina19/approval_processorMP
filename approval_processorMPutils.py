@@ -374,7 +374,7 @@ def parseAlert(queue, queueByGraceID, alert, t0, config):
 
         else: ### have we already made a decision about triggers with gpstimes close to this event's gpstime?
             already_selected = False
-            query_string = 'gpstime: {0} .. {1}'.format(str(event_dict.data['gpstime']-grouperWin), str(event_dict.data['gpstime']+grouperWin))
+            query_string = '{0} .. {1}'.format(str(event_dict.data['gpstime']-grouperWin), str(event_dict.data['gpstime']+grouperWin))
             events = g.events(query_string) # query GraceDb for events
             for event in events: # look to see if any were labeled EM_Selected
                 labels = event['labels'] # get the dictionary of labels
