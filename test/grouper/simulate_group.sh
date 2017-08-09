@@ -10,10 +10,10 @@
 GPSTIME="`tconvert now`"
 echo $GPSTIME
 
-# fixing the simulate.py calling scripts to have the same gpstime so that the simulated events have similar gpstimes
-sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME'/g' simulate_H1L1_events.sh
-sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME'/g' simulate_H1V1_event.sh
-sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME'/g' simulate_H1L1V1_events.sh
+# fixing the simulate.py calling scripts to have the similar gpstimes so that the simulated events have similar gpstimes
+sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME.$RANDOM'/g' simulate_H1L1_events.sh
+sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME.$RANDOM'/g' simulate_H1V1_event.sh
+sed -i -e 's/GPSTIME=0/GPSTIME='$GPSTIME.$RANDOM'/g' simulate_H1L1V1_events.sh
 
 # now calling the scripts to simulate the triggers with the altered gpstimes
 ./simulate_H1L1_events.sh
